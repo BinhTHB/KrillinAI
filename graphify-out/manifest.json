@@ -1,0 +1,1112 @@
+{
+  "E:\\projects\\KrillinAI\\cmd\\cli\\main.go": {
+    "mtime": 1781175860.4209986,
+    "ast_hash": "2453a1a5a093638ab52039fdb4998819",
+    "semantic_hash": "2453a1a5a093638ab52039fdb4998819"
+  },
+  "E:\\projects\\KrillinAI\\cmd\\desktop\\main.go": {
+    "mtime": 1781175860.423007,
+    "ast_hash": "2339e875c27c86164937321b47b49f93",
+    "semantic_hash": "2339e875c27c86164937321b47b49f93"
+  },
+  "E:\\projects\\KrillinAI\\cmd\\server\\main.go": {
+    "mtime": 1781175860.4234695,
+    "ast_hash": "533bab8972b1d7dc67daaca7d61896ae",
+    "semantic_hash": "533bab8972b1d7dc67daaca7d61896ae"
+  },
+  "E:\\projects\\KrillinAI\\config\\config.go": {
+    "mtime": 1781175860.4234695,
+    "ast_hash": "2dfdbbd482e589577bb1e8c4309508cd",
+    "semantic_hash": "2dfdbbd482e589577bb1e8c4309508cd"
+  },
+  "E:\\projects\\KrillinAI\\config\\config_test.go": {
+    "mtime": 1781175860.4253798,
+    "ast_hash": "2c3c576101e7561c4006c95a6596d083",
+    "semantic_hash": "2c3c576101e7561c4006c95a6596d083"
+  },
+  "E:\\projects\\KrillinAI\\config\\subtitle-style-default.json": {
+    "mtime": 1781175860.4253798,
+    "ast_hash": "61fb4a1ae8441a7e6bf7f8d076f831d1",
+    "semantic_hash": "61fb4a1ae8441a7e6bf7f8d076f831d1"
+  },
+  "E:\\projects\\KrillinAI\\config\\subtitle-style-example.json": {
+    "mtime": 1781175860.4263878,
+    "ast_hash": "d59518018b9c4fa677b8be70154826d0",
+    "semantic_hash": "d59518018b9c4fa677b8be70154826d0"
+  },
+  "E:\\projects\\KrillinAI\\config\\subtitle-style-test-cinematic.json": {
+    "mtime": 1781175860.4273858,
+    "ast_hash": "2f26730babeed9c76659fb15f4831e01",
+    "semantic_hash": "2f26730babeed9c76659fb15f4831e01"
+  },
+  "E:\\projects\\KrillinAI\\internal\\api\\subtitle.go": {
+    "mtime": 1781175860.5124242,
+    "ast_hash": "adb1a2aabeadd2f01755620de8b02281",
+    "semantic_hash": "adb1a2aabeadd2f01755620de8b02281"
+  },
+  "E:\\projects\\KrillinAI\\internal\\cli\\commands.go": {
+    "mtime": 1781175860.5124242,
+    "ast_hash": "4ed50bfbb1393a3b7357e5ef77d77922",
+    "semantic_hash": "4ed50bfbb1393a3b7357e5ef77d77922"
+  },
+  "E:\\projects\\KrillinAI\\internal\\cli\\commands_test.go": {
+    "mtime": 1781175860.5124242,
+    "ast_hash": "a277c71bc1d0f9e971c71cde9b419bf3",
+    "semantic_hash": "a277c71bc1d0f9e971c71cde9b419bf3"
+  },
+  "E:\\projects\\KrillinAI\\internal\\deps\\checker.go": {
+    "mtime": 1781175860.5124242,
+    "ast_hash": "0ff8f69daf3fe4425da2eece2ebeb352",
+    "semantic_hash": "0ff8f69daf3fe4425da2eece2ebeb352"
+  },
+  "E:\\projects\\KrillinAI\\internal\\desktop\\components.go": {
+    "mtime": 1781175860.5124242,
+    "ast_hash": "cd975f5542de8c712470eff03ee0be77",
+    "semantic_hash": "cd975f5542de8c712470eff03ee0be77"
+  },
+  "E:\\projects\\KrillinAI\\internal\\desktop\\desktop.go": {
+    "mtime": 1781175860.5124242,
+    "ast_hash": "0a8a041807fe88041f2b48f5b2553509",
+    "semantic_hash": "0a8a041807fe88041f2b48f5b2553509"
+  },
+  "E:\\projects\\KrillinAI\\internal\\desktop\\file.go": {
+    "mtime": 1781175860.5158856,
+    "ast_hash": "b961ec009401f93652eadcf9c42f83ee",
+    "semantic_hash": "b961ec009401f93652eadcf9c42f83ee"
+  },
+  "E:\\projects\\KrillinAI\\internal\\desktop\\subtitle.go": {
+    "mtime": 1781175860.5167048,
+    "ast_hash": "6da08fa3a63d25dd897f4f5a7c4834f6",
+    "semantic_hash": "6da08fa3a63d25dd897f4f5a7c4834f6"
+  },
+  "E:\\projects\\KrillinAI\\internal\\desktop\\theme.go": {
+    "mtime": 1781175860.5167048,
+    "ast_hash": "8070a31aef53e313253f74ebdcb631fc",
+    "semantic_hash": "8070a31aef53e313253f74ebdcb631fc"
+  },
+  "E:\\projects\\KrillinAI\\internal\\desktop\\theme_manager.go": {
+    "mtime": 1781175860.5167048,
+    "ast_hash": "1765f3f3d70b57752465bbb292e05a20",
+    "semantic_hash": "1765f3f3d70b57752465bbb292e05a20"
+  },
+  "E:\\projects\\KrillinAI\\internal\\desktop\\ui.go": {
+    "mtime": 1781175860.5167048,
+    "ast_hash": "2b27ebc00041c216874a36c4acd0ec12",
+    "semantic_hash": "2b27ebc00041c216874a36c4acd0ec12"
+  },
+  "E:\\projects\\KrillinAI\\internal\\dto\\subtitle_task.go": {
+    "mtime": 1781175860.5167048,
+    "ast_hash": "db0fabe1ba5b947a802fa9e42fd3811f",
+    "semantic_hash": "db0fabe1ba5b947a802fa9e42fd3811f"
+  },
+  "E:\\projects\\KrillinAI\\internal\\handler\\config.go": {
+    "mtime": 1781175860.5197344,
+    "ast_hash": "7dfb993d6df61f7f6a60306bd02fb7aa",
+    "semantic_hash": "7dfb993d6df61f7f6a60306bd02fb7aa"
+  },
+  "E:\\projects\\KrillinAI\\internal\\handler\\init.go": {
+    "mtime": 1781175860.520628,
+    "ast_hash": "e5055e4d2a3ddb8bed298431a5abeca9",
+    "semantic_hash": "e5055e4d2a3ddb8bed298431a5abeca9"
+  },
+  "E:\\projects\\KrillinAI\\internal\\handler\\middleware.go": {
+    "mtime": 1781175860.520628,
+    "ast_hash": "42987cfe45a11d29124786614da40bd5",
+    "semantic_hash": "42987cfe45a11d29124786614da40bd5"
+  },
+  "E:\\projects\\KrillinAI\\internal\\handler\\subtitle_task.go": {
+    "mtime": 1781175860.521163,
+    "ast_hash": "a3d3a8cefaee03b0f48d3e35091fb828",
+    "semantic_hash": "a3d3a8cefaee03b0f48d3e35091fb828"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\cover.go": {
+    "mtime": 1781175860.521163,
+    "ast_hash": "704d05e4701c6b04d3dd6cf5576434c0",
+    "semantic_hash": "704d05e4701c6b04d3dd6cf5576434c0"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\cover_test.go": {
+    "mtime": 1781175860.5221746,
+    "ast_hash": "653bf034fb6da5e2bfb74e0c4f4c1017",
+    "semantic_hash": "653bf034fb6da5e2bfb74e0c4f4c1017"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\manifest.go": {
+    "mtime": 1781175860.52267,
+    "ast_hash": "dced26c1a6abeb166c0c07f482a73f51",
+    "semantic_hash": "dced26c1a6abeb166c0c07f482a73f51"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\manifest_test.go": {
+    "mtime": 1781175860.52267,
+    "ast_hash": "b1b086d7a7367f98353cae093e97ce82",
+    "semantic_hash": "b1b086d7a7367f98353cae093e97ce82"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\pipeline.go": {
+    "mtime": 1781175860.5231755,
+    "ast_hash": "6b6942e83e98e09322173b94046aea2d",
+    "semantic_hash": "6b6942e83e98e09322173b94046aea2d"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\pipeline_test.go": {
+    "mtime": 1781175860.5231755,
+    "ast_hash": "d12838c3e97dea9be1fc12901350ddc5",
+    "semantic_hash": "d12838c3e97dea9be1fc12901350ddc5"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\render.go": {
+    "mtime": 1781175860.5246449,
+    "ast_hash": "23e59d805f7c767bee913a5f97171588",
+    "semantic_hash": "23e59d805f7c767bee913a5f97171588"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\render_test.go": {
+    "mtime": 1781175860.5246449,
+    "ast_hash": "5af41134b25343fb4c786bbd96790832",
+    "semantic_hash": "5af41134b25343fb4c786bbd96790832"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\service_adapter.go": {
+    "mtime": 1781175860.5246449,
+    "ast_hash": "3cf88d388edd544ed75a55896e388dd5",
+    "semantic_hash": "3cf88d388edd544ed75a55896e388dd5"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\service_adapter_test.go": {
+    "mtime": 1781175860.525676,
+    "ast_hash": "f90bdce891aeb3cfd508fc4ee97ccde9",
+    "semantic_hash": "f90bdce891aeb3cfd508fc4ee97ccde9"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\srt.go": {
+    "mtime": 1781175860.525676,
+    "ast_hash": "2375c0e01d42a50593f540e7d15ce7d7",
+    "semantic_hash": "2375c0e01d42a50593f540e7d15ce7d7"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\srt_test.go": {
+    "mtime": 1781175860.525676,
+    "ast_hash": "3b80e284c678051858512cd307b42840",
+    "semantic_hash": "3b80e284c678051858512cd307b42840"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\subtitle.go": {
+    "mtime": 1781175860.526668,
+    "ast_hash": "f2125bf8f44e866a95a4dc96276c2892",
+    "semantic_hash": "f2125bf8f44e866a95a4dc96276c2892"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\subtitle_test.go": {
+    "mtime": 1781175860.5276482,
+    "ast_hash": "d349a7f342c81de19cdea4ce2db5a41d",
+    "semantic_hash": "d349a7f342c81de19cdea4ce2db5a41d"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\tts.go": {
+    "mtime": 1781175860.5276482,
+    "ast_hash": "58516506748bcff2e68ed9d37bd76f17",
+    "semantic_hash": "58516506748bcff2e68ed9d37bd76f17"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\tts_test.go": {
+    "mtime": 1781175860.5288324,
+    "ast_hash": "120722caa651ce4b9d11f5f63e9fcda0",
+    "semantic_hash": "120722caa651ce4b9d11f5f63e9fcda0"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\types.go": {
+    "mtime": 1781175860.529329,
+    "ast_hash": "9804017f5c6570f641c6e078a87cb67f",
+    "semantic_hash": "9804017f5c6570f641c6e078a87cb67f"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\types_test.go": {
+    "mtime": 1781175860.529329,
+    "ast_hash": "965623505f432ddef57133fec1e58df3",
+    "semantic_hash": "965623505f432ddef57133fec1e58df3"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\workdir.go": {
+    "mtime": 1781175860.5306485,
+    "ast_hash": "5b6c48e4a84832731eb18613f345acbb",
+    "semantic_hash": "5b6c48e4a84832731eb18613f345acbb"
+  },
+  "E:\\projects\\KrillinAI\\internal\\pipeline\\workdir_test.go": {
+    "mtime": 1781175860.5306485,
+    "ast_hash": "51149f7a459bb1b95b6a23d7ce73f13c",
+    "semantic_hash": "51149f7a459bb1b95b6a23d7ce73f13c"
+  },
+  "E:\\projects\\KrillinAI\\internal\\response\\response.go": {
+    "mtime": 1781175860.5316775,
+    "ast_hash": "6e231e1d2d8b76495c3b2ccae5533934",
+    "semantic_hash": "6e231e1d2d8b76495c3b2ccae5533934"
+  },
+  "E:\\projects\\KrillinAI\\internal\\router\\router.go": {
+    "mtime": 1781175860.5316775,
+    "ast_hash": "e7169eead6e7d2ed8e0bbd287bec7adf",
+    "semantic_hash": "e7169eead6e7d2ed8e0bbd287bec7adf"
+  },
+  "E:\\projects\\KrillinAI\\internal\\server\\server.go": {
+    "mtime": 1781175860.5326543,
+    "ast_hash": "573041c68d64cd64c7be47adc20b8fe4",
+    "semantic_hash": "573041c68d64cd64c7be47adc20b8fe4"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\audio2subtitle.go": {
+    "mtime": 1781175860.5346723,
+    "ast_hash": "8dcae89c6ed6f9e7536fa39096aac795",
+    "semantic_hash": "8dcae89c6ed6f9e7536fa39096aac795"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\audio2subtitle_test.go": {
+    "mtime": 1781175860.5356524,
+    "ast_hash": "6f0c358162cc09f95cb48ca402b11404",
+    "semantic_hash": "6f0c358162cc09f95cb48ca402b11404"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\get_video_info.go": {
+    "mtime": 1781175860.5478382,
+    "ast_hash": "c2c7315d50b01e900d592318fc4a9022",
+    "semantic_hash": "c2c7315d50b01e900d592318fc4a9022"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\init.go": {
+    "mtime": 1781175860.549038,
+    "ast_hash": "567ce22cfebb9ae1309a9f2b5d55cb76",
+    "semantic_hash": "567ce22cfebb9ae1309a9f2b5d55cb76"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\link2file.go": {
+    "mtime": 1781175860.549038,
+    "ast_hash": "f107124d0af441b9a919328c66dd28f8",
+    "semantic_hash": "f107124d0af441b9a919328c66dd28f8"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\render_stage.go": {
+    "mtime": 1781175860.549038,
+    "ast_hash": "055de1e5aa6388d15f5e1d5b2a6ae11c",
+    "semantic_hash": "055de1e5aa6388d15f5e1d5b2a6ae11c"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\render_stage_test.go": {
+    "mtime": 1781175860.5500424,
+    "ast_hash": "22417098c12dab7fa49c15776097b0cb",
+    "semantic_hash": "22417098c12dab7fa49c15776097b0cb"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\split_audio.go": {
+    "mtime": 1781175860.5500424,
+    "ast_hash": "aedcde433cef5a6ddc40dbb7e378191c",
+    "semantic_hash": "aedcde433cef5a6ddc40dbb7e378191c"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\srt2speech.go": {
+    "mtime": 1781175860.5510468,
+    "ast_hash": "dfd741220a9185d88542fb786ebe185f",
+    "semantic_hash": "dfd741220a9185d88542fb786ebe185f"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\srt2speech_test.go": {
+    "mtime": 1781175860.5510468,
+    "ast_hash": "4032bb08ad3cb96844626ffb6ad5b7f2",
+    "semantic_hash": "4032bb08ad3cb96844626ffb6ad5b7f2"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\srt_embed.go": {
+    "mtime": 1781175860.5515516,
+    "ast_hash": "d0d00c225922a61e0560167da632a351",
+    "semantic_hash": "d0d00c225922a61e0560167da632a351"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\srt_embed_test.go": {
+    "mtime": 1781175860.5515516,
+    "ast_hash": "43de89aa42ddc042f28f7b4ff454ea87",
+    "semantic_hash": "43de89aa42ddc042f28f7b4ff454ea87"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\stage_exports.go": {
+    "mtime": 1781175860.5535574,
+    "ast_hash": "02a3c12aeef1a5bb31a80f57982dacef",
+    "semantic_hash": "02a3c12aeef1a5bb31a80f57982dacef"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\stage_exports_test.go": {
+    "mtime": 1781175860.5535574,
+    "ast_hash": "b47c95f2852898b8ea5a36185e2026ee",
+    "semantic_hash": "b47c95f2852898b8ea5a36185e2026ee"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\subtitle_service.go": {
+    "mtime": 1781175860.555072,
+    "ast_hash": "7d84b20e5b549bcd6a8464905c500be5",
+    "semantic_hash": "7d84b20e5b549bcd6a8464905c500be5"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\timestamps.go": {
+    "mtime": 1781175860.55608,
+    "ast_hash": "3eb8f3e83ee08b14f53418c5501af4ee",
+    "semantic_hash": "3eb8f3e83ee08b14f53418c5501af4ee"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\translate.go": {
+    "mtime": 1781175860.5570781,
+    "ast_hash": "c05bca7982a43180d88afb8d17396d44",
+    "semantic_hash": "c05bca7982a43180d88afb8d17396d44"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\upload_subtitle.go": {
+    "mtime": 1781175860.5580776,
+    "ast_hash": "228ece70c519a53435b3985dd5e02c84",
+    "semantic_hash": "228ece70c519a53435b3985dd5e02c84"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\youtube_cookies.go": {
+    "mtime": 1781175860.5590768,
+    "ast_hash": "a6e482bc6822dadb9d5333381cc60f63",
+    "semantic_hash": "a6e482bc6822dadb9d5333381cc60f63"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\youtube_cookies_test.go": {
+    "mtime": 1781175860.5590768,
+    "ast_hash": "3cdaf7d7a3e018f0878d88a1f0deddc6",
+    "semantic_hash": "3cdaf7d7a3e018f0878d88a1f0deddc6"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\youtube_subtitle.go": {
+    "mtime": 1781175860.560077,
+    "ast_hash": "d614e12c0be6ec4b24d0f459420f8321",
+    "semantic_hash": "d614e12c0be6ec4b24d0f459420f8321"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\youtube_subtitle_fix_test.go": {
+    "mtime": 1781175860.561441,
+    "ast_hash": "e9434953b6e3167854e0cb76881a497f",
+    "semantic_hash": "e9434953b6e3167854e0cb76881a497f"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\youtube_subtitle_test.go": {
+    "mtime": 1781175860.561441,
+    "ast_hash": "01fa82d6ac6e86f480260d7e8241dda2",
+    "semantic_hash": "01fa82d6ac6e86f480260d7e8241dda2"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\audio.go": {
+    "mtime": 1781175860.5359967,
+    "ast_hash": "8420adda17ff2edb0df14c403d9eee08",
+    "semantic_hash": "8420adda17ff2edb0df14c403d9eee08"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\audio_assemble_test.go": {
+    "mtime": 1781175860.5359967,
+    "ast_hash": "80e6cd05a5bacac23ba37a66bada98ba",
+    "semantic_hash": "80e6cd05a5bacac23ba37a66bada98ba"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\audio_test.go": {
+    "mtime": 1781175860.5387442,
+    "ast_hash": "8aeb349724347e9e098425091a57536d",
+    "semantic_hash": "8aeb349724347e9e098425091a57536d"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\clean.go": {
+    "mtime": 1781175860.5387442,
+    "ast_hash": "28921845dcfee060b456903873d852b8",
+    "semantic_hash": "28921845dcfee060b456903873d852b8"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\clean_test.go": {
+    "mtime": 1781175860.53974,
+    "ast_hash": "c33d136ed0695e7a4b1c7a3c54aaaad5",
+    "semantic_hash": "c33d136ed0695e7a4b1c7a3c54aaaad5"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\estimator.go": {
+    "mtime": 1781175860.53974,
+    "ast_hash": "4b54d23fd15f87e5be8715f9329fce21",
+    "semantic_hash": "4b54d23fd15f87e5be8715f9329fce21"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\estimator_test.go": {
+    "mtime": 1781175860.5410416,
+    "ast_hash": "23bb9c3d921063685d6536a26abbe6f8",
+    "semantic_hash": "23bb9c3d921063685d6536a26abbe6f8"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\fit.go": {
+    "mtime": 1781175860.5410416,
+    "ast_hash": "6c176c91edc253983ca78d46249d1587",
+    "semantic_hash": "6c176c91edc253983ca78d46249d1587"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\fit_test.go": {
+    "mtime": 1781175860.5410416,
+    "ast_hash": "b8291a0977ff5bc096e32d9e5d066d4a",
+    "semantic_hash": "b8291a0977ff5bc096e32d9e5d066d4a"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\optimizer.go": {
+    "mtime": 1781175860.5410416,
+    "ast_hash": "18c4dd014ad87b9adb69fcc816c98b27",
+    "semantic_hash": "18c4dd014ad87b9adb69fcc816c98b27"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\optimizer_test.go": {
+    "mtime": 1781175860.5426884,
+    "ast_hash": "8111bc10d17ab7aec172ef56d8510682",
+    "semantic_hash": "8111bc10d17ab7aec172ef56d8510682"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\planner.go": {
+    "mtime": 1781175860.5426884,
+    "ast_hash": "a597f967449dcd0e54fa6890f3ac282c",
+    "semantic_hash": "a597f967449dcd0e54fa6890f3ac282c"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\planner_test.go": {
+    "mtime": 1781175860.5426884,
+    "ast_hash": "451449d60380a7eb21198e48d489e11c",
+    "semantic_hash": "451449d60380a7eb21198e48d489e11c"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\runner.go": {
+    "mtime": 1781175860.5436926,
+    "ast_hash": "0b4446a4cb761503c661447717e50d25",
+    "semantic_hash": "0b4446a4cb761503c661447717e50d25"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\runner_test.go": {
+    "mtime": 1781175860.5447214,
+    "ast_hash": "f04f50cefc4aa2a02f6a79a76a424193",
+    "semantic_hash": "f04f50cefc4aa2a02f6a79a76a424193"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\srt.go": {
+    "mtime": 1781175860.5447214,
+    "ast_hash": "792c498967c36d9409796d1f65556013",
+    "semantic_hash": "792c498967c36d9409796d1f65556013"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\srt_test.go": {
+    "mtime": 1781175860.5457141,
+    "ast_hash": "518f07da7748ecdaa094111fbc5eff80",
+    "semantic_hash": "518f07da7748ecdaa094111fbc5eff80"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\tts.go": {
+    "mtime": 1781175860.5457141,
+    "ast_hash": "01cd0c4926e38f41eecfb87b58dd81bf",
+    "semantic_hash": "01cd0c4926e38f41eecfb87b58dd81bf"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\tts_test.go": {
+    "mtime": 1781175860.5474665,
+    "ast_hash": "7842eb416b62f8770fb3977e026bdf82",
+    "semantic_hash": "7842eb416b62f8770fb3977e026bdf82"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\types.go": {
+    "mtime": 1781175860.5478382,
+    "ast_hash": "e78da223f6f18d67134f2568e8fe0a3c",
+    "semantic_hash": "e78da223f6f18d67134f2568e8fe0a3c"
+  },
+  "E:\\projects\\KrillinAI\\internal\\service\\dubbing\\types_test.go": {
+    "mtime": 1781175860.5478382,
+    "ast_hash": "be16eb08d500a640c5a3bb88a6c3fc71",
+    "semantic_hash": "be16eb08d500a640c5a3bb88a6c3fc71"
+  },
+  "E:\\projects\\KrillinAI\\internal\\storage\\bin.go": {
+    "mtime": 1781175860.561441,
+    "ast_hash": "445c630ebfa5c05e8bfd5043ebdd8330",
+    "semantic_hash": "445c630ebfa5c05e8bfd5043ebdd8330"
+  },
+  "E:\\projects\\KrillinAI\\internal\\storage\\subtitle_task.go": {
+    "mtime": 1781175860.5624475,
+    "ast_hash": "54789869feb134205c8a56da77c1fae0",
+    "semantic_hash": "54789869feb134205c8a56da77c1fae0"
+  },
+  "E:\\projects\\KrillinAI\\internal\\subtitle_style\\style.go": {
+    "mtime": 1781175860.5624475,
+    "ast_hash": "30559fddbefb73f32f328ceb55bd7b1b",
+    "semantic_hash": "30559fddbefb73f32f328ceb55bd7b1b"
+  },
+  "E:\\projects\\KrillinAI\\internal\\subtitle_style\\style_test.go": {
+    "mtime": 1781175860.5634658,
+    "ast_hash": "8ffc386888894b34b77669bca7daff6e",
+    "semantic_hash": "8ffc386888894b34b77669bca7daff6e"
+  },
+  "E:\\projects\\KrillinAI\\internal\\types\\embed_subtitle.go": {
+    "mtime": 1781175860.5644467,
+    "ast_hash": "30ed30b7ac3107d51c4679fc429990b4",
+    "semantic_hash": "30ed30b7ac3107d51c4679fc429990b4"
+  },
+  "E:\\projects\\KrillinAI\\internal\\types\\embed_subtitle_test.go": {
+    "mtime": 1781175860.5644467,
+    "ast_hash": "9fee5481245a818049ed99da714e7eb5",
+    "semantic_hash": "9fee5481245a818049ed99da714e7eb5"
+  },
+  "E:\\projects\\KrillinAI\\internal\\types\\fasterwhisper.go": {
+    "mtime": 1781175860.5654454,
+    "ast_hash": "bd10b4b9a2baecd37b86ef027148796b",
+    "semantic_hash": "bd10b4b9a2baecd37b86ef027148796b"
+  },
+  "E:\\projects\\KrillinAI\\internal\\types\\interface.go": {
+    "mtime": 1781175860.5654454,
+    "ast_hash": "c145490ae5f1dc2a7ccac682cafc2aac",
+    "semantic_hash": "c145490ae5f1dc2a7ccac682cafc2aac"
+  },
+  "E:\\projects\\KrillinAI\\internal\\types\\language.go": {
+    "mtime": 1781175860.5654454,
+    "ast_hash": "864e7eebfbb1b6bf7c7b19680ee2578d",
+    "semantic_hash": "864e7eebfbb1b6bf7c7b19680ee2578d"
+  },
+  "E:\\projects\\KrillinAI\\internal\\types\\subtitle_task.go": {
+    "mtime": 1781175860.5654454,
+    "ast_hash": "64ea43722641f63b64a98f45a61d0dc9",
+    "semantic_hash": "64ea43722641f63b64a98f45a61d0dc9"
+  },
+  "E:\\projects\\KrillinAI\\internal\\types\\whispercpp.go": {
+    "mtime": 1781175860.5654454,
+    "ast_hash": "0a7cb3cf547c1c3476ce67a315ac67be",
+    "semantic_hash": "0a7cb3cf547c1c3476ce67a315ac67be"
+  },
+  "E:\\projects\\KrillinAI\\internal\\types\\whisperkit.go": {
+    "mtime": 1781175860.5654454,
+    "ast_hash": "61347aeff529fc1ee2eff87fb41d7b25",
+    "semantic_hash": "61347aeff529fc1ee2eff87fb41d7b25"
+  },
+  "E:\\projects\\KrillinAI\\internal\\types\\whisperx.go": {
+    "mtime": 1781175860.5654454,
+    "ast_hash": "064a8ec94b738cb53e3eea3530c2688e",
+    "semantic_hash": "064a8ec94b738cb53e3eea3530c2688e"
+  },
+  "E:\\projects\\KrillinAI\\log\\zap.go": {
+    "mtime": 1781175860.5691185,
+    "ast_hash": "7e4218c84280e7b047671d711feb0a42",
+    "semantic_hash": "7e4218c84280e7b047671d711feb0a42"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\aliyun\\asr.go": {
+    "mtime": 1781175860.571125,
+    "ast_hash": "cf66a0b4a1b382799c45020d3e068b29",
+    "semantic_hash": "cf66a0b4a1b382799c45020d3e068b29"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\aliyun\\base.go": {
+    "mtime": 1781175860.571125,
+    "ast_hash": "37b93fe682bed6a84a247988894d5d8d",
+    "semantic_hash": "37b93fe682bed6a84a247988894d5d8d"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\aliyun\\chat.go": {
+    "mtime": 1781175860.571125,
+    "ast_hash": "8deca763d47abd82b9730561233e5396",
+    "semantic_hash": "8deca763d47abd82b9730561233e5396"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\aliyun\\oss.go": {
+    "mtime": 1781175860.5731847,
+    "ast_hash": "0d39f5bd669fc0908862a3aadd4e8c25",
+    "semantic_hash": "0d39f5bd669fc0908862a3aadd4e8c25"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\aliyun\\tts.go": {
+    "mtime": 1781175860.5731847,
+    "ast_hash": "bd6df03ae476c06403f7fdad4d19360e",
+    "semantic_hash": "bd6df03ae476c06403f7fdad4d19360e"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\aliyun\\voice_clone.go": {
+    "mtime": 1781175860.5731847,
+    "ast_hash": "832d611917a9cc14996883624b0baa7a",
+    "semantic_hash": "832d611917a9cc14996883624b0baa7a"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\fasterwhisper\\init.go": {
+    "mtime": 1781175860.575228,
+    "ast_hash": "2cefa1f60622a85651036ca1b882b3c2",
+    "semantic_hash": "2cefa1f60622a85651036ca1b882b3c2"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\fasterwhisper\\transcription.go": {
+    "mtime": 1781175860.575228,
+    "ast_hash": "e31ad4fdef92dc3619063012c552d2f8",
+    "semantic_hash": "e31ad4fdef92dc3619063012c552d2f8"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\image\\openai_compatible.go": {
+    "mtime": 1781175860.575228,
+    "ast_hash": "b1162f26abef1546ad651430729b7f3d",
+    "semantic_hash": "b1162f26abef1546ad651430729b7f3d"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\image\\openai_compatible_test.go": {
+    "mtime": 1781175860.5772624,
+    "ast_hash": "a83869c13a6228af3943f722c2533662",
+    "semantic_hash": "a83869c13a6228af3943f722c2533662"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\localtts\\edgetts.go": {
+    "mtime": 1781175860.5772624,
+    "ast_hash": "d1d38b9d0baec1bc63b0fa7698488c18",
+    "semantic_hash": "d1d38b9d0baec1bc63b0fa7698488c18"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\openai\\init.go": {
+    "mtime": 1781175860.5792644,
+    "ast_hash": "3ea7bfc7e5db0df67a06b39914fd87b6",
+    "semantic_hash": "3ea7bfc7e5db0df67a06b39914fd87b6"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\openai\\openai.go": {
+    "mtime": 1781175860.5792644,
+    "ast_hash": "a35d3bfe73dbf4b0c81ad53b2449e9a5",
+    "semantic_hash": "a35d3bfe73dbf4b0c81ad53b2449e9a5"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\util\\audio.go": {
+    "mtime": 1781175860.581759,
+    "ast_hash": "e576565911493c16d5f92cf7e5905300",
+    "semantic_hash": "e576565911493c16d5f92cf7e5905300"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\util\\base.go": {
+    "mtime": 1781175860.582935,
+    "ast_hash": "61e7f4b5c5e00d567d47d42f320a031e",
+    "semantic_hash": "61e7f4b5c5e00d567d47d42f320a031e"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\util\\download.go": {
+    "mtime": 1781175860.582935,
+    "ast_hash": "5f798ef6481d84cf9d4984c90f397418",
+    "semantic_hash": "5f798ef6481d84cf9d4984c90f397418"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\util\\language.go": {
+    "mtime": 1781175860.582935,
+    "ast_hash": "8c7544fd39c837ebae605f88028d6332",
+    "semantic_hash": "8c7544fd39c837ebae605f88028d6332"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\util\\queue.go": {
+    "mtime": 1781175860.583954,
+    "ast_hash": "a2eb00e4613fabffba840b4b197265c0",
+    "semantic_hash": "a2eb00e4613fabffba840b4b197265c0"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\util\\subtitle.go": {
+    "mtime": 1781175860.5846283,
+    "ast_hash": "a98b68f487ac6dbd0507d1dfa9e45a1b",
+    "semantic_hash": "a98b68f487ac6dbd0507d1dfa9e45a1b"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\util\\subtitle_test.go": {
+    "mtime": 1781175860.585034,
+    "ast_hash": "8f8942d52cc42f1742508651cef457b2",
+    "semantic_hash": "8f8942d52cc42f1742508651cef457b2"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\util\\video.go": {
+    "mtime": 1781175860.585034,
+    "ast_hash": "2af6b1bbb9ee55f65f04397828c2b87d",
+    "semantic_hash": "2af6b1bbb9ee55f65f04397828c2b87d"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\util\\youtube_subtitle_helper.go": {
+    "mtime": 1781175860.5860488,
+    "ast_hash": "b7c38fadfdbc47f2e1b183b653cb420c",
+    "semantic_hash": "b7c38fadfdbc47f2e1b183b653cb420c"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\whisper\\init.go": {
+    "mtime": 1781175860.587048,
+    "ast_hash": "bbf67f289acf9804a0dfe7f3cc620bad",
+    "semantic_hash": "bbf67f289acf9804a0dfe7f3cc620bad"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\whisper\\whisper.go": {
+    "mtime": 1781175860.587048,
+    "ast_hash": "8636aba6d40d952b5feff8d16ac8c8d8",
+    "semantic_hash": "8636aba6d40d952b5feff8d16ac8c8d8"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\whispercpp\\init.go": {
+    "mtime": 1781175860.588076,
+    "ast_hash": "a75576922f6f9e3a65b6d2239236c155",
+    "semantic_hash": "a75576922f6f9e3a65b6d2239236c155"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\whispercpp\\transcription.go": {
+    "mtime": 1781175860.589072,
+    "ast_hash": "691e0cf62d36c1ba6d3496d004bea567",
+    "semantic_hash": "691e0cf62d36c1ba6d3496d004bea567"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\whisperkit\\init.go": {
+    "mtime": 1781175860.59006,
+    "ast_hash": "7bbc8cf875a462d20175a57f2b9ce58b",
+    "semantic_hash": "7bbc8cf875a462d20175a57f2b9ce58b"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\whisperkit\\transcription.go": {
+    "mtime": 1781175860.59006,
+    "ast_hash": "01e3a609be0dd34ed49c4e14d8054ec7",
+    "semantic_hash": "01e3a609be0dd34ed49c4e14d8054ec7"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\whisperx\\init.go": {
+    "mtime": 1781175860.591806,
+    "ast_hash": "67dfb618f052c700e94fc44c2e1ab6b6",
+    "semantic_hash": "67dfb618f052c700e94fc44c2e1ab6b6"
+  },
+  "E:\\projects\\KrillinAI\\pkg\\whisperx\\transcription.go": {
+    "mtime": 1781175860.591806,
+    "ast_hash": "af68c885d56e4617c369bd65c7db862c",
+    "semantic_hash": "af68c885d56e4617c369bd65c7db862c"
+  },
+  "E:\\projects\\KrillinAI\\static\\embed.go": {
+    "mtime": 1781175860.603213,
+    "ast_hash": "1ffaf151b853b923bf00cccb199b5c9d",
+    "semantic_hash": "1ffaf151b853b923bf00cccb199b5c9d"
+  },
+  "E:\\projects\\KrillinAI\\.goreleaser.yaml": {
+    "mtime": 1781175860.415833,
+    "ast_hash": "743eefb08182e8f0a2b6b78667861065",
+    "semantic_hash": "743eefb08182e8f0a2b6b78667861065"
+  },
+  "E:\\projects\\KrillinAI\\aliyun.md": {
+    "mtime": 1781175860.4199429,
+    "ast_hash": "af37c14707399f6d30d023b01a2df037",
+    "semantic_hash": "af37c14707399f6d30d023b01a2df037"
+  },
+  "E:\\projects\\KrillinAI\\docker.md": {
+    "mtime": 1781175860.4273858,
+    "ast_hash": "bf32d57185153574eeb91f3eace0adc4",
+    "semantic_hash": "bf32d57185153574eeb91f3eace0adc4"
+  },
+  "E:\\projects\\KrillinAI\\edge_tts_voice_code.md": {
+    "mtime": 1781175860.5099144,
+    "ast_hash": "17c0dbd1f5027647bbb4638eef3abfa7",
+    "semantic_hash": "17c0dbd1f5027647bbb4638eef3abfa7"
+  },
+  "E:\\projects\\KrillinAI\\faq.md": {
+    "mtime": 1781175860.5099144,
+    "ast_hash": "d29521048f7dfba4b13da746c35858a7",
+    "semantic_hash": "d29521048f7dfba4b13da746c35858a7"
+  },
+  "E:\\projects\\KrillinAI\\README.md": {
+    "mtime": 1781175860.4174683,
+    "ast_hash": "272b8edf2e7f627b2c22c131b9d5775f",
+    "semantic_hash": "272b8edf2e7f627b2c22c131b9d5775f"
+  },
+  "E:\\projects\\KrillinAI\\docs\\ar\\aliyun.md": {
+    "mtime": 1781175860.4293845,
+    "ast_hash": "961477d69a1fceae033cde598737357e",
+    "semantic_hash": "961477d69a1fceae033cde598737357e"
+  },
+  "E:\\projects\\KrillinAI\\docs\\ar\\docker.md": {
+    "mtime": 1781175860.430915,
+    "ast_hash": "ce0756bed9dcf81b64f21531baba521d",
+    "semantic_hash": "ce0756bed9dcf81b64f21531baba521d"
+  },
+  "E:\\projects\\KrillinAI\\docs\\ar\\faq.md": {
+    "mtime": 1781175860.431868,
+    "ast_hash": "ab41e6d9edb4bae66eb7e1a7068ae695",
+    "semantic_hash": "ab41e6d9edb4bae66eb7e1a7068ae695"
+  },
+  "E:\\projects\\KrillinAI\\docs\\ar\\README.md": {
+    "mtime": 1781175860.4293845,
+    "ast_hash": "2464ca6207c230c251f9c9f07b3c4176",
+    "semantic_hash": "2464ca6207c230c251f9c9f07b3c4176"
+  },
+  "E:\\projects\\KrillinAI\\docs\\de\\aliyun.md": {
+    "mtime": 1781175860.4328747,
+    "ast_hash": "6700465a37d08e000ac026e067791f1d",
+    "semantic_hash": "6700465a37d08e000ac026e067791f1d"
+  },
+  "E:\\projects\\KrillinAI\\docs\\de\\docker.md": {
+    "mtime": 1781175860.4338713,
+    "ast_hash": "1fefae5f562e3f8bd83c7f6d8f1c79f5",
+    "semantic_hash": "1fefae5f562e3f8bd83c7f6d8f1c79f5"
+  },
+  "E:\\projects\\KrillinAI\\docs\\de\\faq.md": {
+    "mtime": 1781175860.4338713,
+    "ast_hash": "41a75d75d17810c8eb3c25f47a2a6dca",
+    "semantic_hash": "41a75d75d17810c8eb3c25f47a2a6dca"
+  },
+  "E:\\projects\\KrillinAI\\docs\\de\\README.md": {
+    "mtime": 1781175860.4328747,
+    "ast_hash": "6f02d9c89f6ed7dc38af154cb7159843",
+    "semantic_hash": "6f02d9c89f6ed7dc38af154cb7159843"
+  },
+  "E:\\projects\\KrillinAI\\docs\\es\\aliyun.md": {
+    "mtime": 1781175860.4348557,
+    "ast_hash": "8e149376be13c2bd63fe12bd4a46bfe1",
+    "semantic_hash": "8e149376be13c2bd63fe12bd4a46bfe1"
+  },
+  "E:\\projects\\KrillinAI\\docs\\es\\docker.md": {
+    "mtime": 1781175860.4348557,
+    "ast_hash": "ac9089168d0799607bebe789ef06b700",
+    "semantic_hash": "ac9089168d0799607bebe789ef06b700"
+  },
+  "E:\\projects\\KrillinAI\\docs\\es\\faq.md": {
+    "mtime": 1781175860.4348557,
+    "ast_hash": "d736c196fc150c78d7a2ce722f18d40d",
+    "semantic_hash": "d736c196fc150c78d7a2ce722f18d40d"
+  },
+  "E:\\projects\\KrillinAI\\docs\\es\\README.md": {
+    "mtime": 1781175860.4348557,
+    "ast_hash": "176ca7aa3f7909f2296d35f38ef2c88a",
+    "semantic_hash": "176ca7aa3f7909f2296d35f38ef2c88a"
+  },
+  "E:\\projects\\KrillinAI\\docs\\fr\\aliyun.md": {
+    "mtime": 1781175860.4348557,
+    "ast_hash": "23b7053ffdebb64d7d08b1bbadc84b35",
+    "semantic_hash": "23b7053ffdebb64d7d08b1bbadc84b35"
+  },
+  "E:\\projects\\KrillinAI\\docs\\fr\\docker.md": {
+    "mtime": 1781175860.437765,
+    "ast_hash": "b6ceda1595c9fbbf6930c6726110e978",
+    "semantic_hash": "b6ceda1595c9fbbf6930c6726110e978"
+  },
+  "E:\\projects\\KrillinAI\\docs\\fr\\faq.md": {
+    "mtime": 1781175860.4387705,
+    "ast_hash": "acafd9023468a9dd1bea822c1a1b8497",
+    "semantic_hash": "acafd9023468a9dd1bea822c1a1b8497"
+  },
+  "E:\\projects\\KrillinAI\\docs\\fr\\README.md": {
+    "mtime": 1781175860.4348557,
+    "ast_hash": "83392d40185aba81bd0c2c6c10cab2eb",
+    "semantic_hash": "83392d40185aba81bd0c2c6c10cab2eb"
+  },
+  "E:\\projects\\KrillinAI\\docs\\jp\\aliyun.md": {
+    "mtime": 1781175860.4877858,
+    "ast_hash": "32199a0c912315e3c5695624fa8ee98f",
+    "semantic_hash": "32199a0c912315e3c5695624fa8ee98f"
+  },
+  "E:\\projects\\KrillinAI\\docs\\jp\\docker.md": {
+    "mtime": 1781175860.4897933,
+    "ast_hash": "d0ff1f6cd8d2bb85ff8013c33377f5af",
+    "semantic_hash": "d0ff1f6cd8d2bb85ff8013c33377f5af"
+  },
+  "E:\\projects\\KrillinAI\\docs\\jp\\faq.md": {
+    "mtime": 1781175860.4908288,
+    "ast_hash": "c529e19431f214cfd05ead6a0ee222ae",
+    "semantic_hash": "c529e19431f214cfd05ead6a0ee222ae"
+  },
+  "E:\\projects\\KrillinAI\\docs\\jp\\README.md": {
+    "mtime": 1781175860.4877858,
+    "ast_hash": "07c9b93773fc975c54ec4ffdc6430f7d",
+    "semantic_hash": "07c9b93773fc975c54ec4ffdc6430f7d"
+  },
+  "E:\\projects\\KrillinAI\\docs\\kr\\aliyun.md": {
+    "mtime": 1781175860.4923558,
+    "ast_hash": "2ecc8c5c46ca37afafdf140b9d924b25",
+    "semantic_hash": "2ecc8c5c46ca37afafdf140b9d924b25"
+  },
+  "E:\\projects\\KrillinAI\\docs\\kr\\docker.md": {
+    "mtime": 1781175860.493432,
+    "ast_hash": "1a17d0f343ff40479d55e305ddb04111",
+    "semantic_hash": "1a17d0f343ff40479d55e305ddb04111"
+  },
+  "E:\\projects\\KrillinAI\\docs\\kr\\faq.md": {
+    "mtime": 1781175860.493432,
+    "ast_hash": "f7b2c404ee427b8ea4a8dd1980d04c93",
+    "semantic_hash": "f7b2c404ee427b8ea4a8dd1980d04c93"
+  },
+  "E:\\projects\\KrillinAI\\docs\\kr\\README.md": {
+    "mtime": 1781175860.4908288,
+    "ast_hash": "366b911b36d58b0bbdd422a5950440dd",
+    "semantic_hash": "366b911b36d58b0bbdd422a5950440dd"
+  },
+  "E:\\projects\\KrillinAI\\docs\\pt\\aliyun.md": {
+    "mtime": 1781175860.4954517,
+    "ast_hash": "81b0a06c817cc319eb6370cb29724cb6",
+    "semantic_hash": "81b0a06c817cc319eb6370cb29724cb6"
+  },
+  "E:\\projects\\KrillinAI\\docs\\pt\\docker.md": {
+    "mtime": 1781175860.496432,
+    "ast_hash": "5ed405c39c26810003e8c7ae2aa70e65",
+    "semantic_hash": "5ed405c39c26810003e8c7ae2aa70e65"
+  },
+  "E:\\projects\\KrillinAI\\docs\\pt\\faq.md": {
+    "mtime": 1781175860.4974303,
+    "ast_hash": "54e4bb1da98dc17b4db487f1370468ff",
+    "semantic_hash": "54e4bb1da98dc17b4db487f1370468ff"
+  },
+  "E:\\projects\\KrillinAI\\docs\\pt\\README.md": {
+    "mtime": 1781175860.4954517,
+    "ast_hash": "a540d44db7404cf8d741ec1271ec6a74",
+    "semantic_hash": "a540d44db7404cf8d741ec1271ec6a74"
+  },
+  "E:\\projects\\KrillinAI\\docs\\rus\\aliyun.md": {
+    "mtime": 1781175860.4984293,
+    "ast_hash": "7be12585d559fd993bc810bf2db73456",
+    "semantic_hash": "7be12585d559fd993bc810bf2db73456"
+  },
+  "E:\\projects\\KrillinAI\\docs\\rus\\docker.md": {
+    "mtime": 1781175860.4994318,
+    "ast_hash": "aa064d8674421dc6a90648a35897168c",
+    "semantic_hash": "aa064d8674421dc6a90648a35897168c"
+  },
+  "E:\\projects\\KrillinAI\\docs\\rus\\faq.md": {
+    "mtime": 1781175860.4994318,
+    "ast_hash": "594de089c66f886426e67fe3d701abf7",
+    "semantic_hash": "594de089c66f886426e67fe3d701abf7"
+  },
+  "E:\\projects\\KrillinAI\\docs\\rus\\README.md": {
+    "mtime": 1781175860.4984293,
+    "ast_hash": "b690ff37a196e53e3a2bc94fdd45476d",
+    "semantic_hash": "b690ff37a196e53e3a2bc94fdd45476d"
+  },
+  "E:\\projects\\KrillinAI\\docs\\vi\\aliyun.md": {
+    "mtime": 1781175860.5046465,
+    "ast_hash": "7a7e40876759703ba7ddb2155680c83d",
+    "semantic_hash": "7a7e40876759703ba7ddb2155680c83d"
+  },
+  "E:\\projects\\KrillinAI\\docs\\vi\\docker.md": {
+    "mtime": 1781175860.5046465,
+    "ast_hash": "ff6cdf0ebb20ee9dd7fd20c2aad32f65",
+    "semantic_hash": "ff6cdf0ebb20ee9dd7fd20c2aad32f65"
+  },
+  "E:\\projects\\KrillinAI\\docs\\vi\\faq.md": {
+    "mtime": 1781175860.5046465,
+    "ast_hash": "221799842f1effcdc1bd1328dc187eda",
+    "semantic_hash": "221799842f1effcdc1bd1328dc187eda"
+  },
+  "E:\\projects\\KrillinAI\\docs\\vi\\README.md": {
+    "mtime": 1781175860.5046465,
+    "ast_hash": "813f0b16cd919e1ecf0f502f92285091",
+    "semantic_hash": "813f0b16cd919e1ecf0f502f92285091"
+  },
+  "E:\\projects\\KrillinAI\\docs\\zh\\aliyun.md": {
+    "mtime": 1781175860.5069091,
+    "ast_hash": "feb7acd3dc12a5551c8d85355918b623",
+    "semantic_hash": "feb7acd3dc12a5551c8d85355918b623"
+  },
+  "E:\\projects\\KrillinAI\\docs\\zh\\cli.md": {
+    "mtime": 1781175860.5079138,
+    "ast_hash": "43f756fc0ea093141f702ef5fc668475",
+    "semantic_hash": "43f756fc0ea093141f702ef5fc668475"
+  },
+  "E:\\projects\\KrillinAI\\docs\\zh\\docker.md": {
+    "mtime": 1781175860.5079138,
+    "ast_hash": "6200d67cb3c857d61ae041b56ef27b4e",
+    "semantic_hash": "6200d67cb3c857d61ae041b56ef27b4e"
+  },
+  "E:\\projects\\KrillinAI\\docs\\zh\\faq.md": {
+    "mtime": 1781175860.508938,
+    "ast_hash": "f3cc14ca378ad6729ff73705a18badb3",
+    "semantic_hash": "f3cc14ca378ad6729ff73705a18badb3"
+  },
+  "E:\\projects\\KrillinAI\\docs\\zh\\README.md": {
+    "mtime": 1781175860.5069091,
+    "ast_hash": "a71c692532023e7c6b18eacd6addcb7a",
+    "semantic_hash": "a71c692532023e7c6b18eacd6addcb7a"
+  },
+  "E:\\projects\\KrillinAI\\skills\\krillinai-cli\\SKILL.md": {
+    "mtime": 1781175860.5938137,
+    "ast_hash": "7069be663be3481b5680c6584d23159c",
+    "semantic_hash": "7069be663be3481b5680c6584d23159c"
+  },
+  "E:\\projects\\KrillinAI\\skills\\krillinai-cli\\references\\cli-contract.md": {
+    "mtime": 1781175860.5952616,
+    "ast_hash": "8584b769a6863834706e31cf80bc00b7",
+    "semantic_hash": "8584b769a6863834706e31cf80bc00b7"
+  },
+  "E:\\projects\\KrillinAI\\skills\\krillinai-cover\\SKILL.md": {
+    "mtime": 1781175860.5952616,
+    "ast_hash": "853a5c08aba3055c2e47d717af124cc0",
+    "semantic_hash": "853a5c08aba3055c2e47d717af124cc0"
+  },
+  "E:\\projects\\KrillinAI\\skills\\krillinai-pipeline\\SKILL.md": {
+    "mtime": 1781175860.5952616,
+    "ast_hash": "4e926f5c451b0594820961879b11d463",
+    "semantic_hash": "4e926f5c451b0594820961879b11d463"
+  },
+  "E:\\projects\\KrillinAI\\skills\\krillinai-render-horizontal\\SKILL.md": {
+    "mtime": 1781175860.5974681,
+    "ast_hash": "75346b11cac4a3618cda4ed6d9f72e40",
+    "semantic_hash": "75346b11cac4a3618cda4ed6d9f72e40"
+  },
+  "E:\\projects\\KrillinAI\\skills\\krillinai-render-vertical\\SKILL.md": {
+    "mtime": 1781175860.598476,
+    "ast_hash": "b7b952a66ada4be357341c52d31fc2bf",
+    "semantic_hash": "b7b952a66ada4be357341c52d31fc2bf"
+  },
+  "E:\\projects\\KrillinAI\\skills\\krillinai-subtitle\\SKILL.md": {
+    "mtime": 1781175860.598476,
+    "ast_hash": "ba908163c6c6bd190a73c5b2e7235266",
+    "semantic_hash": "ba908163c6c6bd190a73c5b2e7235266"
+  },
+  "E:\\projects\\KrillinAI\\skills\\krillinai-tts\\SKILL.md": {
+    "mtime": 1781175860.5995226,
+    "ast_hash": "bed214a1cd26abfeb5852115639ed6b7",
+    "semantic_hash": "bed214a1cd26abfeb5852115639ed6b7"
+  },
+  "E:\\projects\\KrillinAI\\static\\index.html": {
+    "mtime": 1781175860.6043997,
+    "ast_hash": "8848d1fcd08fea22de3fdad05cbb316d",
+    "semantic_hash": "8848d1fcd08fea22de3fdad05cbb316d"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\alignment.png": {
+    "mtime": 1781175860.4408545,
+    "ast_hash": "ce1f30b7648050c241bbaef3d13634d7",
+    "semantic_hash": "ce1f30b7648050c241bbaef3d13634d7"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\aliyun_accesskey_1.png": {
+    "mtime": 1781175860.4408545,
+    "ast_hash": "6e82731d3524e661e9719ca097d66583",
+    "semantic_hash": "6e82731d3524e661e9719ca097d66583"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\aliyun_oss_1.png": {
+    "mtime": 1781175860.4441712,
+    "ast_hash": "c3519866b6ba7ac9ca348e7c973e1893",
+    "semantic_hash": "c3519866b6ba7ac9ca348e7c973e1893"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\aliyun_oss_2.png": {
+    "mtime": 1781175860.4507399,
+    "ast_hash": "45a328d916b53e9f8c7d29bda9c58264",
+    "semantic_hash": "45a328d916b53e9f8c7d29bda9c58264"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\aliyun_oss_3.png": {
+    "mtime": 1781175860.451763,
+    "ast_hash": "331150f724159e431b0c6587bdbc8860",
+    "semantic_hash": "331150f724159e431b0c6587bdbc8860"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\aliyun_oss_4.png": {
+    "mtime": 1781175860.4569623,
+    "ast_hash": "fa4f74eb0d6e53b4ae9a7448af6656c2",
+    "semantic_hash": "fa4f74eb0d6e53b4ae9a7448af6656c2"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\aliyun_oss_5.png": {
+    "mtime": 1781175860.460753,
+    "ast_hash": "45affcde5a602e4c1d285a83a8c3dded",
+    "semantic_hash": "45affcde5a602e4c1d285a83a8c3dded"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\aliyun_speech_1.png": {
+    "mtime": 1781175860.4633536,
+    "ast_hash": "c1cb37776fd863d79a6c6e925643c3d2",
+    "semantic_hash": "c1cb37776fd863d79a6c6e925643c3d2"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\aliyun_speech_2.png": {
+    "mtime": 1781175860.4643502,
+    "ast_hash": "1dc8ecf76ee537ac282102f301f7a505",
+    "semantic_hash": "1dc8ecf76ee537ac282102f301f7a505"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\aliyun_speech_3.png": {
+    "mtime": 1781175860.4707434,
+    "ast_hash": "c8ae97557625f1c4b5e6e1a443985d13",
+    "semantic_hash": "c8ae97557625f1c4b5e6e1a443985d13"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\aliyun_speech_4.png": {
+    "mtime": 1781175860.4707434,
+    "ast_hash": "36559e9298eeb28c78942e4aa4e984e6",
+    "semantic_hash": "36559e9298eeb28c78942e4aa4e984e6"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\bailian_1.png": {
+    "mtime": 1781175860.4740708,
+    "ast_hash": "183f1e1b8bb879603819c0f46c4240e8",
+    "semantic_hash": "183f1e1b8bb879603819c0f46c4240e8"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\export_cookies.png": {
+    "mtime": 1781175860.4812567,
+    "ast_hash": "f28388bc83d7f60d92767390b42a0997",
+    "semantic_hash": "f28388bc83d7f60d92767390b42a0997"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\logo.jpg": {
+    "mtime": 1781175860.4812567,
+    "ast_hash": "f60da17c99e91b43316c11dfe925977a",
+    "semantic_hash": "f60da17c99e91b43316c11dfe925977a"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\ui.jpg": {
+    "mtime": 1781175860.4831555,
+    "ast_hash": "53131bd539591117497c609785425a60",
+    "semantic_hash": "53131bd539591117497c609785425a60"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\ui_desktop_dark.png": {
+    "mtime": 1781175860.4851706,
+    "ast_hash": "3214cc5c4b2a98163dfc9c04d755f0b4",
+    "semantic_hash": "3214cc5c4b2a98163dfc9c04d755f0b4"
+  },
+  "E:\\projects\\KrillinAI\\docs\\images\\ui_desktop_light.png": {
+    "mtime": 1781175860.4871628,
+    "ast_hash": "d5b5ab4b99812779b5e5c65d46998f6c",
+    "semantic_hash": "d5b5ab4b99812779b5e5c65d46998f6c"
+  },
+  "E:\\projects\\KrillinAI\\static\\background.jpg": {
+    "mtime": 1781175860.602738,
+    "ast_hash": "3a08c8729f1ff58a3ac92372521713f7",
+    "semantic_hash": "3a08c8729f1ff58a3ac92372521713f7"
+  },
+  "E:\\projects\\KrillinAI\\static\\source\\deepseek-color.png": {
+    "mtime": 1781175860.6043997,
+    "ast_hash": "8931f69a225e0ee0ef798c739e885ef0",
+    "semantic_hash": "8931f69a225e0ee0ef798c739e885ef0"
+  },
+  "E:\\projects\\KrillinAI\\static\\source\\deepseek-color.svg": {
+    "mtime": 1781175860.6054068,
+    "ast_hash": "24511b244253f5d0a6b78bd2b3c3b8d3",
+    "semantic_hash": "24511b244253f5d0a6b78bd2b3c3b8d3"
+  },
+  "E:\\projects\\KrillinAI\\static\\source\\deepseek-text.svg": {
+    "mtime": 1781175860.6054068,
+    "ast_hash": "8d65dfe9ce6ace91b3f970203f5cb81a",
+    "semantic_hash": "8d65dfe9ce6ace91b3f970203f5cb81a"
+  },
+  "E:\\projects\\KrillinAI\\static\\source\\openai-text.svg": {
+    "mtime": 1781175860.6054068,
+    "ast_hash": "a37787d004050edffea9f78d873252a5",
+    "semantic_hash": "a37787d004050edffea9f78d873252a5"
+  },
+  "E:\\projects\\KrillinAI\\static\\source\\openai.png": {
+    "mtime": 1781175860.6064255,
+    "ast_hash": "bee435eba136eeb4a1f0c26a7e347b42",
+    "semantic_hash": "bee435eba136eeb4a1f0c26a7e347b42"
+  },
+  "E:\\projects\\KrillinAI\\static\\source\\openai.svg": {
+    "mtime": 1781175860.6074035,
+    "ast_hash": "cb2482db5614562f115b9ea6139550a9",
+    "semantic_hash": "cb2482db5614562f115b9ea6139550a9"
+  },
+  "E:\\projects\\KrillinAI\\static\\source\\qwen-color.png": {
+    "mtime": 1781175860.609483,
+    "ast_hash": "0981ba1940cc88305edfd415cfb33a4c",
+    "semantic_hash": "0981ba1940cc88305edfd415cfb33a4c"
+  },
+  "E:\\projects\\KrillinAI\\static\\source\\qwen-color.svg": {
+    "mtime": 1781175860.609483,
+    "ast_hash": "7a38d3851b5f3d37527456b474d75a37",
+    "semantic_hash": "7a38d3851b5f3d37527456b474d75a37"
+  },
+  "E:\\projects\\KrillinAI\\static\\source\\qwen-text.svg": {
+    "mtime": 1781175860.609483,
+    "ast_hash": "f8c833968fc4ea55d3bd9b469bc84e30",
+    "semantic_hash": "f8c833968fc4ea55d3bd9b469bc84e30"
+  },
+  "E:\\projects\\KrillinAI\\static\\source\\siliconcloud-color.png": {
+    "mtime": 1781175860.609483,
+    "ast_hash": "9c2a1f686c2660922222892bd0778966",
+    "semantic_hash": "9c2a1f686c2660922222892bd0778966"
+  },
+  "E:\\projects\\KrillinAI\\static\\source\\siliconcloud-color.svg": {
+    "mtime": 1781175860.6110113,
+    "ast_hash": "c2c2b16a80ce31bcb2c1f580390574f1",
+    "semantic_hash": "c2c2b16a80ce31bcb2c1f580390574f1"
+  },
+  "E:\\projects\\KrillinAI\\static\\source\\siliconcloud-text.svg": {
+    "mtime": 1781175860.6110113,
+    "ast_hash": "d17c7f084af045ea2291289ce13db7f3",
+    "semantic_hash": "d17c7f084af045ea2291289ce13db7f3"
+  }
+}

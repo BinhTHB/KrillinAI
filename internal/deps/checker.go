@@ -491,6 +491,16 @@ func checkModel(whisperType string) error {
 		if _, err = os.Stat(modelPath); os.IsNotExist(err) {
 			// 下载
 			log.GetLogger().Info(fmt.Sprintf("没有找到模型文件%s,即将开始自动下载", modelPath))
+			err = os.MkdirAll("models/whispercpp", 0755)
+			if err != nil {
+				log.GetLogger().Error("????????", zap.Error(err))
+				return err
+			}
+			err = os.MkdirAll("models/whispercpp", 0755)
+			if err != nil {
+				log.GetLogger().Error("????????", zap.Error(err))
+				return err
+			}
 			downloadUrl := fmt.Sprintf("https://modelscope.cn/models/Maranello/KrillinAI_dependency_cn/resolve/master/faster-whisper-%s.zip", model)
 			err = util.DownloadFile(downloadUrl, fmt.Sprintf("./models/faster-whisper-%s.zip", model), config.Conf.App.Proxy)
 			if err != nil {
@@ -528,7 +538,12 @@ func checkModel(whisperType string) error {
 		modelPath = fmt.Sprintf("./models/whispercpp/ggml-%s.bin", model)
 		if _, err = os.Stat(modelPath); os.IsNotExist(err) {
 			log.GetLogger().Info(fmt.Sprintf("没有找到whisper.cpp模型%s,即将开始自动下载", modelPath))
-			downloadUrl := fmt.Sprintf("https://gitcode.com/hf_mirrors/ai-gitcode/whisper.cpp/blob/main/ggml-%s.bin", model)
+			err = os.MkdirAll("models/whispercpp", 0755)
+			if err != nil {
+				log.GetLogger().Error("创建模型目录失败", zap.Error(err))
+				return err
+			}
+			downloadUrl := fmt.Sprintf("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-%s.bin", model)
 			err = util.DownloadFile(downloadUrl, fmt.Sprintf("./models/whispercpp/ggml-%s.bin", model), config.Conf.App.Proxy)
 			if err != nil {
 				log.GetLogger().Info("下载whisper.cpp模型失败", zap.Error(err))
