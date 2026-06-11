@@ -65,6 +65,22 @@ func (s Service) linkToFile(ctx context.Context, stepParam *types.SubtitleTaskSt
 				return fmt.Errorf("linkToFile download audio yt-dlp error: %w", err)
 			}
 		}
+	} else if strings.Contains(link, "douyin.com") {
+		videoId := util.GetDouyinVideoId(link)
+		if videoId == "" {
+			return errors.New("linkToFile error: invalid douyin link")
+		}
+		stepParam.Link = "https://www.douyin.com/video/" + videoId
+		cmdArgs := []string{"--extract-audio", "--audio-format", "mp3", "-o", audioPath, stepParam.Link}
+		if config.Conf.App.Proxy != "" {
+			cmdArgs = append(cmdArgs, "--proxy", config.Conf.App.Proxy)
+		}
+		cmd := exec.Command(storage.YtdlpPath, cmdArgs...)
+		output, err = cmd.CombinedOutput()
+		if err != nil {
+			log.GetLogger().Error("linkToFile download audio yt-dlp error", zap.Any("step param", stepParam), zap.String("output", string(output)), zap.Error(err))
+			return fmt.Errorf("linkToFile download audio yt-dlp error: %w", err)
+		}
 	} else if strings.Contains(link, "bilibili.com") {
 		videoId := util.GetBilibiliVideoId(link)
 		if videoId == "" {
@@ -86,7 +102,7 @@ func (s Service) linkToFile(ctx context.Context, stepParam *types.SubtitleTaskSt
 		}
 	} else {
 		log.GetLogger().Info("linkToFile.unsupported link type", zap.Any("step param", stepParam))
-		return errors.New("linkToFile error: unsupported link, only support youtube, bilibili and local file")
+		return errors.New("linkToFile error: unsupported link, only support youtube, bilibili, douyin and local file")
 	}
 	stepParam.TaskPtr.ProcessPct = 6
 	stepParam.AudioFilePath = audioPath

@@ -49,6 +49,15 @@ func GetYouTubeID(youtubeURL string) (string, error) {
 	return "", fmt.Errorf("no video ID found")
 }
 
+func GetDouyinVideoId(url string) string {
+	re := regexp.MustCompile(`https://(?:www\.)?douyin\.com/video/(\d+)`)
+	matches := re.FindStringSubmatch(url)
+	if len(matches) > 1 {
+		return matches[1]
+	}
+	return ""
+}
+
 func GetBilibiliVideoId(url string) string {
 	re := regexp.MustCompile(`https://(?:www\.)?bilibili\.com/(?:video/|video/av\d+/)(BV[a-zA-Z0-9]+)`)
 	matches := re.FindStringSubmatch(url)
