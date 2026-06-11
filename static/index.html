@@ -1,5 +1,5 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+﻿<!DOCTYPE html>
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=1200" />
@@ -339,10 +339,10 @@
         display: flex;
         flex-direction: column;
         gap: 24px;
-        /* 为状态栏预留空间，避免内容被遮挡 */
+        /* Reserve space for status bar */
         padding-bottom: 60px;
       }
-      /* 美化滚动条 */
+      /* Scrollbar styling */
       #page-workbench::-webkit-scrollbar,
       #page-config::-webkit-scrollbar,
       #llm-config::-webkit-scrollbar {
@@ -436,14 +436,14 @@
         min-width: 350px;
         width: auto;
       }
-      /* 卡片副标题 */
+      /* Card subtitle */
       .card-subtitle {
         color: #6b7280;
         font-size: 0.9rem;
         margin: -10px 0 20px 0;
       }
 
-      /* API 供应商网格 */
+      /* Nha cung cap API grid */
       .provider-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -451,7 +451,7 @@
         margin-top: 20px;
       }
 
-      /* 供应商卡片 */
+      /* Provider card */
       .provider-card {
         background: rgba(255, 255, 255, 0.9);
         border-radius: 12px;
@@ -535,7 +535,7 @@
         text-align: center;
       }
 
-      /* 使用指南样式 */
+      /* Usage guide styling */
       .guide-content {
         background: rgba(248, 250, 252, 0.8);
         border-radius: 8px;
@@ -584,15 +584,15 @@
     <div class="app-container">
       <div class="sidebar">
         <div class="logo">KrillinAI</div>
-        <div class="slogan">AI Video Translation & Dubbing by Krillin AI</div>
+        <div class="slogan">AI Dich & Long tieng Video by Krillin AI</div>
         <div class="nav">
           <button class="nav-btn active" id="nav-workbench">
-            工作台 Dashboard
+            Dashboard
           </button>
           <button class="nav-btn" id="nav-llm-config">
-            LLM 配置 LLM Config
+            LLM Config
           </button>
-          <button class="nav-btn" id="nav-config">设置 Settings</button>
+          <button class="nav-btn" id="nav-config">Cai dat</button>
         </div>
         <div class="sidebar-bottom">
           <span style="font-size: 13px; color: #94a3b8">v1.0</span>
@@ -610,38 +610,37 @@
                 margin: 0 0 32px 0;
               "
             >
-              视频翻译配音<br />
-              Video Translation & Dubbing
+              Dich & Long tieng Video
             </h1>
 
-            <!-- 视频输入区域 -->
+            <!-- Video Input -->
             <div class="card">
-              <h3 class="card-title">1. 视频源设置 Video Source Settings</h3>
+              <h3 class="card-title">1. Video Source Cai dat</h3>
               <div class="form-group">
                 <div class="radio-group">
                   <label class="radio-item">
                     <input type="radio" name="inputType" value="url" checked />
-                    <span>输入链接 Paste a link</span>
+                    <span>Paste a link</span>
                   </label>
                   <label class="radio-item">
                     <input type="radio" name="inputType" value="file" />
-                    <span>本地上传 Upload a file</span>
+                    <span>Tai file len</span>
                   </label>
                 </div>
               </div>
 
               <div class="form-group" id="urlInputContainer">
-                <label class="form-label">视频地址 Video URL:</label>
+                <label class="form-label">Video URL:</label>
                 <input
                   type="url"
                   id="urlInput"
-                  placeholder="输入视频链接 Paste a link here"
+                  placeholder="Paste a link here"
                   class="form-input"
                 />
               </div>
 
               <div class="form-group hidden" id="fileInputContainer">
-                <label class="form-label">上传视频 Upload Video:</label>
+                <label class="form-label">Upload Video:</label>
                 <input
                   type="file"
                   id="fileInput"
@@ -650,23 +649,23 @@
                   class="form-input"
                 />
                 <div id="uploadStatus" class="loading hidden">
-                  正在上传... Uploading...
+                  Dang tai...
                 </div>
               </div>
             </div>
 
-            <!-- 字幕设置区域 -->
+            <!-- Subtitle Cai dat -->
             <div class="card">
-              <h3 class="card-title">2. 字幕设置 Subtitle Settings</h3>
+              <h3 class="card-title">2. Subtitle Cai dat</h3>
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label"
-                    >源语言<br />Original Language:</label
+                    >Ngon ngu goc:</label
                   >
                   <select id="source-language" class="form-select">
-                    <option value="zh_cn">简体中文</option>
+                    <option value="zh_cn">Chinese (Simplified)</option>
                     <option value="en">English</option>
-                    <option value="ja">日本語</option>
+                    <option value="ja">Japanese</option>
                     <option value="tr">Türkçe</option>
                     <option value="de">Deutsch</option>
                     <option value="ko">한국어</option>
@@ -675,12 +674,12 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">翻译成<br />Translate To:</label>
+                  <label class="form-label">Dich sang:</label>
                   <select id="target-language" class="form-select">
-                    <option value="zh_cn">简体中文</option>
-                    <option value="zh_tw">繁體中文</option>
+                    <option value="zh_cn">Chinese (Simplified)</option>
+                    <option value="zh_tw">Chinese (Traditional)</option>
                     <option value="en">English</option>
-                    <option value="ja">日本語</option>
+                    <option value="ja">Japanese</option>
                     <option value="id">bahasa Indonesia</option>
                     <option value="ms">Bahasa Melayu</option>
                     <option value="th">ภาษาไทย</option>
@@ -741,7 +740,7 @@
                     <option value="ps">پښتو</option>
                     <option value="ln">Lingála</option>
                     <option value="ml">മലയാളം</option>
-                    <option value="cnh">客家话</option>
+                    <option value="cnh">Hakka</option>
                     <option value="uz">Oʻzbekcha</option>
                     <option value="kn">ಕನ್ನಡ</option>
                     <option value="or">ଓଡ଼ିଆ</option>
@@ -785,38 +784,38 @@
               <div class="form-group">
                 <label class="checkbox-item">
                   <input type="checkbox" id="bilingual-toggle" checked />
-                  <span>启用双语字幕 Bilingual Subtitles</span>
+                  <span>Phu de song ngu</span>
                 </label>
                 <select
                   id="bilingual-position"
                   class="form-select"
                   style="width: 200px; margin-left: 16px"
                 >
-                  <option value="top">翻译在上 Translation Above</option>
-                  <option value="bottom">翻译在下 Translation Below</option>
+                  <option value="top">Translation Above</option>
+                  <option value="bottom">Translation Below</option>
                 </select>
               </div>
 
               <div class="form-group">
                 <label class="checkbox-item">
                   <input type="checkbox" id="filler-filter-toggle" checked />
-                  <span>启用语气词过滤 Tone Word Filtering</span>
+                  <span>Loc tu dem</span>
                 </label>
               </div>
             </div>
 
-            <!-- 配音设置区域 -->
+            <!-- Dubbing Cai dat -->
             <div class="card">
-              <h3 class="card-title">3. 配音设置 Dubbing Settings</h3>
+              <h3 class="card-title">3. Dubbing Cai dat</h3>
               <div class="form-group">
                 <label class="checkbox-item">
                   <input type="checkbox" id="voiceover-toggle" />
-                  <span>启用配音 Apply Dubbing</span>
+                  <span>Ap dung long tieng</span>
                 </label>
                 <input
                   type="text"
                   id="voiceover-voice"
-                  placeholder="输入声音代码 Enter Voice Code"
+                  placeholder="Nhap ma giong noi"
                   class="form-input"
                   style="width: 200px; margin-left: 16px"
                   disabled
@@ -824,7 +823,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >选择音色克隆样本<br />Select Voice Clone Sample:</label
+                  >Select Voice Clone Sample:</label
                 >
                 <input
                   type="file"
@@ -837,13 +836,13 @@
               </div>
             </div>
 
-            <!-- 视频合成设置 -->
+            <!-- Composition Cai dat -->
             <div class="card">
-              <h3 class="card-title">4. 视频合成设置 Composition Settings</h3>
+              <h3 class="card-title">4. Composition Cai dat</h3>
               <div class="form-group">
                 <label class="checkbox-item">
                   <input type="checkbox" id="embed-subtitle-toggle" />
-                  <span>合成 Composite</span>
+                  <span>Tong hop</span>
                 </label>
                 <select
                   id="embed-subtitle"
@@ -852,44 +851,44 @@
                   disabled
                 >
                   <option value="horizontal">
-                    横屏输出 Landscape（16：9）
+                    Ngang (16:9)
                   </option>
-                  <option value="vertical">竖屏输出 Portrait（9:16）</option>
-                  <option value="all">横屏+竖屏 (Landscape+Portrait)</option>
+                  <option value="vertical">Doc (9:16)</option>
+                  <option value="all">Landscape + Portrait</option>
                 </select>
               </div>
               <div id="subtitle-text-inputs" class="hidden">
                 <div class="form-group">
-                  <label class="form-label">主标题 Main Title:</label>
+                  <label class="form-label">Tieu de chinh:</label>
                   <input
                     type="text"
                     id="subtitle-text-1"
-                    placeholder="请输入竖屏视频主标题 Please enter main title for vertical video"
+                    placeholder="Main title for vertical video"
                     class="form-input"
                   />
                 </div>
                 <div class="form-group">
-                  <label class="form-label">副标题 Subtitle:</label>
+                  <label class="form-label">Subtitle:</label>
                   <input
                     type="text"
                     id="subtitle-text-2"
-                    placeholder="请输入竖屏视频副标题 Please enter subtitle for vertical video"
+                    placeholder="Subtitle for vertical video"
                     class="form-input"
                   />
                 </div>
               </div>
             </div>
 
-            <!-- 执行按钮 -->
+            <!-- Execute Button -->
             <div class="action-area">
               <button type="button" id="executeButton" class="btn-primary">
-                开始翻译 Start Translating
+                Bat dau dich
               </button>
             </div>
 
-            <!-- 进度区域 -->
+            <!-- Progress Area -->
             <div id="progressSection" class="progress-section hidden">
-              <h4>任务进度 Task Progress</h4>
+              <h4>Tien trinh</h4>
               <div class="progress-bar">
                 <div class="progress-fill" id="progressBar">0%</div>
               </div>
@@ -898,21 +897,21 @@
           </div>
           <div id="llm-config" style="display: none">
             <div class="card">
-              <h3 class="card-title">API 供应商</h3>
-              <p class="card-subtitle">点击下方卡片快速跳转到对应平台购买API</p>
+              <h3 class="card-title">Nha cung cap API</h3>
+              <p class="card-subtitle">Click a card to visit provider website</p>
 
               <div class="provider-grid">
                 <div class="provider-card qwen" id="provider-qwen">
                   <div class="provider-icon">
                     <img
                       src="./source/qwen-color.svg"
-                      alt="通义千问"
+                      alt="Qwen"
                       width="24"
                       height="24"
                     />
                   </div>
-                  <div class="provider-name">通义千问 Qwen</div>
-                  <div class="provider-desc">阿里云大模型服务</div>
+                  <div class="provider-name">Qwen</div>
+                  <div class="provider-desc">Alibaba Cloud AI</div>
                 </div>
 
                 <div class="provider-card openai" id="provider-openai">
@@ -925,7 +924,7 @@
                     />
                   </div>
                   <div class="provider-name">OpenAI</div>
-                  <div class="provider-desc">GPT模型API服务</div>
+                  <div class="provider-desc">GPT Model API Service</div>
                 </div>
 
                 <div class="provider-card deepseek" id="provider-deepseek">
@@ -938,22 +937,22 @@
                     />
                   </div>
                   <div class="provider-name">DeepSeek</div>
-                  <div class="provider-desc">高性价比AI模型</div>
+                  <div class="provider-desc">High Quality AI Models</div>
                 </div>
 
                 <div class="provider-card add" id="provider-add">
                   <div class="provider-icon">
                     <span style="font-size: 20px; line-height: 24px">＋</span>
                   </div>
-                  <div class="provider-name">新增</div>
-                  <div class="provider-desc">添加自定义供应商</div>
+                  <div class="provider-name">Them moi</div>
+                  <div class="provider-desc">Add Custom Provider</div>
                 </div>
               </div>
             </div>
 
-            <!-- LLM 配置 -->
+            <!-- LLM Config -->
             <div class="card">
-              <h3 class="card-title">LLM 配置 LLM Config</h3>
+              <h3 class="card-title">LLM Config</h3>
               <div class="form-group">
                 <label class="form-label">API Base URL:</label>
                 <input
@@ -973,7 +972,7 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">模型名称 Model name:</label>
+                <label class="form-label">Model name:</label>
                 <input
                   type="text"
                   id="llm-model"
@@ -982,47 +981,47 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">支持模型 Supported models:</label>
+                <label class="form-label">Supported models:</label>
                 <select id="llm-model-suggest" class="form-select">
-                  <option value="">请选择或手动输入</option>
+                  <option value="">Select or type</option>
                 </select>
               </div>
             </div>
 
-            <!-- 使用指南 -->
+            <!-- Huong dan -->
             <div class="card">
-              <h3 class="card-title">使用指南</h3>
-              <p class="card-subtitle">LLM API配置说明（可复制文本）</p>
+              <h3 class="card-title">Huong dan</h3>
+              <p class="card-subtitle">LLM API Configuration Guide (copyable)</p>
 
               <div class="guide-content">
-                <h4>1. API Base URL：</h4>
+                <h4>1. API Base URL:</h4>
                 <ul>
-                  <li>OpenAI官方：<code>https://api.openai.com/v1</code></li>
+                  <li>OpenAI: <code>https://api.openai.com/v1</code></li>
                   <li>
-                    阿里云百炼：<code
+                    Alibaba Cloud (Bailian): <code
                       >https://dashscope.aliyuncs.com/compatible-mode/v1</code
                     >
                   </li>
                   <li>DeepSeek：<code>https://api.deepseek.com/v1</code></li>
                 </ul>
 
-                <h4>2. API Key：</h4>
+                <h4>2. API Key:</h4>
                 <ul>
-                  <li>在对应平台的控制台中获取</li>
-                  <li>请妥善保管，避免泄露</li>
+                  <li>Lay tu bang dieu khien</li>
+                  <li>Keep it secure, avoid leaking</li>
                 </ul>
 
-                <h4>3. 模型名称：</h4>
+                <h4>3. Model Name:</h4>
                 <ul>
                   <li>OpenAI：gpt-3.5-turbo, gpt-4, gpt-4-turbo...</li>
-                  <li>阿里云：qwen-turbo, qwen-plus, qwen-max...</li>
+                  <li>Alibaba Cloud: qwen-turbo, qwen-plus, qwen-max...</li>
                   <li>DeepSeek：deepseek-chat, deepseek-coder...</li>
                 </ul>
 
-                <h4>4. 使用建议：</h4>
+                <h4>4. Tips:</h4>
                 <ul>
-                  <li>根据实际需求选择合适的模型</li>
-                  <li>注意API调用费用</li>
+                  <li>Choose a model that fits your needs</li>
+                  <li>Be mindful of API costs</li>
                 </ul>
               </div>
             </div>
@@ -1037,15 +1036,15 @@
                 margin: 0 0 32px 0;
               "
             >
-              应用配置 Application Configuration
+              Application Configuration
             </h1>
 
             <!-- 应用配置 -->
             <div class="card">
-              <h3 class="card-title">应用配置 App Config</h3>
+              <h3 class="card-title">Cau hinh ung dung</h3>
               <div class="form-group">
                 <label class="form-label"
-                  >分段处理时长(分钟) Segment duration (minutes):</label
+                  >Segment duration (minutes):</label
                 >
                 <input
                   type="number"
@@ -1058,7 +1057,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >转录最大并行数量 Transcribe parallel num:</label
+                  >Transcribe parallel num:</label
                 >
                 <input
                   type="number"
@@ -1071,7 +1070,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >翻译最大并行数量 Translate parallel num:</label
+                  >Translate parallel num:</label
                 >
                 <input
                   type="number"
@@ -1084,7 +1083,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >转录最大尝试次数 Transcribe max attempts:</label
+                  >Transcribe max attempts:</label
                 >
                 <input
                   type="number"
@@ -1097,7 +1096,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >翻译最大尝试次数 Translate max attempts:</label
+                  >Translate max attempts:</label
                 >
                 <input
                   type="number"
@@ -1110,7 +1109,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >每个句子最大字符数 Max sentence length:</label
+                  >Max sentence length (chars):</label
                 >
                 <input
                   type="number"
@@ -1122,7 +1121,7 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">网络代理地址 proxy:</label>
+                <label class="form-label">Proxy:</label>
                 <input
                   type="text"
                   id="proxy"
@@ -1134,9 +1133,9 @@
 
             <!-- 服务器配置 -->
             <div class="card">
-              <h3 class="card-title">服务器配置 Server Config</h3>
+              <h3 class="card-title">Server Config</h3>
               <div class="form-group">
-                <label class="form-label">服务器地址 Server address:</label>
+                <label class="form-label">Server address:</label>
                 <input
                   type="text"
                   id="server-host"
@@ -1145,7 +1144,7 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">服务器端口 Server port:</label>
+                <label class="form-label">Server port:</label>
                 <input
                   type="number"
                   id="server-port"
@@ -1159,7 +1158,7 @@
 
             <!-- LLM配置 -->
             <!-- <div class="card">
-              <h3 class="card-title">LLM 配置 LLM Config</h3>
+              <h3 class="card-title">LLM Config</h3>
               <div class="form-group">
                 <label class="form-label">API Base URL:</label>
                 <input
@@ -1179,7 +1178,7 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">模型名称 Model name:</label>
+                <label class="form-label">Model name:</label>
                 <input
                   type="text"
                   id="llm-model"
@@ -1189,29 +1188,29 @@
               </div>
             </div> -->
 
-            <!-- 语音识别配置 -->
+            <!-- Transcribe Config -->
             <div class="card">
-              <h3 class="card-title">语音识别配置 Transcribe Config</h3>
+              <h3 class="card-title">Transcribe Config</h3>
               <div class="form-group">
-                <label class="form-label">提供商 Provider:</label>
+                <label class="form-label">Provider:</label>
                 <select id="transcribe-provider" class="form-select">
                   <option value="openai">OpenAI</option>
                   <option value="fasterwhisper">FasterWhisper</option>
                   <option value="whisperkit">WhisperKit</option>
                   <option value="whispercpp">WhisperCpp</option>
-                  <option value="aliyun">阿里云</option>
+                  <option value="aliyun">Alibaba Cloud</option>
                 </select>
               </div>
               <div class="form-group">
                 <label class="form-label">
-                  GPU加速 Enable Gpu Acceleration
+                  GPU Acceleration (Enable GPU Acceleration)
                   <span class="hint"
-                    >仅 FasterWhisper 生效(Only FasterWhisper)</span
+                    >Only FasterWhisper</span
                   >
                 </label>
                 <select id="gpu-acceleration" class="form-select">
-                  <option value="true">是 Yes</option>
-                  <option value="false">否 No</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
                 </select>
               </div>
               <div class="form-group">
@@ -1233,7 +1232,7 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">OpenAI 模型 Model:</label>
+                <label class="form-label">OpenAI Model:</label>
                 <input
                   type="text"
                   id="openai-model"
@@ -1242,7 +1241,7 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">FasterWhisper 模型 Model:</label>
+                <label class="form-label">FasterWhisper Model:</label>
                 <input
                   type="text"
                   id="fasterwhisper-model"
@@ -1251,7 +1250,7 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">WhisperKit 模型 Model:</label>
+                <label class="form-label">WhisperKit Model:</label>
                 <input
                   type="text"
                   id="whisperkit-model"
@@ -1260,7 +1259,7 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">WhisperCpp 模型 Model:</label>
+                <label class="form-label">WhisperCpp Model:</label>
                 <input
                   type="text"
                   id="whispercpp-model"
@@ -1270,7 +1269,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >阿里云 Aliyun OSS Access Key ID:</label
+                  >Aliyun OSS Access Key ID:</label
                 >
                 <input
                   type="text"
@@ -1281,7 +1280,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >阿里云 Aliyun OSS Access Key Secret:</label
+                  >Aliyun OSS Access Key Secret:</label
                 >
                 <input
                   type="password"
@@ -1291,7 +1290,7 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">阿里云 Aliyun OSS Bucket Name:</label>
+                <label class="form-label">Aliyun OSS Bucket Name:</label>
                 <input
                   type="text"
                   id="aliyun-oss-bucket"
@@ -1301,7 +1300,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >阿里云语音 Aliyun Speech Access Key ID:</label
+                  >Aliyun Speech Access Key ID:</label
                 >
                 <input
                   type="text"
@@ -1312,7 +1311,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >阿里云语音 Aliyun Speech Access Key Secret:</label
+                  >Aliyun Speech Access Key Secret:</label
                 >
                 <input
                   type="password"
@@ -1323,7 +1322,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >阿里云语音 Aliyun Speech App Key:</label
+                  >Aliyun Speech App Key:</label
                 >
                 <input
                   type="text"
@@ -1336,12 +1335,12 @@
 
             <!-- TTS配置 -->
             <div class="card">
-              <h3 class="card-title">文本转语音配置 TTS Config</h3>
+              <h3 class="card-title">Cau hinh TTS</h3>
               <div class="form-group">
-                <label class="form-label">提供商 Provider:</label>
+                <label class="form-label">Provider:</label>
                 <select id="tts-provider" class="form-select">
                   <option value="openai">OpenAI</option>
-                  <option value="aliyun">阿里云</option>
+                  <option value="aliyun">Alibaba Cloud</option>
                   <option value="edge-tts">Edge TTS</option>
                 </select>
               </div>
@@ -1364,7 +1363,7 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">OpenAI 模型 Model:</label>
+                <label class="form-label">OpenAI Model:</label>
                 <input
                   type="text"
                   id="tts-openai-model"
@@ -1374,7 +1373,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >阿里云 Aliyun OSS Access Key ID:</label
+                  >Aliyun OSS Access Key ID:</label
                 >
                 <input
                   type="text"
@@ -1385,7 +1384,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >阿里云 Aliyun OSS Access Key Secret:</label
+                  >Aliyun OSS Access Key Secret:</label
                 >
                 <input
                   type="password"
@@ -1395,7 +1394,7 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">阿里云 Aliyun OSS Bucket:</label>
+                <label class="form-label">Alibaba Cloud Aliyun OSS Bucket:</label>
                 <input
                   type="text"
                   id="tts-aliyun-oss-bucket"
@@ -1405,7 +1404,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >阿里云 Aliyun Speech Access Key ID:</label
+                  >Alibaba Cloud Aliyun Speech Access Key ID:</label
                 >
                 <input
                   type="text"
@@ -1416,7 +1415,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label"
-                  >阿里云 Aliyun Speech Access Key Secret:</label
+                  >Alibaba Cloud Aliyun Speech Access Key Secret:</label
                 >
                 <input
                   type="password"
@@ -1426,7 +1425,7 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">阿里云 Aliyun Speech App Key:</label>
+                <label class="form-label">Alibaba Cloud Aliyun Speech App Key:</label>
                 <input
                   type="text"
                   id="tts-aliyun-speech-app-key"
@@ -1439,17 +1438,17 @@
             <!-- 保存按钮 -->
             <div class="action-area">
               <button type="button" id="saveConfigButton" class="btn-primary">
-                保存配置 Save Configuration
+                Luu cau hinh
               </button>
             </div>
           </div>
         </div>
-        <div class="status-bar" id="status-bar">就绪 Ready</div>
+        <div class="status-bar" id="status-bar">San sang</div>
       </div>
     </div>
 
     <script>
-      // 获取简洁的时间格式 (HH:MM) - 使用用户本地时区
+      // Format time as HH:MM using local timezone
       function getSimpleTime() {
         return new Date().toLocaleTimeString(undefined, {
           hour: "2-digit",
@@ -1458,10 +1457,10 @@
         });
       }
 
-      // 跟踪当前活跃页面
-      let currentActivePage = "workbench"; // 默认为工作台页面
+      // Track active page
+      let currentActivePage = "workbench"; // Default to workbench
 
-      // Tab 切换逻辑
+      // Tab switching
       const navBtns = document.querySelectorAll(".nav-btn");
       const pageWorkbench = document.getElementById("page-workbench");
       const pageConfig = document.getElementById("page-config");
@@ -1478,16 +1477,16 @@
             newPage = "config";
           }
 
-          // 如果从配置页面切换到工作台页面，自动保存配置
+          // Auto-save config when switching from config to workbench
           if (previousPage === "config" && newPage === "workbench") {
             console.log(
-              "从配置页面切换到工作台，自动保存配置... Switching from config page to workbench, auto-saving configuration..."
+              "Auto-saving configuration..."
             );
             try {
-              await saveConfig(false, true); // 不显示成功提示，标记为自动保存
+              await saveConfig(false, true); // Silent auto-save
             } catch (error) {
               console.error(
-                "自动保存配置失败 Auto-save configuration failed:",
+                "Auto-save failed:",
                 error
               );
             }
@@ -1510,7 +1509,7 @@
             // 进入 LLM 页面时初始化建议下拉为空
             const suggest = document.getElementById("llm-model-suggest");
             if (suggest) {
-              suggest.innerHTML = '<option value="">请选择或手动输入</option>';
+              suggest.innerHTML = '<option value="">Select or type</option>';
             }
             // 同步获取配置，确保 LLM 表单最新
             loadConfig();
@@ -1540,7 +1539,7 @@
         const suggest = document.getElementById("llm-model-suggest");
         if (baseInput) baseInput.value = baseUrl || "";
         if (suggest) {
-          suggest.innerHTML = '<option value="">请选择或手动输入</option>';
+          suggest.innerHTML = '<option value="">Select or type</option>';
           (models || []).forEach((m) => {
             const opt = document.createElement("option");
             opt.value = m;
@@ -1666,7 +1665,7 @@
           // 清空建议模型下拉
           const suggest = document.getElementById("llm-model-suggest");
           if (suggest) {
-            suggest.innerHTML = '<option value="">请选择或手动输入</option>';
+            suggest.innerHTML = '<option value="">Select or type</option>';
           }
         }
 
@@ -2474,3 +2473,4 @@
     </script>
   </body>
 </html>
+
