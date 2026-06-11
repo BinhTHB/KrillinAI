@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
@@ -580,7 +580,7 @@
     <div class="app-container">
       <div class="sidebar">
         <div class="logo">KrillinAI</div>
-        <div class="slogan">AI Dich & Long tieng Video by Krillin AI</div>
+        <div class="slogan">AI Dịch & Lồng tiếng Video by Krillin AI</div>
         <div class="nav">
           <button class="nav-btn active" id="nav-workbench">
             Dashboard
@@ -588,7 +588,7 @@
           <button class="nav-btn" id="nav-llm-config">
             LLM Config
           </button>
-          <button class="nav-btn" id="nav-config">Cai dat</button>
+          <button class="nav-btn" id="nav-config">Cài đặt (Settings)</button>
         </div>
         <div class="sidebar-bottom">
           <span style="font-size: 13px; color: #94a3b8">v1.0</span>
@@ -606,12 +606,12 @@
                 margin: 0 0 32px 0;
               "
             >
-              Dich & Long tieng Video
+              Dịch & Lồng tiếng Video
             </h1>
 
             <!-- Video Input -->
             <div class="card">
-              <h3 class="card-title">1. Video Source Cai dat</h3>
+              <h3 class="card-title">1. Video Source Cài đặt (Settings)</h3>
               <div class="form-group">
                 <div class="radio-group">
                   <label class="radio-item">
@@ -620,7 +620,7 @@
                   </label>
                   <label class="radio-item">
                     <input type="radio" name="inputType" value="file" />
-                    <span>Tai file len</span>
+                    <span>Tải file lên (Upload)</span>
                   </label>
                 </div>
               </div>
@@ -652,11 +652,11 @@
 
             <!-- Subtitle Cai dat -->
             <div class="card">
-              <h3 class="card-title">2. Subtitle Cai dat</h3>
+              <h3 class="card-title">2. Subtitle Cài đặt (Settings)</h3>
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label"
-                    >Ngon ngu goc:</label
+                    >Ngôn ngữ gốc (Source):</label
                   >
                   <select id="source-language" class="form-select">
                     <option value="vi">Tiếng Việt</option>
@@ -671,7 +671,7 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Dich sang:</label>
+                  <label class="form-label">Dịch sang (Target):</label>
                   <select id="target-language" class="form-select">
                     <option value="en">English</option>
                     <option value="zh_cn">Chinese (Simplified)</option>
@@ -781,7 +781,7 @@
               <div class="form-group">
                 <label class="checkbox-item">
                   <input type="checkbox" id="bilingual-toggle" checked />
-                  <span>Phu de song ngu</span>
+                  <span>Phụ đề song ngữ (Bilingual)</span>
                 </label>
                 <select
                   id="bilingual-position"
@@ -796,18 +796,18 @@
               <div class="form-group">
                 <label class="checkbox-item">
                   <input type="checkbox" id="filler-filter-toggle" checked />
-                  <span>Loc tu dem</span>
+                  <span>Lọc từ đệm (Filter fillers)</span>
                 </label>
               </div>
             </div>
 
             <!-- Dubbing Cai dat -->
             <div class="card">
-              <h3 class="card-title">3. Dubbing Cai dat</h3>
+              <h3 class="card-title">3. Dubbing Cài đặt (Settings)</h3>
               <div class="form-group">
                 <label class="checkbox-item">
                   <input type="checkbox" id="voiceover-toggle" />
-                  <span>Ap dung long tieng</span>
+                  <span>Áp dụng lồng tiếng (Dubbing)</span>
                 </label>
                 <input
                   type="text"
@@ -835,11 +835,11 @@
 
             <!-- Composition Cai dat -->
             <div class="card">
-              <h3 class="card-title">4. Composition Cai dat</h3>
+              <h3 class="card-title">4. Composition Cài đặt (Settings)</h3>
               <div class="form-group">
                 <label class="checkbox-item">
                   <input type="checkbox" id="embed-subtitle-toggle" />
-                  <span>Tong hop</span>
+                  <span>Tổng hợp (Compose)</span>
                 </label>
                 <select
                   id="embed-subtitle"
@@ -850,13 +850,13 @@
                   <option value="horizontal">
                     Ngang (16:9)
                   </option>
-                  <option value="vertical">Doc (9:16)</option>
+                  <option value="vertical">Dọc (9:16)</option>
                   <option value="all">Landscape + Portrait</option>
                 </select>
               </div>
               <div id="subtitle-text-inputs" class="hidden">
                 <div class="form-group">
-                  <label class="form-label">Tieu de chinh:</label>
+                  <label class="form-label">Tiêu đề chính (Main title):</label>
                   <input
                     type="text"
                     id="subtitle-text-1"
@@ -879,13 +879,13 @@
             <!-- Execute Button -->
             <div class="action-area">
               <button type="button" id="executeButton" class="btn-primary">
-                Bat dau dich
+                Bắt đầu dịch (Start)
               </button>
             </div>
 
             <!-- Progress Area -->
             <div id="progressSection" class="progress-section hidden">
-              <h4>Tien trinh</h4>
+              <h4>Tiến trình (Progress)</h4>
               <div class="progress-bar">
                 <div class="progress-fill" id="progressBar">0%</div>
               </div>
@@ -894,7 +894,7 @@
           </div>
           <div id="llm-config" style="display: none">
             <div class="card">
-              <h3 class="card-title">Nha cung cap API</h3>
+              <h3 class="card-title">Nhà cung cấp API (API Providers)</h3>
               <p class="card-subtitle">Click a card to visit provider website</p>
 
               <div class="provider-grid">
@@ -987,7 +987,7 @@
 
             <!-- Huong dan -->
             <div class="card">
-              <h3 class="card-title">Huong dan</h3>
+              <h3 class="card-title">Hướng dẫn (Guide)</h3>
               <p class="card-subtitle">LLM API Configuration Guide (copyable)</p>
 
               <div class="guide-content">
@@ -1038,7 +1038,7 @@
 
             <!-- ???? -->
             <div class="card">
-              <h3 class="card-title">Cau hinh ung dung</h3>
+              <h3 class="card-title">Cấu hình ứng dụng (Application Config)</h3>
               <div class="form-group">
                 <label class="form-label"
                   >Segment duration (minutes):</label
@@ -1332,7 +1332,7 @@
 
             <!-- TTS?? -->
             <div class="card">
-              <h3 class="card-title">Cau hinh TTS</h3>
+              <h3 class="card-title">Cấu hình TTS (TTS Config)</h3>
               <div class="form-group">
                 <label class="form-label">Provider:</label>
                 <select id="tts-provider" class="form-select">
@@ -1435,12 +1435,12 @@
             <!-- ???? -->
             <div class="action-area">
               <button type="button" id="saveConfigButton" class="btn-primary">
-                Luu cau hinh
+                Lưu cấu hình (Save Config)
               </button>
             </div>
           </div>
         </div>
-        <div class="status-bar" id="status-bar">San sang</div>
+        <div class="status-bar" id="status-bar">Sẵn sàng (Ready)</div>
       </div>
     </div>
 
