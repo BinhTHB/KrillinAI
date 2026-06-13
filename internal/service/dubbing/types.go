@@ -23,6 +23,7 @@ type Config struct {
 	EnableTextRewrite   bool
 	RewriteMaxAttempts  int
 	Estimator           string
+	SkipFailedTTSChunks bool
 }
 
 func DefaultConfig() Config {

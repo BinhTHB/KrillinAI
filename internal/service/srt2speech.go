@@ -79,6 +79,7 @@ func (s Service) srtFileToSpeech(ctx context.Context, stepParam *types.SubtitleT
 			EnableTextRewrite:   config.Conf.Dubbing.EnableTextRewrite,
 			RewriteMaxAttempts:  config.Conf.Dubbing.RewriteMaxAttempts,
 			Estimator:           config.Conf.Dubbing.Estimator,
+			SkipFailedTTSChunks: config.Conf.Dubbing.SkipFailedTTSChunks,
 		},
 	})
 	result, err := runner.Run(ctx)

@@ -33,4 +33,7 @@ func TestDefaultDubbingConfig(t *testing.T) {
 	if Conf.Dubbing.Estimator != "statistical" {
 		t.Fatalf("Estimator = %q, want statistical", Conf.Dubbing.Estimator)
 	}
+	if Conf.Dubbing.SkipFailedTTSChunks {
+		t.Fatalf("SkipFailedTTSChunks = true, want false")
+	}
 }

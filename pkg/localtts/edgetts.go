@@ -112,7 +112,27 @@ func (c *EdgeTtsClient) attemptTTS(tempFileName, voice, absOutputFile string, at
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second) // 60秒超时
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, storage.EdgeTtsPath, cmdArgs...)
+	var cmd *exec.Cmd
+	if storage.EdgeTtsPath == "edge-tts" {
+		// uv trampoline may fail; try python -m edge_tts as fallback
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			pythonPath := filepath.Join(homeDir, ".hermes", "hermes-agent", "venv", "Scripts", "python.exe")
+			if _, err := os.Stat(pythonPath); err == nil {
+				// python -m edge_tts uses different flag names than the standalone binary
+				pyArgs := []string{
+					"-m", "edge_tts",
+					"--file", tempFileName,
+					"--voice", voice,
+					"--write-media", absOutputFile,
+				}
+				cmd = exec.CommandContext(ctx, pythonPath, pyArgs...)
+			}
+		}
+	}
+	if cmd == nil {
+		cmd = exec.CommandContext(ctx, storage.EdgeTtsPath, cmdArgs...)
+	}
 	log.GetLogger().Info("edge-tts转录开始",
 		zap.String("cmd", cmd.String()),
 		zap.String("temp_file", tempFileName),

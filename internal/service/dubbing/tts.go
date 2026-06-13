@@ -5,9 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"krillin-ai/internal/types"
+	"krillin-ai/log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 func GenerateRawSegments(ctx context.Context, tts types.Ttser, plan []PlanItem, voice, dir string, run CommandRunner, duration DurationProbe) ([]PlanItem, error) {
@@ -55,7 +58,7 @@ func GenerateRawSegments(ctx context.Context, tts types.Ttser, plan []PlanItem, 
 	return plan, nil
 }
 
-func GenerateRawChunkSegments(ctx context.Context, tts types.Ttser, plan []PlanItem, chunks []Chunk, voice, dir string, run CommandRunner, duration DurationProbe) ([]PlanItem, []Chunk, error) {
+func GenerateRawChunkSegments(ctx context.Context, tts types.Ttser, plan []PlanItem, chunks []Chunk, voice, dir string, run CommandRunner, duration DurationProbe, cfg Config) ([]PlanItem, []Chunk, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -92,7 +95,16 @@ func GenerateRawChunkSegments(ctx context.Context, tts types.Ttser, plan []PlanI
 				return nil, nil, errors.New("tts is required for non-silence text")
 			}
 			if err := retryTTS(tts, text, voice, output, 3); err != nil {
-				return nil, nil, fmt.Errorf("tts chunk %d failed: %w", outChunks[i].ID, err)
+				if cfg.SkipFailedTTSChunks {
+					log.GetLogger().Warn("tts chunk failed, skipping with silence",
+						zap.Int("chunk_id", outChunks[i].ID),
+						zap.Error(err))
+					if err := WriteTinySilence(output, run); err != nil {
+						return nil, nil, fmt.Errorf("write silence for failed chunk %d: %w", outChunks[i].ID, err)
+					}
+				} else {
+					return nil, nil, fmt.Errorf("tts chunk %d failed: %w", outChunks[i].ID, err)
+				}
 			}
 		}
 

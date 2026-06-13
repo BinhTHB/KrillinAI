@@ -72,6 +72,7 @@
     enable_text_rewrite = true # 是否允许 LLM 改写为自然口播
     rewrite_max_attempts = 2 # 单条字幕最多改写次数
     estimator = "statistical" # 估时器，当前支持 statistical
+    skip_failed_tts_chunks = false # true时跳过TTS失败的chunk（静音替代），false时整个任务失败
 
 [image] # 封面生图配置
     provider = "openai-compatible" # 当前支持openai-compatible，使用OpenAI Images API兼容格式

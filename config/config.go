@@ -93,6 +93,7 @@ type Dubbing struct {
 	EnableTextRewrite   bool    `toml:"enable_text_rewrite"`
 	RewriteMaxAttempts  int     `toml:"rewrite_max_attempts"`
 	Estimator           string  `toml:"estimator"`
+	SkipFailedTTSChunks bool    `toml:"skip_failed_tts_chunks"`
 }
 
 type Image struct {
@@ -165,6 +166,7 @@ var Conf = Config{
 		EnableTextRewrite:   true,
 		RewriteMaxAttempts:  2,
 		Estimator:           "statistical",
+		SkipFailedTTSChunks: false,
 	},
 	Image: Image{
 		Provider: "openai-compatible",
