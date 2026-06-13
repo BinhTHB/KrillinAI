@@ -65,7 +65,7 @@ func (c *EdgeTtsClient) Text2Speech(text, voice, outputFile string) error {
 	tempFile.Close() // 确保文件被写入
 
 	// 重试机制
-	maxRetries := 3
+	maxRetries := 1
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		log.GetLogger().Info("edge-tts转录尝试",
 			zap.Int("attempt", attempt),

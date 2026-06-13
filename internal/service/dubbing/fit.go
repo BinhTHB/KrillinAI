@@ -18,7 +18,8 @@ func FitTimeline(plan []PlanItem, chunks []Chunk, cfg Config) ([]PlanItem, []Chu
 	for chunkIndex, chunk := range fittedChunks {
 		available := chunk.End - chunk.Start
 		if available <= 0 {
-			return nil, nil, report, fmt.Errorf("chunk %d has non-positive duration: %.3f", chunk.ID, available)
+			report.Warnings = append(report.Warnings, fmt.Sprintf("chunk %d has non-positive duration: %.3f, skipping", chunk.ID, available))
+			continue
 		}
 
 		actual, err := chunkActualDuration(fitted, chunk)

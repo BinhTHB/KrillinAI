@@ -94,7 +94,11 @@ func GenerateRawChunkSegments(ctx context.Context, tts types.Ttser, plan []PlanI
 			if tts == nil {
 				return nil, nil, errors.New("tts is required for non-silence text")
 			}
-			if err := retryTTS(tts, text, voice, output, 3); err != nil {
+			ttsAttempts := 3
+			if cfg.SkipFailedTTSChunks {
+				ttsAttempts = 1 // fail fast when skip is enabled
+			}
+			if err := retryTTS(tts, text, voice, output, ttsAttempts); err != nil {
 				if cfg.SkipFailedTTSChunks {
 					log.GetLogger().Warn("tts chunk failed, skipping with silence",
 						zap.Int("chunk_id", outChunks[i].ID),

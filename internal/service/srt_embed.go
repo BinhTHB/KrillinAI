@@ -582,9 +582,9 @@ func fontCandidatesForOS(goos string) ([]fontPair, error) {
 	switch goos {
 	case "windows":
 		return []fontPair{
-			{bold: "C\\:/Windows/Fonts/msyhbd.ttc", regular: "C\\:/Windows/Fonts/msyh.ttc"},
-			{bold: "C\\:/Windows/Fonts/simhei.ttf", regular: "C\\:/Windows/Fonts/msyh.ttc"},
-			{bold: "C\\:/Windows/Fonts/simsun.ttc", regular: "C\\:/Windows/Fonts/simsun.ttc"},
+			{bold: "C:/Windows/Fonts/msyhbd.ttc", regular: "C:/Windows/Fonts/msyh.ttc"},
+			{bold: "C:/Windows/Fonts/simhei.ttf", regular: "C:/Windows/Fonts/msyh.ttc"},
+			{bold: "C:/Windows/Fonts/simsun.ttc", regular: "C:/Windows/Fonts/simsun.ttc"},
 		}, nil
 	case "darwin":
 		return []fontPair{

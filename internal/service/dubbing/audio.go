@@ -285,11 +285,31 @@ func validateAssembleChunkPlan(plan []PlanItem, chunks []Chunk, segmentsDir stri
 			return nil, fmt.Errorf("chunk %d has no items", chunk.ID)
 		}
 		if chunk.Start < lastEnd {
-			return nil, fmt.Errorf("chunk %d starts before previous end: start %.3f lastEnd %.3f", chunk.ID, chunk.Start, lastEnd)
+			// Chunk overlaps previous due to speed limit — shift start to avoid concat gap
+			chunk.Start = lastEnd
 		}
 		end := chunkFittedEnd(plan, chunk)
 		if end <= chunk.Start {
-			return nil, fmt.Errorf("chunk %d end must be greater than start: start %.3f end %.3f", chunk.ID, chunk.Start, end)
+			// Chunk has no valid fitted audio (all items skipped) — write silence
+			raw := rawChunkPath(segmentsDir, chunk.ID)
+			if err := defaultFFmpegRunner([]string{
+				"-y",
+				"-f", "lavfi",
+				"-i", "anullsrc=channel_layout=mono:sample_rate=44100",
+				"-t", "0.100",
+				"-ar", "44100",
+				"-ac", "1",
+				"-c:a", "pcm_s16le",
+				raw,
+			}); err != nil {
+				return nil, fmt.Errorf("write silence for empty chunk %d: %w", chunk.ID, err)
+			}
+			chunk.Start = lastEnd
+			chunk.End = lastEnd + 0.1
+			chunk.SpeedFactor = 1
+			filters[i] = "atempo=1.0"
+			lastEnd = chunk.End
+			continue
 		}
 		filter, err := buildAtempoFilter(chunkSpeedFactor(plan, chunk))
 		if err != nil {
