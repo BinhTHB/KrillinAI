@@ -1897,18 +1897,15 @@ func (s *YouTubeSubtitleService) writeTargetLanguageSrtFile(blocks []*util.SrtBl
 		}
 
 		// 只写入目标语言文本
-		if block.TargetLanguageSentence != "" {
+		if block.TargetLanguageSentence != "" && block.TargetLanguageSentence != block.OriginLanguageSentence {
+			// 有有效的翻译，使用翻译文本
 			_, err = file.WriteString(block.TargetLanguageSentence + "\n\n")
 			if err != nil {
 				return err
 			}
-		} else if block.OriginLanguageSentence != "" {
-			// 如果没有翻译，使用原语言
-			_, err = file.WriteString(block.OriginLanguageSentence + "\n\n")
-			if err != nil {
-				return err
-			}
 		}
+		// 如果没有有效翻译，直接跳过这个块（不写入任何文本）
+		// 这样可以避免未翻译的中文出现在目标字幕中
 	}
 
 	log.GetLogger().Info("Target language SRT file written successfully",
