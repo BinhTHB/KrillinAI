@@ -1,4 +1,4 @@
-"""Fix SRT timing: truncate overly long subtitle spans.
+"""Fix SRT timing: truncate overly long subtitle spans and resolve overlapping entries.
 
 whispercpp ASR sometimes produces entries spanning entire video
 duration (e.g. 00:00:02 -> 00:04:57). This script replaces those
@@ -60,27 +60,119 @@ def fix_srt(input_path, output_path):
 
     # Sort by start time, then end time
     entries.sort(key=lambda e: (e[0], e[1]))
+    
+    # Calculate total video duration from original file
+    video_duration = entries[-1][1] if entries else 0
 
-    # Fix each entry
+    # Ensure no overlap and no duplicate start times
     fixed = []
+    occupied_slots = []  # (start, end) slots for overlap detection
+    min_gap = 0.2  # 200ms minimum gap between subtitles
+    
     for i, (start, orig_end, text, idx) in enumerate(entries):
-        # Estimate reasonable duration
-        est = estimate_duration(text)
-
-        # Clamp to not overlap with next entry's start
-        if i + 1 < len(entries):
-            next_start = entries[i + 1][0]
-            max_end = next_start - 0.1  # 100ms gap
+        # Estimate reasonable duration based on text
+        est_duration = estimate_duration(text)
+        
+        # Cap extremely long original durations
+        if orig_end - start > 30:
+            orig_end = start + min(8.0, est_duration * 1.5)
+        
+        # Determine available space
+        next_start = entries[i + 1][0] if i + 1 < len(entries) else video_duration
+        
+        # Find a suitable start time that doesn't overlap existing slots
+        candidate_start = start
+        
+        # Check for overlap with existing slots
+        max_attempts = 100
+        for attempt in range(max_attempts):
+            overlap = False
+            for slot_start, slot_end in occupied_slots:
+                if candidate_start < slot_end and candidate_start + 0.5 > slot_start:
+                    # Overlaps, shift forward
+                    candidate_start = slot_end + min_gap
+                    overlap = True
+                    break
+            
+            # Also check if too close to next entry
+            if candidate_start + est_duration > next_start - min_gap:
+                candidate_start = next_start - min_gap - est_duration
+                if candidate_start < start:
+                    candidate_start = start
+                    # Shorten duration to fit
+                    est_duration = max(0.5, next_start - min_gap - candidate_start)
+                    # If still too long, cap it
+                    if est_duration < 0.5:
+                        est_duration = 0.5
+            
+            if not overlap:
+                break
         else:
-            max_end = orig_end  # keep original for last entry
-
-        # Also cap at original duration
-        new_duration = min(est, orig_end - start)
-        # But not more than available space
-        new_duration = min(new_duration, max(0.5, max_end - start))
-
-        new_end = start + new_duration
-        fixed.append((start, new_end, text, idx))
+            # If still overlapping after max attempts, force position after last slot
+            if occupied_slots:
+                last_slot_end = max(slot_end for slot_start, slot_end in occupied_slots)
+                candidate_start = last_slot_end + min_gap
+        
+        # Ensure minimum gap from previous end if any
+        if occupied_slots:
+            last_end = max(slot_end for slot_start, slot_end in occupied_slots)
+            if candidate_start < last_end + min_gap:
+                candidate_start = last_end + min_gap
+        
+        # Calculate maximum possible end time
+        max_end = min(next_start - min_gap, candidate_start + 8.0)  # cap at 8s max
+        
+        # Calculate desired duration
+        desired_duration = min(est_duration, orig_end - start, 8.0)
+        
+        # Ensure minimum duration
+        if desired_duration < 0.8 and est_duration > 0.8:
+            desired_duration = min(0.8, max_end - candidate_start)
+        
+        # Adjust if exceeds next entry
+        if candidate_start + desired_duration > max_end:
+            desired_duration = max_end - candidate_start
+            if desired_duration < 0.5:
+                desired_duration = 0.5
+        
+        new_end = candidate_start + desired_duration
+        
+        # Add to occupied slots
+        occupied_slots.append((candidate_start, new_end))
+        
+        fixed.append((candidate_start, new_end, text, idx))
+    
+    # If coverage is too short, extend later entries proportionally
+    if fixed and video_duration > 0:
+        coverage_end = fixed[-1][1]
+        if coverage_end < video_duration * 0.7:
+            # Need to extend coverage
+            target_coverage = min(video_duration * 0.95, coverage_end * 1.3)
+            extension_factor = target_coverage / coverage_end
+            
+            # Apply extension to entries after midpoint
+            adjusted = []
+            midpoint_idx = len(fixed) // 2
+            
+            for i, (start, end, text, idx) in enumerate(fixed):
+                if i >= midpoint_idx:
+                    # Extend later entries
+                    duration = end - start
+                    new_duration = duration * extension_factor
+                    new_duration = min(new_duration, 8.0)
+                    new_end = start + new_duration
+                    
+                    # Ensure no overlap with next
+                    if i + 1 < len(fixed):
+                        next_start = fixed[i + 1][0]
+                        if new_end > next_start - min_gap:
+                            new_end = next_start - min_gap
+                    
+                    adjusted.append((start, new_end, text, idx))
+                else:
+                    adjusted.append((start, end, text, idx))
+            
+            fixed = adjusted
 
     # Build output
     out_lines = []
@@ -95,8 +187,12 @@ def fix_srt(input_path, output_path):
 
     # Stats
     long_entries = sum(1 for s, e, _, _ in fixed if e - s > 30)
+    short_entries = sum(1 for s, e, _, _ in fixed if e - s < 0.5)
+    coverage = fixed[-1][1] - fixed[0][0] if fixed else 0
     print(f"  Entries >30s remaining: {long_entries}")
-    print(f"  Total duration: {fixed[-1][1] - fixed[0][0]:.1f}s" if fixed else "  No entries")
+    print(f"  Entries <0.5s remaining: {short_entries}")
+    print(f"  Coverage: {coverage:.1f}s (video: {video_duration:.1f}s)")
+    print(f"  Coverage ratio: {coverage/video_duration*100:.1f}%" if video_duration > 0 else "  No video duration")
 
 
 if __name__ == '__main__':
