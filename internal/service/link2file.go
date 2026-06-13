@@ -67,10 +67,9 @@ func (s Service) linkToFile(ctx context.Context, stepParam *types.SubtitleTaskSt
 		}
 	} else if strings.Contains(link, "douyin.com") {
 		videoId := util.GetDouyinVideoId(link)
-		if videoId == "" {
-			return errors.New("linkToFile error: invalid douyin link")
+		if videoId != "" {
+			stepParam.Link = "https://www.douyin.com/video/" + videoId
 		}
-		stepParam.Link = "https://www.douyin.com/video/" + videoId
 		cmdArgs := []string{"--extract-audio", "--audio-format", "mp3", "-o", audioPath, stepParam.Link}
 		if config.Conf.App.Proxy != "" {
 			cmdArgs = append(cmdArgs, "--proxy", config.Conf.App.Proxy)
