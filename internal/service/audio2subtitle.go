@@ -9,6 +9,7 @@ import (
 	"krillin-ai/config"
 	"krillin-ai/internal/types"
 	"krillin-ai/log"
+	"krillin-ai/pkg/deepl"
 	"krillin-ai/pkg/util"
 	"os"
 	"path/filepath"
@@ -229,8 +230,42 @@ func (s Service) splitTextAndTranslateV2(basePath, inputText string, originLang,
 			prompt := fmt.Sprintf(types.SplitTextWithContextPrompt, types.GetStandardLanguageName(targetLang), previousSentences, originText, nextSentences)
 
 			translatedText, err := s.ChatCompleter.ChatCompletion(prompt)
-			if err != nil {
-				log.GetLogger().Error("splitTextAndTranslateV2 llm translate error", zap.Error(err), zap.Any("original text", originText))
+			
+			// Check if LLM output is valid Vietnamese (if target is vi) and not still Chinese
+			isChinese := func(str string) bool {
+				zhCharCount := 0
+				for _, r := range str {
+					if r >= 0x4e00 && r <= 0x9fff {
+						zhCharCount++
+					}
+				}
+				return zhCharCount > 0 && float64(zhCharCount)/float64(len([]rune(str))) > 0.3
+			}
+
+			shouldFallback := err != nil || isChinese(translatedText)
+
+			if shouldFallback {
+				if err != nil {
+					log.GetLogger().Warn("splitTextAndTranslateV2 llm translate failed, falling back to DeepL", zap.Error(err), zap.Any("original text", originText))
+				} else {
+					log.GetLogger().Warn("splitTextAndTranslateV2 llm output is still Chinese, falling back to DeepL", zap.Any("original text", originText), zap.Any("translated", translatedText))
+				}
+				
+				// Fallback to DeepL
+				if config.Conf.Deepl.ApiKey != "" {
+					deeplClient := deepl.NewClient(config.Conf.Deepl.ApiKey)
+					if dText, dErr := deeplClient.Translate(originText, string(targetLang)); dErr == nil {
+						translatedText = dText
+						err = nil
+					} else {
+						log.GetLogger().Error("deepl fallback translation error", zap.Error(dErr))
+						err = dErr
+					}
+				}
+			}
+			
+			if err != nil || (string(targetLang) == "vi" && isChinese(translatedText)) {
+				log.GetLogger().Error("splitTextAndTranslateV2 translation completely failed", zap.Any("original text", originText))
 				results[index] = &TranslatedItem{
 					OriginText:     originText,
 					TranslatedText: originText,

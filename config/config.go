@@ -114,6 +114,11 @@ type Config struct {
 	Tts        Tts                    `toml:"tts"`
 	Dubbing    Dubbing                `toml:"dubbing"`
 	Image      Image                  `toml:"image"`
+	Deepl      DeeplConfig            `toml:"deepl"`
+}
+
+type DeeplConfig struct {
+	ApiKey string `toml:"api_key"`
 }
 
 var Conf = Config{
