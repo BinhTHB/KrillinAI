@@ -26,7 +26,7 @@ def format_time(sec):
     return f'{h:02d}:{m:02d}:{s:06.3f}'.replace('.', ',')
 
 total_chars = sum(len(t) for t in texts)
-target_dur = 341.0
+target_dur = 180.3
 gap = 0.15
 
 output = []

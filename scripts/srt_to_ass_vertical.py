@@ -14,19 +14,21 @@ def srt_to_ass_vertical(srt_path, ass_path):
     
     blocks = re.split(r'\n\n+', content.strip())
     
-    # ASS header for vertical video (Fontsize: 11, Alignment: 2, MarginV: 50)
+    # ASS header for horizontal/original video (1280x720)
     ass_content = """[Script Info]
 Title: Vertical Vietnamese Subtitle
 Original Script: 
 ScriptType: v4.00+
 PlayDepth: 0
 Collisions: Normal
+PlayResX: 1280
+PlayResY: 720
 Timer: 100.0000
 WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,11,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,1.5,0.5,2,10,10,50,1
+Style: Default,Arial,36,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,3.0,1.0,2,20,20,80,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
