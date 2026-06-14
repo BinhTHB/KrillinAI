@@ -71,8 +71,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     return ass_path
 
 def main():
-    workdir = Path("tasks/douyin-test")
-    srt_path = workdir / "target_language_srt.srt"
+    workdir = Path("tasks/douyin-new")
+    srt_path = workdir / "target_language_srt_fixed.srt"
     ass_path = workdir / "vertical_vietnamese.ass"
     
     if not srt_path.exists():
