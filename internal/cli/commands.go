@@ -201,12 +201,13 @@ Flags:
 `
 	case "gemini-dub":
 		return `Usage:
-  krillinai-cli gemini-dub [input-url-or-path] --workdir <dir> [flags]
+  krillinai-cli gemini-dub [input-url-or-path] [flags]
 
 Runs subtitle generation when input-url-or-path is provided, then runs the controlled Gemini Live dubbing pipeline and renders the final video.
+When input-url-or-path is provided and --workdir is omitted, a timestamped workdir is created under tasks/.
 
 Flags:
-  --workdir <dir>        Task working directory
+  --workdir <dir>        Task working directory (optional with input URL/path)
   --task-id <id>         Optional task id
   --origin-lang <lang>   Source language (default zh)
   --target-lang <lang>   Target language (default vi)
@@ -362,15 +363,19 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 	if fs.NArg() > 1 {
 		return Command{}, errors.New("gemini-dub accepts at most one input URL/path")
 	}
-	if strings.TrimSpace(*workdir) == "" {
-		return Command{}, errors.New("gemini-dub requires --workdir")
+	resolvedWorkdir := strings.TrimSpace(*workdir)
+	if resolvedWorkdir == "" {
+		if strings.TrimSpace(input) == "" {
+			return Command{}, errors.New("gemini-dub requires --workdir when no input URL/path is provided")
+		}
+		resolvedWorkdir = defaultGeminiDubWorkdir()
 	}
 	return Command{
 		Name:   name,
 		DryRun: *dryRun,
 		GeminiDub: GeminiDubRequest{
 			Input:       input,
-			Workdir:     *workdir,
+			Workdir:     resolvedWorkdir,
 			TaskID:      *taskID,
 			OriginLang:  *originLang,
 			TargetLang:  *targetLang,
@@ -729,6 +734,20 @@ func styleLoadFailure(stage pipeline.Stage, workdir, taskID string, err error) p
 func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req GeminiDubRequest) pipeline.Response {
 	start := time.Now()
 
+	if err := os.MkdirAll(req.Workdir, 0755); err != nil {
+		return pipeline.Response{
+			OK:      false,
+			Stage:   pipeline.StageGeminiDub,
+			Workdir: req.Workdir,
+			TaskID:  req.TaskID,
+			Error: &pipeline.Error{
+				Kind:    pipeline.ErrorKindInternal,
+				Code:    "mkdir_workdir_failed",
+				Message: err.Error(),
+			},
+		}
+	}
+
 	if req.Input != "" {
 		subReq := pipeline.SubtitleRequest{
 			Input:         req.Input,
@@ -805,6 +824,10 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 		},
 		DurationMS: time.Since(start).Milliseconds(),
 	}
+}
+
+func defaultGeminiDubWorkdir() string {
+	return filepath.Join("tasks", "gemini-dub-"+time.Now().Format("20060102-150405"))
 }
 
 func renderStageFromCommand(name string) pipeline.Stage {
