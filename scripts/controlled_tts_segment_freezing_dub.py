@@ -10,7 +10,7 @@ Inputs:
 
 Method:
   - Merge too-short SRT entries into natural chunks.
-  - Generate TTS from the exact subtitle text.
+  - Generate TTS (using Gemini Live API, Edge-TTS, or Hybrid) from the exact subtitle text.
   - Measure real TTS duration.
   - Speed up lightly, then freeze each source-video chunk if TTS is longer.
   - Build a new actual timeline and generate ASS/SRT aligned to the final video.
@@ -27,6 +27,14 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+
+# Try to import SDK and Edge-TTS
+try:
+    from google import genai
+    from google.genai import types
+except ImportError:
+    print("WARN: google-genai not installed. Gemini provider won't be available.")
+    genai = None
 
 try:
     import edge_tts
@@ -59,11 +67,33 @@ class Chunk:
     def __post_init__(self):
         self.start = self.entries[0].start
         self.end = self.entries[-1].end
+        # Use comma normalization for TTS text to avoid long Edge-TTS pauses
         self.text = " ".join(e.text.strip() for e in self.entries if e.text.strip())
 
     @property
     def source_duration(self):
         return max(0.01, self.end - self.start)
+
+    @property
+    def normalized_tts_text(self):
+        # Edge-TTS/Gemini pauses too long on periods. Replace intermediate periods with commas or semicolons
+        text = self.text.strip()
+        # Replace intermediate sentence ends with comma, except at the very end
+        parts = re.split(r'([.!?…])', text)
+        result = []
+        for i in range(0, len(parts) - 1, 2):
+            val = parts[i].strip()
+            punc = parts[i+1]
+            if val:
+                result.append(val)
+                # If it's not the final punctuation, replace with a comma for a shorter pause
+                if i < len(parts) - 3:
+                    result.append(",")
+                else:
+                    result.append(punc)
+        if len(parts) % 2 == 1 and parts[-1].strip():
+            result.append(parts[-1].strip())
+        return " ".join("".join(result).split())
 
 
 def run_cmd(cmd: str, check: bool = True) -> subprocess.CompletedProcess:
@@ -184,7 +214,7 @@ def merge_entries(entries: list[Entry], min_chunk: float, max_chunk: float, max_
     if current:
         raw_chunks.append(current)
 
-    # Post-pass: eliminate orphan chunks shorter than min_chunk whenever possible.
+    # Post-pass: eliminate orphan chunks shorter than min_chunk
     merged: list[list[Entry]] = []
     i = 0
     while i < len(raw_chunks):
@@ -209,7 +239,16 @@ def merge_entries(entries: list[Entry], min_chunk: float, max_chunk: float, max_
     return [Chunk(entries=group, index=i + 1) for i, group in enumerate(merged)]
 
 
-async def tts_text(text: str, output_mp3: Path, voice: str, rate: str, retries: int = 5) -> bool:
+def load_api_key() -> str:
+    config_path = Path("config/config.toml")
+    if not config_path.exists():
+        return ""
+    content = config_path.read_text(encoding="utf-8")
+    match = re.search(r'api_key\s*=\s*"([^"]+)"', content)
+    return match.group(1) if match else ""
+
+
+async def edge_tts_text(text: str, output_mp3: Path, voice: str, rate: str, retries: int = 5) -> bool:
     for attempt in range(1, retries + 1):
         try:
             if output_mp3.exists():
@@ -219,8 +258,68 @@ async def tts_text(text: str, output_mp3: Path, voice: str, rate: str, retries: 
             if output_mp3.exists() and output_mp3.stat().st_size > 1000:
                 return True
         except Exception as exc:
-            print(f"  TTS retry {attempt}/{retries}: {exc}", flush=True)
+            print(f"  Edge-TTS retry {attempt}/{retries}: {exc}", flush=True)
             await asyncio.sleep(2)
+    return False
+
+
+async def gemini_tts_text(text: str, output_wav: Path, api_key: str, voice_name: str = "Puck", retries: int = 3) -> bool:
+    if not genai or not api_key:
+        return False
+
+    GEMINI_MODEL = "gemini-2.5-flash-native-audio-preview-12-2025"
+    GEMINI_API_VERSION = "v1alpha"
+
+    # Configure connection. Puck has standard natural voice style.
+    config = types.LiveConnectConfig(
+        response_modalities=["AUDIO"],
+        speech_config=types.SpeechConfig(
+            voice_config=types.VoiceConfig(
+                prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice_name)
+            ),
+            language_code="vi-VN",
+        ),
+        system_instruction=(
+            "Hãy đọc to đoạn văn sau bằng tiếng Việt với giọng đọc diễn cảm, tự nhiên, đúng sắc thái. "
+            "Tuyệt đối chỉ trả về âm thanh giọng đọc tiếng Việt của đoạn văn đó. "
+            "Không thêm lời bình luận, không nói bất kỳ câu dẫn nào khác."
+        ),
+    )
+
+    for attempt in range(1, retries + 1):
+        try:
+            if output_wav.exists():
+                output_wav.unlink()
+            
+            client = genai.Client(api_key=api_key, http_options={"api_version": GEMINI_API_VERSION})
+            received_audio = bytearray()
+            
+            async with client.aio.live.connect(model=GEMINI_MODEL, config=config) as session:
+                # Send the text to be read aloud
+                await session.send(input=text, end_of_turn=True)
+                
+                # Receive the audio PCM 24kHz stream
+                async for msg in session.receive():
+                    if msg.data:
+                        received_audio.extend(msg.data)
+                    if msg.server_content and msg.server_content.turn_complete:
+                        break
+            
+            if received_audio:
+                # Convert raw 24kHz 16-bit mono PCM bytes to WAV
+                temp_pcm = output_wav.with_suffix('.raw.pcm')
+                temp_pcm.write_bytes(bytes(received_audio))
+                run_cmd(f'ffmpeg -y -f s16le -ar 24000 -ac 1 -i "{temp_pcm}" -ac 1 -ar 44100 "{output_wav}"')
+                try:
+                    temp_pcm.unlink()
+                except:
+                    pass
+                if output_wav.exists() and get_duration(output_wav) > 0.05:
+                    return True
+        except Exception as exc:
+            print(f"  Gemini-TTS retry {attempt}/{retries}: {exc}", flush=True)
+            await asyncio.sleep(2)
+            
     return False
 
 
@@ -260,14 +359,16 @@ async def main():
     parser.add_argument('--output-dir', default='controlled_tts_freezing')
     parser.add_argument('--voice', default='vi-VN-HoaiMyNeural')
     parser.add_argument('--rate', default='+0%')
-    parser.add_argument('--speed', type=float, default=1.15)
-    parser.add_argument('--gap', type=float, default=0.15)
+    parser.add_argument('--speed', type=float, default=1.10)
+    parser.add_argument('--gap', type=float, default=0.05)
     parser.add_argument('--bg-volume', type=float, default=0.10)
     parser.add_argument('--min-chunk', type=float, default=2.5)
     parser.add_argument('--max-chunk', type=float, default=6.0)
     parser.add_argument('--max-chars', type=int, default=140)
     parser.add_argument('--max-chunks', type=int, default=0)
     parser.add_argument('--keep-cache', action='store_true')
+    parser.add_argument('--tts-provider', default='hybrid', choices=['edge', 'gemini', 'hybrid'])
+    parser.add_argument('--gemini-voice', default='Puck', choices=['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'])
     args = parser.parse_args()
 
     workdir = Path(args.workdir)
@@ -281,6 +382,13 @@ async def main():
     if not srt_path.exists():
         raise FileNotFoundError(srt_path)
 
+    api_key = ""
+    if args.tts_provider in ['gemini', 'hybrid']:
+        api_key = load_api_key()
+        if not api_key:
+            print("WARN: No Gemini API Key found. Falling back to edge-tts.")
+            args.tts_provider = 'edge'
+
     if out_dir.exists() and not args.keep_cache:
         safe_rmtree(out_dir)
     seg_dir.mkdir(parents=True, exist_ok=True)
@@ -292,6 +400,7 @@ async def main():
         chunks = chunks[:args.max_chunks]
     print(f"Input video: {video_path} ({video_dur:.2f}s)", flush=True)
     print(f"Input SRT: {srt_path} entries={len(entries)} chunks={len(chunks)}", flush=True)
+    print(f"TTS Provider: {args.tts_provider}", flush=True)
 
     last_frame = out_dir / 'last_frame.png'
     run_cmd(f'ffmpeg -y -ss {max(0, video_dur - 1):.3f} -i "{video_path}" -frames:v 1 -update 1 "{last_frame}"')
@@ -301,9 +410,11 @@ async def main():
     current = 0.0
 
     for chunk in chunks:
-        print(f"\n[{chunk.index}/{len(chunks)}] {chunk.start:.2f}-{chunk.end:.2f}s src={chunk.source_duration:.2f}s text={chunk.text[:80]}", flush=True)
+        print(f"\n[{chunk.index}/{len(chunks)}] {chunk.start:.2f}-{chunk.end:.2f}s src={chunk.source_duration:.2f}s", flush=True)
+        print(f"  text: {chunk.text[:80]}", flush=True)
+        
         prefix = seg_dir / f"chunk_{chunk.index:04d}"
-        tts_mp3 = prefix.with_suffix('.tts.mp3')
+        tts_raw = prefix.with_suffix('.tts_raw.wav')
         tts_wav = prefix.with_suffix('.tts.wav')
         tts_speed = prefix.with_suffix('.tts_speed.wav')
         v_src = prefix.with_suffix('.video.mp4')
@@ -312,15 +423,62 @@ async def main():
         a_mix = prefix.with_suffix('.mix.wav')
         combined = prefix.with_suffix('.combined.mp4')
 
-        ok = await tts_text(chunk.text, tts_mp3, args.voice, args.rate)
-        if not ok:
-            print(f"  SKIP chunk {chunk.index}: TTS failed", flush=True)
+        # Generate voiceover based on provider
+        used_gemini = False
+        tts_text_normalized = chunk.normalized_tts_text
+
+        if args.tts_provider in ['gemini', 'hybrid']:
+            print("  Generating voice via Gemini Live...", flush=True)
+            ok = await gemini_tts_text(tts_text_normalized, tts_raw, api_key, args.gemini_voice)
+            if ok:
+                used_gemini = True
+                print("  Gemini TTS OK.", flush=True)
+            elif args.tts_provider == 'hybrid':
+                print("  Gemini failed. Falling back to Edge-TTS...", flush=True)
+                tmp_mp3 = prefix.with_suffix('.tts.mp3')
+                ok = await edge_tts_text(tts_text_normalized, tmp_mp3, args.voice, args.rate)
+                if ok:
+                    run_cmd(f'ffmpeg -y -i "{tmp_mp3}" -ac 1 -ar 44100 "{tts_raw}"')
+                    try:
+                        tmp_mp3.unlink()
+                    except:
+                        pass
+            else:
+                ok = False
+        else:
+            # Edge-TTS
+            tmp_mp3 = prefix.with_suffix('.tts.mp3')
+            ok = await edge_tts_text(tts_text_normalized, tmp_mp3, args.voice, args.rate)
+            if ok:
+                run_cmd(f'ffmpeg -y -i "{tmp_mp3}" -ac 1 -ar 44100 "{tts_raw}"')
+                try:
+                    tmp_mp3.unlink()
+                except:
+                    pass
+
+        if not ok or not tts_raw.exists():
+            print(f"  SKIP chunk {chunk.index}: TTS generation failed", flush=True)
             continue
-        run_cmd(f'ffmpeg -y -i "{tts_mp3}" -ac 1 -ar 44100 "{tts_wav}"')
+            
+        shutil.copy2(tts_raw, tts_wav)
         ensure_media(tts_wav, 'raw TTS wav')
         
-        if abs(args.speed - 1.0) > 0.01:
-            speed_result = run_cmd(f'ffmpeg -y -i "{tts_wav}" -filter:a "atempo={args.speed:.3f}" -ac 1 -ar 44100 "{tts_speed}"', check=False)
+        # Adaptive speed: Gemini usually sounds better without speedup or with very light speedup.
+        # Edge-TTS needs rate speedup. We apply speedup based on need.
+        speed_factor = args.speed
+        if used_gemini:
+            # For Gemini, use less aggressive speed limit to preserve emotional expressiveness.
+            # Only speed up if it severely exceeds source chunk.
+            est_factor = (get_duration(tts_wav) + args.gap) / chunk.source_duration
+            if est_factor <= 1.05:
+                speed_factor = 1.0
+            elif est_factor <= 1.25:
+                speed_factor = 1.05
+            else:
+                speed_factor = 1.10
+        
+        if abs(speed_factor - 1.0) > 0.01:
+            speed_result = run_cmd(f'ffmpeg -y -i "{tts_wav}" -filter:a "atempo={speed_factor:.3f}" -ac 1 -ar 44100 "{tts_speed}"', check=False)
             if speed_result.returncode != 0 or not tts_speed.exists() or get_duration(tts_speed) < 0.05:
                 print("  WARN: speed conversion failed; using raw TTS", flush=True)
                 shutil.copy2(tts_wav, tts_speed)
@@ -361,7 +519,7 @@ async def main():
         chunk.actual_end = current + real_dur
         current = chunk.actual_end
         processed.append(chunk)
-        print(f"  ok: tts={tts_dur:.2f}s final={real_dur:.2f}s freeze={chunk.freeze_duration:.2f}s timeline={current:.2f}s", flush=True)
+        print(f"  ok: tts={tts_dur:.2f}s final={real_dur:.2f}s freeze={chunk.freeze_duration:.2f}s timeline={current:.2f}s (provider={'gemini' if used_gemini else 'edge'})", flush=True)
 
     if not processed:
         raise RuntimeError('No chunks processed')
