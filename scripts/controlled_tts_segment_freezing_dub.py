@@ -376,6 +376,7 @@ async def main():
     parser.add_argument('--speed', type=float, default=1.25)
     parser.add_argument('--gap', type=float, default=0.05)
     parser.add_argument('--bg-volume', type=float, default=0.10)
+    parser.add_argument('--voice-volume', type=float, default=1.6)
     parser.add_argument('--min-chunk', type=float, default=2.5)
     parser.add_argument('--max-chunk', type=float, default=6.0)
     parser.add_argument('--max-chars', type=int, default=140)
@@ -527,8 +528,8 @@ async def main():
         run_cmd(
             f'ffmpeg -y -i "{a_bg}" -i "{tts_speed}" -filter_complex '
             f'"[0:a]volume={args.bg_volume:.3f},apad=whole_len={samples}[bg];'
-            f'[1:a]volume=1.0,aformat=sample_rates=44100:channel_layouts=mono,apad=whole_len={samples}[voice];'
-            f'[bg][voice]amix=inputs=2:duration=first:dropout_transition=0" '
+            f'[1:a]volume={args.voice_volume:.3f},aformat=sample_rates=44100:channel_layouts=mono,apad=whole_len={samples}[voice];'
+            f'[bg][voice]amix=inputs=2:duration=first:dropout_transition=0,volume=2.0" '
             f'-t {final_dur:.3f} -ac 2 -ar 44100 "{a_mix}"'
         )
         run_cmd(f'ffmpeg -y -i "{v_out}" -i "{a_mix}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 192k -shortest "{combined}"')
