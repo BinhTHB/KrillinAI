@@ -368,6 +368,7 @@ async def main():
     parser.add_argument('--keep-cache', action='store_true')
     parser.add_argument('--tts-provider', default='hybrid', choices=['edge', 'gemini', 'hybrid'])
     parser.add_argument('--gemini-voice', default='Puck', choices=['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'])
+    parser.add_argument('--force-speed', action='store_true', help='Use --speed exactly for all providers, including Gemini, instead of adaptive Gemini speed')
     args = parser.parse_args()
 
     workdir = Path(args.workdir)
@@ -465,7 +466,7 @@ async def main():
         # Adaptive speed: Gemini usually sounds better without speedup or with very light speedup.
         # Edge-TTS needs rate speedup. We apply speedup based on need.
         speed_factor = args.speed
-        if used_gemini:
+        if used_gemini and not args.force_speed:
             # Faster adaptive Gemini pacing requested by user.
             # Keep expressive quality where possible, but cap long chunks at 1.30x to reduce dead air/freeze.
             est_factor = (get_duration(tts_wav) + args.gap) / chunk.source_duration
