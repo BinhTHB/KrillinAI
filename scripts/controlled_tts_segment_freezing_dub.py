@@ -262,11 +262,10 @@ async def edge_tts_text(text: str, output_mp3: Path, voice: str, rate: str, retr
     return False
 
 
-async def gemini_tts_text(text: str, output_wav: Path, api_key: str, voice_name: str = "Puck", retries: int = 3) -> bool:
+async def gemini_tts_text(text: str, output_wav: Path, api_key: str, model_name: str, voice_name: str = "Puck", retries: int = 3) -> bool:
     if not genai or not api_key:
         return False
 
-    GEMINI_MODEL = "gemini-2.5-flash-native-audio-preview-12-2025"
     GEMINI_API_VERSION = "v1alpha"
 
     # Configure connection. Puck has standard natural voice style.
@@ -293,7 +292,7 @@ async def gemini_tts_text(text: str, output_wav: Path, api_key: str, voice_name:
             client = genai.Client(api_key=api_key, http_options={"api_version": GEMINI_API_VERSION})
             received_audio = bytearray()
             
-            async with client.aio.live.connect(model=GEMINI_MODEL, config=config) as session:
+            async with client.aio.live.connect(model=model_name, config=config) as session:
                 # Send the text to be read aloud
                 await session.send(input=text, end_of_turn=True)
                 
@@ -368,6 +367,7 @@ async def main():
     parser.add_argument('--keep-cache', action='store_true')
     parser.add_argument('--tts-provider', default='hybrid', choices=['edge', 'gemini', 'hybrid'])
     parser.add_argument('--gemini-voice', default='Puck', choices=['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'])
+    parser.add_argument('--gemini-model', default='gemini-2.5-flash-native-audio-preview-12-2025')
     parser.add_argument('--force-speed', action='store_true', help='Use --speed exactly for all providers, including Gemini, instead of adaptive Gemini speed')
     args = parser.parse_args()
 
@@ -429,7 +429,7 @@ async def main():
 
         if args.tts_provider in ['gemini', 'hybrid']:
             print("  Generating voice via Gemini Live...", flush=True)
-            ok = await gemini_tts_text(tts_text_normalized, tts_raw, api_key, args.gemini_voice)
+            ok = await gemini_tts_text(tts_text_normalized, tts_raw, api_key, args.gemini_model, args.gemini_voice)
             if ok:
                 used_gemini = True
                 print("  Gemini TTS OK.", flush=True)
