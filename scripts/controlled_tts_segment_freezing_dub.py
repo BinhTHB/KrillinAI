@@ -118,6 +118,22 @@ def get_duration(path: Path) -> float:
         return 0.0
 
 
+def atempo_filter(speed: float) -> str:
+    """Build an FFmpeg atempo chain. Each atempo stage must be between 0.5 and 2.0."""
+    if speed <= 0:
+        raise ValueError(f"Invalid speed: {speed}")
+    factors = []
+    remaining = speed
+    while remaining > 2.0:
+        factors.append(2.0)
+        remaining /= 2.0
+    while remaining < 0.5:
+        factors.append(0.5)
+        remaining /= 0.5
+    factors.append(remaining)
+    return ','.join(f'atempo={factor:.3f}' for factor in factors)
+
+
 def safe_rmtree(path: Path, retries: int = 5):
     for attempt in range(1, retries + 1):
         try:
@@ -480,7 +496,7 @@ async def main():
                 speed_factor = 1.30
         
         if abs(speed_factor - 1.0) > 0.01:
-            speed_result = run_cmd(f'ffmpeg -y -i "{tts_wav}" -filter:a "atempo={speed_factor:.3f}" -ac 1 -ar 44100 "{tts_speed}"', check=False)
+            speed_result = run_cmd(f'ffmpeg -y -i "{tts_wav}" -filter:a "{atempo_filter(speed_factor)}" -ac 1 -ar 44100 "{tts_speed}"', check=False)
             if speed_result.returncode != 0 or not tts_speed.exists() or get_duration(tts_speed) < 0.05:
                 print("  WARN: speed conversion failed; using raw TTS", flush=True)
                 shutil.copy2(tts_wav, tts_speed)
