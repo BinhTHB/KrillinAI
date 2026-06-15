@@ -11,6 +11,7 @@ const (
 	StageRenderVertical   Stage = "render-vertical"
 	StageCover            Stage = "cover"
 	StagePipeline         Stage = "pipeline"
+	StageGeminiDub        Stage = "gemini-dub"
 )
 
 type CaptionSource string

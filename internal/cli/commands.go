@@ -9,9 +9,11 @@ import (
 	"krillin-ai/internal/pipeline"
 	subtitlestyle "krillin-ai/internal/subtitle_style"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
 
 const defaultSubtitleStylePath = "config/subtitle-style-default.json"
@@ -50,6 +52,25 @@ type Command struct {
 	Render            pipeline.RenderRequest
 	Cover             pipeline.CoverRequest
 	Pipeline          pipeline.PipelineRequest
+	GeminiDub         GeminiDubRequest
+}
+
+type GeminiDubRequest struct {
+	Workdir     string
+	TaskID      string
+	SRT         string
+	Video       string
+	OutputDir   string
+	Provider    string
+	Model       string
+	Voice       string
+	Speed       string
+	Gap         string
+	VoiceVolume string
+	Python      string
+	Script      string
+	MaxChunks   string
+	KeepCache   bool
 }
 
 func Parse(args []string) (Command, error) {
@@ -73,6 +94,8 @@ func Parse(args []string) (Command, error) {
 		return parsePipeline(name, args[1:])
 	case "cover":
 		return parseCover(name, args[1:])
+	case "gemini-dub":
+		return parseGeminiDub(name, args[1:])
 	case "status":
 		if hasHelpArg(args[1:]) {
 			return Command{Name: name, Help: true}, nil
@@ -171,6 +194,31 @@ Flags:
   --dry-run         Validate and write manifest without external calls
   -h, --help        Show this help
 `
+	case "gemini-dub":
+		return `Usage:
+  krillinai-cli gemini-dub --workdir <dir> [flags]
+
+Runs the controlled Gemini Live dubbing pipeline and renders the final video.
+
+Flags:
+  --workdir <dir>        Task working directory
+  --task-id <id>         Optional task id
+  --srt <file>           Input translated SRT (default target_language_srt_clean.srt)
+  --video <file>         Input source video (default origin_video.mp4)
+  --output-dir <dir>     Output directory under workdir (default controlled_gemini_live)
+  --provider <provider>  gemini, hybrid, or edge (default gemini)
+  --model <model>        Gemini Live model (default gemini-3.1-flash-live-preview)
+  --voice <voice>        Gemini voice: Puck, Charon, Kore, Fenrir, Aoede (default Aoede)
+  --speed <n>            Local TTS speed-up factor (default 2.1)
+  --gap <n>              Gap after each chunk in seconds (default 0.02)
+  --voice-volume <n>     Voice volume multiplier (default 1.6)
+  --max-chunks <n>       Optional preview limit
+  --python <path>        Python executable (default python)
+  --script <path>        Dubbing script path (default scripts/controlled_tts_segment_freezing_dub.py)
+  --keep-cache           Keep existing output/cache directory
+  --dry-run              Validate command without running the script
+  -h, --help             Show this help
+`
 	case "status":
 		return `Usage:
   krillinai-cli status
@@ -188,6 +236,7 @@ Commands:
   render-vertical      Render portrait subtitle or dubbed videos
   pipeline             Plan or run multi-stage workflows when supported
   cover                Generate a cover image from a prompt
+  gemini-dub           Run controlled Gemini Live dubbing and render final video
   status               Reserved status query surface
 
 Run "krillinai-cli <command> --help" for command-specific flags.
@@ -222,6 +271,8 @@ func Execute(ctx context.Context, svc pipeline.StageService, cmd Command) pipeli
 	case "cover":
 		resp, err := pipeline.GenerateCover(ctx, svc, cmd.Cover)
 		return responseWithError(resp, err)
+	case "gemini-dub":
+		return executeGeminiDub(cmd.GeminiDub)
 	default:
 		return pipeline.Response{
 			OK: false,
@@ -258,6 +309,56 @@ func parseCover(name string, args []string) (Command, error) {
 			TaskID:  *taskID,
 			Prompt:  *prompt,
 			Size:    *size,
+		},
+	}, nil
+}
+
+func parseGeminiDub(name string, args []string) (Command, error) {
+	if hasHelpArg(args) {
+		return Command{Name: name, Help: true}, nil
+	}
+	fs := newFlagSet(name)
+	workdir := fs.String("workdir", "", "workdir")
+	taskID := fs.String("task-id", "", "task id")
+	srt := fs.String("srt", "target_language_srt_clean.srt", "input translated srt")
+	video := fs.String("video", "origin_video.mp4", "input video")
+	outputDir := fs.String("output-dir", "controlled_gemini_live", "output directory under workdir")
+	provider := fs.String("provider", "gemini", "tts provider")
+	model := fs.String("model", "gemini-3.1-flash-live-preview", "gemini live model")
+	voice := fs.String("voice", "Aoede", "gemini voice")
+	speed := fs.String("speed", "2.1", "local speed-up factor")
+	gap := fs.String("gap", "0.02", "gap after each chunk")
+	voiceVolume := fs.String("voice-volume", "1.6", "voice volume multiplier")
+	python := fs.String("python", "python", "python executable")
+	script := fs.String("script", filepath.Join("scripts", "controlled_tts_segment_freezing_dub.py"), "dubbing script")
+	maxChunks := fs.String("max-chunks", "", "optional preview limit")
+	keepCache := fs.Bool("keep-cache", false, "keep existing output/cache directory")
+	dryRun := fs.Bool("dry-run", false, "validate command without running the script")
+	if err := fs.Parse(args); err != nil {
+		return Command{}, err
+	}
+	if strings.TrimSpace(*workdir) == "" {
+		return Command{}, errors.New("gemini-dub requires --workdir")
+	}
+	return Command{
+		Name:   name,
+		DryRun: *dryRun,
+		GeminiDub: GeminiDubRequest{
+			Workdir:     *workdir,
+			TaskID:      *taskID,
+			SRT:         *srt,
+			Video:       *video,
+			OutputDir:   *outputDir,
+			Provider:    *provider,
+			Model:       *model,
+			Voice:       *voice,
+			Speed:       *speed,
+			Gap:         *gap,
+			VoiceVolume: *voiceVolume,
+			Python:      *python,
+			Script:      *script,
+			MaxChunks:   *maxChunks,
+			KeepCache:   *keepCache,
 		},
 	}, nil
 }
@@ -429,6 +530,21 @@ func dryRun(cmd Command) pipeline.Response {
 		})
 	case "pipeline":
 		return pipeline.Response{OK: true, Stage: pipeline.StagePipeline}
+	case "gemini-dub":
+		return pipeline.Response{
+			OK:      true,
+			Stage:   pipeline.StageGeminiDub,
+			Workdir: cmd.GeminiDub.Workdir,
+			TaskID:  cmd.GeminiDub.TaskID,
+			Inputs: map[string]string{
+				"video": filepath.Join(cmd.GeminiDub.Workdir, cmd.GeminiDub.Video),
+				"srt":   filepath.Join(cmd.GeminiDub.Workdir, cmd.GeminiDub.SRT),
+			},
+			Outputs: pipeline.Outputs{
+				VideoWithTTS: filepath.Join(cmd.GeminiDub.Workdir, cmd.GeminiDub.OutputDir, "controlled_tts_final.mp4"),
+				TargetSRT:    filepath.Join(cmd.GeminiDub.Workdir, cmd.GeminiDub.OutputDir, "controlled_aligned.srt"),
+			},
+		}
 	default:
 		return pipeline.Response{
 			OK: false,
@@ -577,6 +693,66 @@ func styleLoadFailure(stage pipeline.Stage, workdir, taskID string, err error) p
 			Code:    code,
 			Message: err.Error(),
 		},
+	}
+}
+
+func executeGeminiDub(req GeminiDubRequest) pipeline.Response {
+	start := time.Now()
+	args := []string{
+		req.Script,
+		"--workdir", req.Workdir,
+		"--srt", req.SRT,
+		"--video", req.Video,
+		"--output-dir", req.OutputDir,
+		"--tts-provider", req.Provider,
+		"--gemini-model", req.Model,
+		"--gemini-voice", req.Voice,
+		"--force-speed",
+		"--speed", req.Speed,
+		"--gap", req.Gap,
+		"--voice-volume", req.VoiceVolume,
+	}
+	if strings.TrimSpace(req.MaxChunks) != "" {
+		args = append(args, "--max-chunks", req.MaxChunks)
+	}
+	if req.KeepCache {
+		args = append(args, "--keep-cache")
+	}
+
+	cmd := exec.Command(req.Python, args...)
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return pipeline.Response{
+			OK:      false,
+			Stage:   pipeline.StageGeminiDub,
+			Workdir: req.Workdir,
+			TaskID:  req.TaskID,
+			Error: &pipeline.Error{
+				Kind:      pipeline.ErrorKindRetryable,
+				Code:      "gemini_dub_failed",
+				Message:   err.Error(),
+				Retryable: true,
+			},
+			DurationMS: time.Since(start).Milliseconds(),
+		}
+	}
+
+	outputBase := filepath.Join(req.Workdir, req.OutputDir)
+	return pipeline.Response{
+		OK:      true,
+		Stage:   pipeline.StageGeminiDub,
+		Workdir: req.Workdir,
+		TaskID:  req.TaskID,
+		Inputs: map[string]string{
+			"video": filepath.Join(req.Workdir, req.Video),
+			"srt":   filepath.Join(req.Workdir, req.SRT),
+		},
+		Outputs: pipeline.Outputs{
+			VideoWithTTS: filepath.Join(outputBase, "controlled_tts_final.mp4"),
+			TargetSRT:    filepath.Join(outputBase, "controlled_aligned.srt"),
+		},
+		DurationMS: time.Since(start).Milliseconds(),
 	}
 }
 
