@@ -80,9 +80,9 @@ func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, wor
 			log.GetLogger().Warn("Failed to match sentence timestamp",
 				zap.String("sentence", block.OriginLanguageSentence),
 				zap.Error(err))
-			// Use fallback timing
+			// Use monotonic fallback timing when the matcher cannot place a sentence.
 			startTime = lastEndTime
-			endTime = lastEndTime
+			endTime = lastEndTime + 1.0
 		} else {
 			// Ensure timestamps don't overlap with previous block
 			if startTime < lastEndTime {
@@ -95,9 +95,7 @@ func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, wor
 
 		// Generate timestamp string
 		updatedBlocks[i].Timestamp = util.ConvertTimes(float32(startTime+tsOffset), float32(endTime+tsOffset))
-		if endTime-startTime < 5 {
-			lastEndTime = endTime
-		}
+		lastEndTime = endTime
 
 		log.GetLogger().Debug("Generated timestamp for sentence",
 			zap.Int("index", block.Index),
