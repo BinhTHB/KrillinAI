@@ -67,8 +67,19 @@ class Chunk:
     def __post_init__(self):
         self.start = self.entries[0].start
         self.end = self.entries[-1].end
-        # Use comma normalization for TTS text to avoid long Edge-TTS pauses
-        self.text = " ".join(e.text.strip() for e in self.entries if e.text.strip())
+        # Merge entries preserving punctuation at boundaries
+        text_parts = []
+        for e in self.entries:
+            t = e.text.strip()
+            if not t:
+                continue
+            # Capitalize first letter of each entry for consistent sentence start
+            t = t[0].upper() + t[1:] if len(t) > 1 else t
+            # Ensure each entry ends with some punctuation for TTS natural pacing
+            if not t.endswith(('.', '?', '!', '…', ',', ';', ':')):
+                t += '.'
+            text_parts.append(t)
+        self.text = " ".join(text_parts)
 
     @property
     def source_duration(self):
@@ -76,24 +87,12 @@ class Chunk:
 
     @property
     def normalized_tts_text(self):
-        # Edge-TTS/Gemini pauses too long on periods. Replace intermediate periods with commas or semicolons
+        # Return cleaned text. Multiple punctuation marks normalized.
         text = self.text.strip()
-        # Replace intermediate sentence ends with comma, except at the very end
-        parts = re.split(r'([.!?…])', text)
-        result = []
-        for i in range(0, len(parts) - 1, 2):
-            val = parts[i].strip()
-            punc = parts[i+1]
-            if val:
-                result.append(val)
-                # If it's not the final punctuation, replace with a comma for a shorter pause
-                if i < len(parts) - 3:
-                    result.append(",")
-                else:
-                    result.append(punc)
-        if len(parts) % 2 == 1 and parts[-1].strip():
-            result.append(parts[-1].strip())
-        return " ".join("".join(result).split())
+        # Clean double dots or spacing around punctuation
+        text = re.sub(r'\s+([.,!?…;:])', r'\1', text)
+        text = re.sub(r'\.+', '.', text)
+        return text
 
 
 def run_cmd(cmd: str, check: bool = True) -> subprocess.CompletedProcess:
@@ -359,7 +358,7 @@ async def main():
     parser.add_argument('--output-dir', default='controlled_tts_freezing')
     parser.add_argument('--voice', default='vi-VN-HoaiMyNeural')
     parser.add_argument('--rate', default='+0%')
-    parser.add_argument('--speed', type=float, default=1.10)
+    parser.add_argument('--speed', type=float, default=1.25)
     parser.add_argument('--gap', type=float, default=0.05)
     parser.add_argument('--bg-volume', type=float, default=0.10)
     parser.add_argument('--min-chunk', type=float, default=2.5)
@@ -467,15 +466,17 @@ async def main():
         # Edge-TTS needs rate speedup. We apply speedup based on need.
         speed_factor = args.speed
         if used_gemini:
-            # For Gemini, use less aggressive speed limit to preserve emotional expressiveness.
-            # Only speed up if it severely exceeds source chunk.
+            # Faster adaptive Gemini pacing requested by user.
+            # Keep expressive quality where possible, but cap long chunks at 1.30x to reduce dead air/freeze.
             est_factor = (get_duration(tts_wav) + args.gap) / chunk.source_duration
             if est_factor <= 1.05:
-                speed_factor = 1.0
-            elif est_factor <= 1.25:
                 speed_factor = 1.05
+            elif est_factor <= 1.20:
+                speed_factor = 1.15
+            elif est_factor <= 1.40:
+                speed_factor = 1.25
             else:
-                speed_factor = 1.10
+                speed_factor = 1.30
         
         if abs(speed_factor - 1.0) > 0.01:
             speed_result = run_cmd(f'ffmpeg -y -i "{tts_wav}" -filter:a "atempo={speed_factor:.3f}" -ac 1 -ar 44100 "{tts_speed}"', check=False)
