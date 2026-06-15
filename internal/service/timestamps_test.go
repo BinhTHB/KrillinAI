@@ -41,3 +41,41 @@ func TestGenerateTimestampsAdvancesAfterLongBlocks(t *testing.T) {
 		t.Fatalf("second repeated sentence timestamp = %q, want monotonic post-long-block timing", got)
 	}
 }
+
+func TestGenerateTimestampsDoesNotMutateInputBlocks(t *testing.T) {
+	log.Logger = zap.NewNop()
+	words := []types.Word{{Text: "甲", Start: 0, End: 1}}
+	blocks := []*util.SrtBlock{{Index: 1, OriginLanguageSentence: "甲", TargetLanguageSentence: "one"}}
+
+	updated, err := NewTimestampGenerator().GenerateTimestamps(blocks, words, types.LanguageNameSimplifiedChinese, 0)
+	if err != nil {
+		t.Fatalf("GenerateTimestamps() error = %v", err)
+	}
+	if blocks[0].Timestamp != "" {
+		t.Fatalf("input block timestamp was mutated: %q", blocks[0].Timestamp)
+	}
+	if updated[0].Timestamp == "" {
+		t.Fatalf("updated block timestamp is empty")
+	}
+}
+
+func TestFuzzyMatchCapsWideRepeatedCharacterMatches(t *testing.T) {
+	matcher := &BaseLanguageMatcher{}
+	words := []types.Word{
+		{Text: "那个", Start: 0.05, End: 0.90},
+		{Text: "男", Start: 0.90, End: 1.35},
+		{Text: "人", Start: 1.35, End: 1.77},
+		{Text: "了", Start: 302.0, End: 302.66},
+	}
+
+	start, end, err := matcher.fuzzyMatchSentence("那个男人韩贝塔又回来了", words, 0)
+	if err != nil {
+		t.Fatalf("fuzzyMatchSentence() error = %v", err)
+	}
+	if start != 0.05 {
+		t.Fatalf("start = %v, want 0.05", start)
+	}
+	if end > 15.05 {
+		t.Fatalf("end = %v, fuzzy match spanned far repeated character", end)
+	}
+}

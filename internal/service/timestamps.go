@@ -68,7 +68,8 @@ func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, wor
 	updatedBlocks := make([]*util.SrtBlock, len(srtBlocks))
 
 	for i, block := range srtBlocks {
-		updatedBlocks[i] = block
+		blockCopy := *block
+		updatedBlocks[i] = &blockCopy
 
 		if block.OriginLanguageSentence == "" {
 			// Skip empty sentences
@@ -541,7 +542,23 @@ func (jlm *BaseLanguageMatcher) fuzzyMatchSentence(sentence string, words []type
 
 	// 使用第一个和最后一个匹配的词来确定时间范围
 	resultStartTime := matchedWords[0].Start
-	resultEndTime := matchedWords[len(matchedWords)-1].End
+
+	// If the fuzzy match spans too long, it's likely matching common repeated words across the audio.
+	// Only keep matched words that fall within a reasonable window (e.g. 15s) from the start of the first match.
+	const maxFuzzyDuration = 15.0
+	var filteredMatched []types.Word
+	for _, w := range matchedWords {
+		if w.Start >= resultStartTime && w.End <= resultStartTime+maxFuzzyDuration {
+			filteredMatched = append(filteredMatched, w)
+		}
+	}
+
+	var resultEndTime float64
+	if len(filteredMatched) > 0 {
+		resultEndTime = filteredMatched[len(filteredMatched)-1].End
+	} else {
+		resultEndTime = matchedWords[0].End
+	}
 
 	// 应用 lastTs 约束
 	if resultStartTime < lastTs {
