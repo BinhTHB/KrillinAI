@@ -56,8 +56,13 @@ type Command struct {
 }
 
 type GeminiDubRequest struct {
+	Input       string
 	Workdir     string
 	TaskID      string
+	OriginLang  string
+	TargetLang  string
+	UserLang    string
+	CaptionSrc  string
 	SRT         string
 	Video       string
 	OutputDir   string
@@ -196,14 +201,18 @@ Flags:
 `
 	case "gemini-dub":
 		return `Usage:
-  krillinai-cli gemini-dub --workdir <dir> [flags]
+  krillinai-cli gemini-dub [input-url-or-path] --workdir <dir> [flags]
 
-Runs the controlled Gemini Live dubbing pipeline and renders the final video.
+Runs subtitle generation when input-url-or-path is provided, then runs the controlled Gemini Live dubbing pipeline and renders the final video.
 
 Flags:
   --workdir <dir>        Task working directory
   --task-id <id>         Optional task id
-  --srt <file>           Input translated SRT (default target_language_srt_clean.srt)
+  --origin-lang <lang>   Source language (default zh)
+  --target-lang <lang>   Target language (default vi)
+  --user-lang <lang>     UI language (default vi)
+  --caption-source <src> any, manual, auto, or whisper (default whisper)
+  --srt <file>           Input translated SRT after subtitle stage (default target_language_srt_clean.srt)
   --video <file>         Input source video (default origin_video.mp4)
   --output-dir <dir>     Output directory under workdir (default controlled_gemini_live)
   --provider <provider>  gemini, hybrid, or edge (default gemini)
@@ -272,7 +281,7 @@ func Execute(ctx context.Context, svc pipeline.StageService, cmd Command) pipeli
 		resp, err := pipeline.GenerateCover(ctx, svc, cmd.Cover)
 		return responseWithError(resp, err)
 	case "gemini-dub":
-		return executeGeminiDub(cmd.GeminiDub)
+		return executeGeminiDub(ctx, svc, cmd.GeminiDub)
 	default:
 		return pipeline.Response{
 			OK: false,
@@ -320,6 +329,10 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 	fs := newFlagSet(name)
 	workdir := fs.String("workdir", "", "workdir")
 	taskID := fs.String("task-id", "", "task id")
+	originLang := fs.String("origin-lang", "zh", "origin language")
+	targetLang := fs.String("target-lang", "vi", "target language")
+	userLang := fs.String("user-lang", "vi", "user interface language")
+	captionSource := fs.String("caption-source", string(pipeline.CaptionSourceWhisper), "caption source")
 	srt := fs.String("srt", "target_language_srt_clean.srt", "input translated srt")
 	video := fs.String("video", "origin_video.mp4", "input video")
 	outputDir := fs.String("output-dir", "controlled_gemini_live", "output directory under workdir")
@@ -334,8 +347,20 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 	maxChunks := fs.String("max-chunks", "", "optional preview limit")
 	keepCache := fs.Bool("keep-cache", false, "keep existing output/cache directory")
 	dryRun := fs.Bool("dry-run", false, "validate command without running the script")
-	if err := fs.Parse(args); err != nil {
+	input := ""
+	parseArgs := args
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		input = args[0]
+		parseArgs = args[1:]
+	}
+	if err := fs.Parse(parseArgs); err != nil {
 		return Command{}, err
+	}
+	if input == "" && fs.NArg() == 1 {
+		input = fs.Arg(0)
+	}
+	if fs.NArg() > 1 {
+		return Command{}, errors.New("gemini-dub accepts at most one input URL/path")
 	}
 	if strings.TrimSpace(*workdir) == "" {
 		return Command{}, errors.New("gemini-dub requires --workdir")
@@ -344,8 +369,13 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 		Name:   name,
 		DryRun: *dryRun,
 		GeminiDub: GeminiDubRequest{
+			Input:       input,
 			Workdir:     *workdir,
 			TaskID:      *taskID,
+			OriginLang:  *originLang,
+			TargetLang:  *targetLang,
+			UserLang:    *userLang,
+			CaptionSrc:  *captionSource,
 			SRT:         *srt,
 			Video:       *video,
 			OutputDir:   *outputDir,
@@ -696,8 +726,29 @@ func styleLoadFailure(stage pipeline.Stage, workdir, taskID string, err error) p
 	}
 }
 
-func executeGeminiDub(req GeminiDubRequest) pipeline.Response {
+func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req GeminiDubRequest) pipeline.Response {
 	start := time.Now()
+
+	if req.Input != "" {
+		subReq := pipeline.SubtitleRequest{
+			Input:         req.Input,
+			Workdir:       req.Workdir,
+			TaskID:        req.TaskID,
+			OriginLang:    req.OriginLang,
+			TargetLang:    req.TargetLang,
+			UserLang:      req.UserLang,
+			CaptionSource: pipeline.CaptionSource(req.CaptionSrc),
+			BilingualTop:  true,
+		}
+		subResp, err := pipeline.GenerateSubtitles(ctx, svc, subReq)
+		if err != nil {
+			return responseWithError(subResp, err)
+		}
+		if !subResp.OK {
+			return subResp
+		}
+	}
+
 	args := []string{
 		req.Script,
 		"--workdir", req.Workdir,
