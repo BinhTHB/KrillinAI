@@ -766,12 +766,20 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 		if !subResp.OK {
 			return subResp
 		}
+		if err := ensureGeminiDubVideo(req); err != nil {
+			return geminiDubFailure(req, "download_video_failed", err, start)
+		}
+	}
+
+	resolvedSRT, err := resolveGeminiDubSRT(req)
+	if err != nil {
+		return geminiDubFailure(req, "resolve_srt_failed", err, start)
 	}
 
 	args := []string{
 		req.Script,
 		"--workdir", req.Workdir,
-		"--srt", req.SRT,
+		"--srt", resolvedSRT,
 		"--video", req.Video,
 		"--output-dir", req.OutputDir,
 		"--tts-provider", req.Provider,
@@ -828,6 +836,66 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 
 func defaultGeminiDubWorkdir() string {
 	return filepath.Join("tasks", "gemini-dub-"+time.Now().Format("20060102-150405"))
+}
+
+func resolveGeminiDubSRT(req GeminiDubRequest) (string, error) {
+	if fileExists(filepath.Join(req.Workdir, req.SRT)) {
+		return req.SRT, nil
+	}
+	if req.SRT == "target_language_srt_clean.srt" && fileExists(filepath.Join(req.Workdir, "target_language_srt.srt")) {
+		return "target_language_srt.srt", nil
+	}
+	return "", fmt.Errorf("input SRT not found: %s", filepath.Join(req.Workdir, req.SRT))
+}
+
+func ensureGeminiDubVideo(req GeminiDubRequest) error {
+	videoPath := filepath.Join(req.Workdir, req.Video)
+	if fileExists(videoPath) {
+		return nil
+	}
+	if strings.TrimSpace(req.Input) == "" {
+		return fmt.Errorf("input video not found: %s", videoPath)
+	}
+	baseName := strings.TrimSuffix(req.Video, filepath.Ext(req.Video))
+	outputPattern := filepath.Join(req.Workdir, baseName+".%(ext)s")
+	cmd := exec.Command(
+		"yt-dlp",
+		"--no-playlist",
+		"-f", "bv*+ba/b",
+		"--merge-output-format", "mp4",
+		"-o", outputPattern,
+		req.Input,
+	)
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	if !fileExists(videoPath) {
+		return fmt.Errorf("downloaded video not found: %s", videoPath)
+	}
+	return nil
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func geminiDubFailure(req GeminiDubRequest, code string, err error, start time.Time) pipeline.Response {
+	return pipeline.Response{
+		OK:      false,
+		Stage:   pipeline.StageGeminiDub,
+		Workdir: req.Workdir,
+		TaskID:  req.TaskID,
+		Error: &pipeline.Error{
+			Kind:      pipeline.ErrorKindRetryable,
+			Code:      code,
+			Message:   err.Error(),
+			Retryable: true,
+		},
+		DurationMS: time.Since(start).Milliseconds(),
+	}
 }
 
 func renderStageFromCommand(name string) pipeline.Stage {
