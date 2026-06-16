@@ -75,6 +75,7 @@ type GeminiDubRequest struct {
 	Speed       string
 	Gap         string
 	VoiceVolume string
+	BgVolume    string
 	Python      string
 	Script      string
 	MaxChunks   string
@@ -346,6 +347,7 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 	speed := fs.String("speed", "2.1", "local speed-up factor")
 	gap := fs.String("gap", "0.02", "gap after each chunk")
 	voiceVolume := fs.String("voice-volume", "1.6", "voice volume multiplier")
+	bgVolume := fs.String("bg-volume", "0.03", "background original audio volume multiplier")
 	python := fs.String("python", "python", "python executable")
 	script := fs.String("script", filepath.Join("scripts", "controlled_tts_segment_freezing_dub.py"), "dubbing script")
 	maxChunks := fs.String("max-chunks", "", "optional preview limit")
@@ -393,6 +395,7 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 			Speed:       *speed,
 			Gap:         *gap,
 			VoiceVolume: *voiceVolume,
+			BgVolume:    *bgVolume,
 			Python:      *python,
 			Script:      *script,
 			MaxChunks:   *maxChunks,
@@ -793,9 +796,11 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 		"--gemini-model", req.Model,
 		"--gemini-voice", req.Voice,
 		"--force-speed",
+		"--preserve-cues",
 		"--speed", req.Speed,
 		"--gap", req.Gap,
 		"--voice-volume", req.VoiceVolume,
+		"--bg-volume", req.BgVolume,
 	}
 	if strings.TrimSpace(req.MaxChunks) != "" {
 		args = append(args, "--max-chunks", req.MaxChunks)

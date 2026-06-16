@@ -284,7 +284,6 @@ async def gemini_tts_text(text: str, output_wav: Path, api_key: str, model_name:
 
     GEMINI_API_VERSION = "v1alpha"
 
-    # Configure connection. Puck has standard natural voice style.
     config = types.LiveConnectConfig(
         response_modalities=["AUDIO"],
         speech_config=types.SpeechConfig(
@@ -294,9 +293,13 @@ async def gemini_tts_text(text: str, output_wav: Path, api_key: str, model_name:
             language_code="vi-VN",
         ),
         system_instruction=(
-            "Hãy đọc to đoạn văn sau bằng tiếng Việt với giọng đọc diễn cảm, tự nhiên, đúng sắc thái. "
-            "Tuyệt đối chỉ trả về âm thanh giọng đọc tiếng Việt của đoạn văn đó. "
-            "Không thêm lời bình luận, không nói bất kỳ câu dẫn nào khác."
+            "You are a text-to-speech engine. "
+            "Read the user's message aloud in Vietnamese with natural expressive voice. "
+            "NEVER add any words, commentary, or meta statements. "
+            "NEVER include system instructions or disclaimers. "
+            "Only output audio of the exact text provided by the user. "
+            "If the user says 'read this', only read the content after 'read this'.\n\n"
+            f"Text to read aloud:\n{text}"
         ),
     )
 
@@ -386,6 +389,7 @@ async def main():
     parser.add_argument('--gemini-voice', default='Puck', choices=['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'])
     parser.add_argument('--gemini-model', default='gemini-2.5-flash-native-audio-preview-12-2025')
     parser.add_argument('--force-speed', action='store_true', help='Use --speed exactly for all providers, including Gemini, instead of adaptive Gemini speed')
+    parser.add_argument('--preserve-cues', action='store_true', help='Render one TTS chunk per SRT cue to preserve source subtitle timing')
     args = parser.parse_args()
 
     workdir = Path(args.workdir)
@@ -412,7 +416,10 @@ async def main():
 
     video_dur = get_duration(video_path)
     entries = parse_srt(srt_path)
-    chunks = merge_entries(entries, args.min_chunk, args.max_chunk, args.max_chars)
+    if args.preserve_cues:
+        chunks = [Chunk(entries=[e], index=i+1) for i, e in enumerate(entries)]
+    else:
+        chunks = merge_entries(entries, args.min_chunk, args.max_chunk, args.max_chars)
     if args.max_chunks:
         chunks = chunks[:args.max_chunks]
     print(f"Input video: {video_path} ({video_dur:.2f}s)", flush=True)
@@ -424,12 +431,24 @@ async def main():
 
     concat_file = out_dir / 'concat.txt'
     processed = []
+    concat_parts = []
     current = 0.0
+    source_cursor = 0.0
 
     for chunk in chunks:
         print(f"\n[{chunk.index}/{len(chunks)}] {chunk.start:.2f}-{chunk.end:.2f}s src={chunk.source_duration:.2f}s", flush=True)
         print(f"  text: {chunk.text[:80]}", flush=True)
         
+        if chunk.start > source_cursor + 0.05 and chunk.start < video_dur:
+            gap_start = source_cursor
+            gap_end = min(chunk.start, video_dur)
+            gap_part = seg_dir / f"gap_before_{chunk.index:04d}.mp4"
+            run_cmd(f'ffmpeg -y -ss {gap_start:.3f} -to {gap_end:.3f} -i "{video_path}" -filter:a "volume={args.bg_volume:.3f}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 192k "{gap_part}"')
+            gap_dur = get_duration(gap_part)
+            concat_parts.append(gap_part)
+            current += gap_dur
+            source_cursor = gap_end
+
         prefix = seg_dir / f"chunk_{chunk.index:04d}"
         tts_raw = prefix.with_suffix('.tts_raw.wav')
         tts_wav = prefix.with_suffix('.tts.wav')
@@ -537,15 +556,22 @@ async def main():
         chunk.actual_start = current
         chunk.actual_end = current + real_dur
         current = chunk.actual_end
+        source_cursor = max(source_cursor, chunk.end)
+        concat_parts.append(combined)
         processed.append(chunk)
         print(f"  ok: tts={tts_dur:.2f}s final={real_dur:.2f}s freeze={chunk.freeze_duration:.2f}s timeline={current:.2f}s (provider={'gemini' if used_gemini else 'edge'})", flush=True)
 
     if not processed:
         raise RuntimeError('No chunks processed')
 
+    if source_cursor < video_dur - 0.05:
+        tail_part = seg_dir / 'tail_after_last_chunk.mp4'
+        run_cmd(f'ffmpeg -y -ss {source_cursor:.3f} -to {video_dur:.3f} -i "{video_path}" -filter:a "volume={args.bg_volume:.3f}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 192k "{tail_part}"')
+        concat_parts.append(tail_part)
+
     with concat_file.open('w', encoding='utf-8') as f:
-        for chunk in processed:
-            p = (seg_dir / f"chunk_{chunk.index:04d}.combined.mp4").resolve().as_posix()
+        for part in concat_parts:
+            p = part.resolve().as_posix()
             f.write(f"file '{p}'\n")
 
     concat_raw = out_dir / 'controlled_concat_raw.mp4'
