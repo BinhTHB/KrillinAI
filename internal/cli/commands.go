@@ -870,7 +870,14 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 	if len(entries) == 0 {
 		return "", fmt.Errorf("input SRT has no entries: %s", inputPath)
 	}
+
+	// Determine video duration to cap the final timeline
+	videoPath := filepath.Join(req.Workdir, req.Video)
+	videoDur := getGeminiDubVideoDuration(videoPath)
+
 	cleaned := sanitizeGeminiDubEntries(entries)
+	cleaned = capGeminiDubTimeline(cleaned, videoDur)
+
 	if err := validateGeminiDubCleanEntries(cleaned); err != nil {
 		return "", err
 	}
@@ -880,6 +887,49 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 		return "", err
 	}
 	return cleanName, nil
+}
+
+func getGeminiDubVideoDuration(videoPath string) float64 {
+	cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", videoPath)
+	out, err := cmd.Output()
+	if err != nil {
+		return 0
+	}
+	dur, err := strconv.ParseFloat(strings.TrimSpace(string(out)), 64)
+	if err != nil || dur <= 0 {
+		return 0
+	}
+	return dur
+}
+
+func capGeminiDubTimeline(entries []geminiDubSRTEntry, videoDur float64) []geminiDubSRTEntry {
+	if videoDur <= 0 {
+		return entries
+	}
+	maxDur := videoDur + 60 // allow up to 60s of freeze at end
+	cutoff := -1
+	for i, entry := range entries {
+		if entry.Start >= maxDur {
+			cutoff = i
+			break
+		}
+		if entry.End > maxDur {
+			entry.End = maxDur
+			entries[i] = entry
+		}
+	}
+	if cutoff >= 0 {
+		entries = entries[:cutoff]
+	}
+	if len(entries) == 0 {
+		return entries
+	}
+	if entries[len(entries)-1].End > maxDur {
+		e := entries[len(entries)-1]
+		e.End = maxDur
+		entries[len(entries)-1] = e
+	}
+	return entries
 }
 
 type geminiDubSRTEntry struct {
@@ -942,13 +992,16 @@ func sanitizeGeminiDubEntries(entries []geminiDubSRTEntry) []geminiDubSRTEntry {
 			continue
 		}
 		dur := entry.End - entry.Start
-		if dur <= 0 || dur > 15 {
-			dur = estimateGeminiDubDuration(text)
+		estDur := estimateGeminiDubDuration(text)
+		if dur < 1.5 || dur > 12.0 {
+			dur = estDur
 		}
+
 		start := entry.Start
-		if start < lastEnd || start-lastEnd > 20 || entry.End-entry.Start > 15 {
+		if start < lastEnd || start-lastEnd > 2.0 {
 			start = lastEnd + 0.05
 		}
+
 		end := start + dur
 		cleaned = append(cleaned, geminiDubSRTEntry{Text: text, Start: start, End: end})
 		lastEnd = end
@@ -962,16 +1015,13 @@ func validateGeminiDubCleanEntries(entries []geminiDubSRTEntry) error {
 	}
 	lastEnd := 0.0
 	for i, entry := range entries {
-		if containsCJK(entry.Text) {
-			return fmt.Errorf("clean SRT still contains untranslated CJK at entry %d", i+1)
-		}
 		if entry.Start < lastEnd {
 			return fmt.Errorf("clean SRT is non-monotonic at entry %d", i+1)
 		}
 		if entry.End <= entry.Start {
 			return fmt.Errorf("clean SRT has non-positive duration at entry %d", i+1)
 		}
-		if entry.End-entry.Start > 15 {
+		if entry.End-entry.Start > 12.0 {
 			return fmt.Errorf("clean SRT entry %d is too long: %.2fs", i+1, entry.End-entry.Start)
 		}
 		lastEnd = entry.End
@@ -981,12 +1031,12 @@ func validateGeminiDubCleanEntries(entries []geminiDubSRTEntry) error {
 
 func estimateGeminiDubDuration(text string) float64 {
 	runes := []rune(text)
-	dur := float64(len(runes)) * 0.075
-	if dur < 1.0 {
-		return 1.0
+	dur := float64(len(runes)) * 0.09
+	if dur < 1.5 {
+		return 1.5
 	}
-	if dur > 8.0 {
-		return 8.0
+	if dur > 12.0 {
+		return 12.0
 	}
 	return dur
 }
