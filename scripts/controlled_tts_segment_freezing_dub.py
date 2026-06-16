@@ -390,6 +390,8 @@ async def main():
     parser.add_argument('--gemini-model', default='gemini-2.5-flash-native-audio-preview-12-2025')
     parser.add_argument('--force-speed', action='store_true', help='Use --speed exactly for all providers, including Gemini, instead of adaptive Gemini speed')
     parser.add_argument('--preserve-cues', action='store_true', help='Render one TTS chunk per SRT cue to preserve source subtitle timing')
+    parser.add_argument('--timeline-mode', default='overlay', choices=['overlay', 'freeze'], help='overlay keeps original video timeline; freeze cuts/freezes segments and builds a new timeline')
+    parser.add_argument('--max-fit-speed', type=float, default=4.0, help='maximum per-cue speed used by overlay mode to keep TTS inside the original timeline')
     args = parser.parse_args()
 
     workdir = Path(args.workdir)
@@ -426,7 +428,157 @@ async def main():
     print(f"Input SRT: {srt_path} entries={len(entries)} chunks={len(chunks)}", flush=True)
     print(f"TTS Provider: {args.tts_provider}", flush=True)
 
-    last_frame = out_dir / 'last_frame.png'
+    if args.timeline_mode == 'overlay':
+        processed = []
+        for idx, chunk in enumerate(chunks):
+            print(f"\n[{chunk.index}/{len(chunks)}] {chunk.start:.2f}-{chunk.end:.2f}s src={chunk.source_duration:.2f}s", flush=True)
+            print(f"  text: {chunk.text[:80]}", flush=True)
+
+            prefix = seg_dir / f"chunk_{chunk.index:04d}"
+            tts_raw = prefix.with_suffix('.tts_raw.wav')
+            tts_wav = prefix.with_suffix('.tts.wav')
+            tts_speed = prefix.with_suffix('.tts_speed.wav')
+
+            # Reuse existing TTS if keep-cache
+            if args.keep_cache and tts_speed.exists() and get_duration(tts_speed) > 0.05:
+                final_dur = ensure_media(tts_speed, 'cached TTS')
+                chunk.tts_duration = final_dur
+                chunk.final_duration = final_dur
+                chunk.freeze_duration = 0.0
+                chunk.actual_start = chunk.start
+                chunk.actual_end = min(video_dur, chunk.start + final_dur)
+                processed.append(chunk)
+                print(f"  cached: {final_dur:.2f}s start={chunk.actual_start:.2f}s provider=edge", flush=True)
+                continue
+
+            used_gemini = False
+            ok = False
+            tts_text_normalized = chunk.normalized_tts_text
+
+            if args.tts_provider in ['gemini', 'hybrid']:
+                print("  Generating voice via Gemini Live...", flush=True)
+                ok = await gemini_tts_text(tts_text_normalized, tts_raw, api_key, args.gemini_model, args.gemini_voice)
+                if ok:
+                    used_gemini = True
+                    print("  Gemini TTS OK.", flush=True)
+                elif args.tts_provider == 'hybrid':
+                    print("  Gemini failed. Falling back to Edge-TTS...", flush=True)
+                    tmp_mp3 = prefix.with_suffix('.tts.mp3')
+                    ok = await edge_tts_text(tts_text_normalized, tmp_mp3, args.voice, args.rate)
+                    if ok:
+                        run_cmd(f'ffmpeg -y -i "{tmp_mp3}" -ac 1 -ar 44100 "{tts_raw}"')
+                        try:
+                            tmp_mp3.unlink()
+                        except Exception:
+                            pass
+                else:
+                    ok = False
+            else:
+                tmp_mp3 = prefix.with_suffix('.tts.mp3')
+                ok = await edge_tts_text(tts_text_normalized, tmp_mp3, args.voice, args.rate)
+                if ok:
+                    run_cmd(f'ffmpeg -y -i "{tmp_mp3}" -ac 1 -ar 44100 "{tts_raw}"')
+                    try:
+                        tmp_mp3.unlink()
+                    except Exception:
+                        pass
+
+            if not ok or not tts_raw.exists():
+                print(f"  SKIP chunk {chunk.index}: TTS generation failed", flush=True)
+                continue
+
+            shutil.copy2(tts_raw, tts_wav)
+            raw_dur = ensure_media(tts_wav, 'raw TTS wav')
+            next_start = video_dur
+            if idx + 1 < len(chunks):
+                next_start = chunks[idx + 1].start
+            available = max(0.35, min(video_dur, next_start) - chunk.start - args.gap)
+            required = raw_dur / available if available > 0 else args.max_fit_speed
+            speed_factor = max(args.speed, required)
+            if speed_factor > args.max_fit_speed:
+                print(f"  WARN: required speed {speed_factor:.2f}x exceeds max {args.max_fit_speed:.2f}x; using max and allowing spill", flush=True)
+                speed_factor = args.max_fit_speed
+            if used_gemini and not args.force_speed:
+                speed_factor = max(1.05, min(speed_factor, args.max_fit_speed))
+
+            if abs(speed_factor - 1.0) > 0.01:
+                speed_result = run_cmd(f'ffmpeg -y -i "{tts_wav}" -filter:a "{atempo_filter(speed_factor)}" -ac 1 -ar 44100 "{tts_speed}"', check=False)
+                if speed_result.returncode != 0 or not tts_speed.exists() or get_duration(tts_speed) < 0.05:
+                    print("  WARN: speed conversion failed; using raw TTS", flush=True)
+                    shutil.copy2(tts_wav, tts_speed)
+            else:
+                shutil.copy2(tts_wav, tts_speed)
+
+            final_dur = ensure_media(tts_speed, 'speed-adjusted TTS')
+            chunk.tts_duration = final_dur
+            chunk.final_duration = final_dur
+            chunk.freeze_duration = 0.0
+            chunk.actual_start = chunk.start
+            chunk.actual_end = min(video_dur, chunk.start + final_dur)
+            processed.append(chunk)
+            print(f"  ok: raw={raw_dur:.2f}s speed={speed_factor:.2f}x final={final_dur:.2f}s start={chunk.actual_start:.2f}s provider={'gemini' if used_gemini else 'edge'}", flush=True)
+
+        if not processed:
+            raise RuntimeError('No chunks processed')
+
+        ass_path = out_dir / 'controlled_aligned.ass'
+        srt_out = out_dir / 'controlled_aligned.srt'
+        voice_concat = out_dir / 'voiceover_concat.txt'
+        voice_track = out_dir / 'voiceover_full.wav'
+        final_mp4 = out_dir / 'controlled_tts_final.mp4'
+
+        print('\nBuilding original-timeline voice track...', flush=True)
+        parts = []
+        cursor = 0.0
+        for chunk in processed:
+            if chunk.actual_start > cursor + 0.001:
+                silence = seg_dir / f"silence_before_{chunk.index:04d}.wav"
+                gap_dur = chunk.actual_start - cursor
+                run_cmd(f'ffmpeg -y -f lavfi -i anullsrc=r=44100:cl=mono -t {gap_dur:.3f} -ac 1 -ar 44100 "{silence}"')
+                parts.append(silence)
+                cursor += gap_dur
+            voice_part = seg_dir / f"chunk_{chunk.index:04d}.tts_speed.wav"
+            parts.append(voice_part)
+            cursor = max(cursor, chunk.actual_start + chunk.final_duration)
+        if cursor < video_dur - 0.001:
+            tail = seg_dir / 'silence_tail.wav'
+            tail_dur = video_dur - cursor
+            run_cmd(f'ffmpeg -y -f lavfi -i anullsrc=r=44100:cl=mono -t {tail_dur:.3f} -ac 1 -ar 44100 "{tail}"')
+            parts.append(tail)
+
+        with voice_concat.open('w', encoding='utf-8') as f:
+            for part in parts:
+                f.write(f"file '{part.resolve().as_posix()}'\n")
+        run_cmd(f'ffmpeg -y -f concat -safe 0 -i "{voice_concat}" -c:a pcm_s16le -ac 1 -ar 44100 "{voice_track}"')
+
+        # Write subtitles with end capped at next_start to avoid overlaps
+        print('\nRendering original-timeline overlay...', flush=True)
+        for idx, chunk in enumerate(processed):
+            cap_end = chunk.actual_end
+            if idx + 1 < len(processed):
+                next_start = processed[idx + 1].actual_start
+                if cap_end > next_start - 0.02:
+                    cap_end = max(chunk.actual_start + 0.3, next_start - 0.02)
+                    if cap_end > chunk.actual_end:
+                        cap_end = chunk.actual_end
+            chunk.actual_end = min(video_dur, cap_end)
+        write_ass(ass_path, processed)
+        write_srt(srt_out, processed)
+        run_cmd(
+            f'ffmpeg -y -i "{video_path}" -i "{voice_track}" '
+            f'-filter_complex "[0:a]volume={args.bg_volume:.3f}[bg];[1:a]volume={args.voice_volume:.3f}[voice];[bg][voice]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[aout]" '
+            f'-map 0:v -map "[aout]" -vf "ass={ass_path.as_posix()}" '
+            f'-c:v libx264 -preset fast -crf 23 -c:a aac -b:a 192k -shortest "{final_mp4}"'
+        )
+
+        print('\nDONE', flush=True)
+        print(f'  video: {final_mp4}', flush=True)
+        print(f'  ass:   {ass_path}', flush=True)
+        print(f'  srt:   {srt_out}', flush=True)
+        print(f'  duration: {get_duration(final_mp4):.2f}s', flush=True)
+        print(f'  chunks: {len(processed)}/{len(chunks)}', flush=True)
+        return
+    last_frame = out_dir / 'last_frame.png' 
     run_cmd(f'ffmpeg -y -ss {max(0, video_dur - 1):.3f} -i "{video_path}" -frames:v 1 -update 1 "{last_frame}"')
 
     concat_file = out_dir / 'concat.txt'

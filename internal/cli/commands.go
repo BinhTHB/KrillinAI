@@ -76,6 +76,7 @@ type GeminiDubRequest struct {
 	Gap         string
 	VoiceVolume string
 	BgVolume    string
+	TimelineMode string
 	Python      string
 	Script      string
 	MaxChunks   string
@@ -338,16 +339,17 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 	targetLang := fs.String("target-lang", "vi", "target language")
 	userLang := fs.String("user-lang", "vi", "user interface language")
 	captionSource := fs.String("caption-source", string(pipeline.CaptionSourceWhisper), "caption source")
-	srt := fs.String("srt", "target_language_srt_clean.srt", "input translated srt")
+	srt := fs.String("srt", "target_language_srt.srt", "input translated srt")
 	video := fs.String("video", "origin_video.mp4", "input video")
 	outputDir := fs.String("output-dir", "controlled_gemini_live", "output directory under workdir")
-	provider := fs.String("provider", "gemini", "tts provider")
+	provider := fs.String("provider", "edge", "tts provider")
 	model := fs.String("model", "gemini-3.1-flash-live-preview", "gemini live model")
 	voice := fs.String("voice", "Aoede", "gemini voice")
 	speed := fs.String("speed", "2.1", "local speed-up factor")
 	gap := fs.String("gap", "0.02", "gap after each chunk")
 	voiceVolume := fs.String("voice-volume", "1.6", "voice volume multiplier")
-	bgVolume := fs.String("bg-volume", "0.03", "background original audio volume multiplier")
+	bgVolume := fs.String("bg-volume", "0.15", "background original audio volume multiplier")
+	timelineMode := fs.String("timeline-mode", "overlay", "timeline mode: overlay or freeze")
 	python := fs.String("python", "python", "python executable")
 	script := fs.String("script", filepath.Join("scripts", "controlled_tts_segment_freezing_dub.py"), "dubbing script")
 	maxChunks := fs.String("max-chunks", "", "optional preview limit")
@@ -396,6 +398,7 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 			Gap:         *gap,
 			VoiceVolume: *voiceVolume,
 			BgVolume:    *bgVolume,
+			TimelineMode: *timelineMode,
 			Python:      *python,
 			Script:      *script,
 			MaxChunks:   *maxChunks,
@@ -801,6 +804,7 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 		"--gap", req.Gap,
 		"--voice-volume", req.VoiceVolume,
 		"--bg-volume", req.BgVolume,
+		"--timeline-mode", req.TimelineMode,
 	}
 	if strings.TrimSpace(req.MaxChunks) != "" {
 		args = append(args, "--max-chunks", req.MaxChunks)
@@ -922,7 +926,7 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 	videoDur := getGeminiDubVideoDuration(videoPath)
 
 	_ = videoDur
-	cleaned := sanitizeGeminiDubEntries(entries)
+	cleaned := sanitizeGeminiDubEntries(entries, req.TimelineMode)
 
 	if err := validateGeminiDubCleanEntries(cleaned); err != nil {
 		return "", err
@@ -1029,7 +1033,7 @@ func parseSRTTimeParts(parts []string) (float64, error) {
 	return float64(vals[0]*3600+vals[1]*60+vals[2]) + float64(vals[3])/1000, nil
 }
 
-func sanitizeGeminiDubEntries(entries []geminiDubSRTEntry) []geminiDubSRTEntry {
+func sanitizeGeminiDubEntries(entries []geminiDubSRTEntry, timelineMode string) []geminiDubSRTEntry {
 	cleaned := make([]geminiDubSRTEntry, 0, len(entries))
 	lastEnd := 0.0
 	for i, entry := range entries {
@@ -1043,24 +1047,29 @@ func sanitizeGeminiDubEntries(entries []geminiDubSRTEntry) []geminiDubSRTEntry {
 			start = lastEnd + 0.05
 		}
 
-		dur := estimateGeminiDubDuration(text)
-		if originalDur := entry.End - entry.Start; originalDur >= 1.5 && originalDur < dur {
-			dur = originalDur
-		}
-		if i+1 < len(entries) {
-			nextStart := entries[i+1].Start
-			if nextStart > start+0.35 && start+dur >= nextStart {
-				dur = nextStart - start - 0.05
+		end := entry.End
+		if timelineMode != "overlay" {
+			dur := estimateGeminiDubDuration(text)
+			if originalDur := entry.End - entry.Start; originalDur >= 1.5 && originalDur < dur {
+				dur = originalDur
 			}
-		}
-		if dur < 0.8 {
-			dur = 0.8
-		}
-		if dur > 12.0 {
-			dur = 12.0
+			if i+1 < len(entries) {
+				nextStart := entries[i+1].Start
+				if nextStart > start+0.35 && start+dur >= nextStart {
+					dur = nextStart - start - 0.05
+				}
+			}
+			if dur < 0.8 {
+				dur = 0.8
+			}
+			if dur > 12.0 {
+				dur = 12.0
+			}
+			end = start + dur
+		} else if end <= start {
+			end = start + 0.5
 		}
 
-		end := start + dur
 		cleaned = append(cleaned, geminiDubSRTEntry{Text: text, Start: start, End: end})
 		lastEnd = end
 	}
