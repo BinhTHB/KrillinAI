@@ -883,14 +883,20 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 	videoPath := filepath.Join(req.Workdir, req.Video)
 	videoDur := getGeminiDubVideoDuration(videoPath)
 
+	// Preserve cue coverage when the input timeline is suspicious. Scaling may fix
+	// timestamps, but merging would hide/drop auditability of translated cues.
+	preserveCoverage := needsGeminiDubTimingFix(entries, videoDur)
+
 	// Fix timing using origin_language_srt.srt when input SRT has suspicious timestamps
 	fixedEntries, fixErr := fixGeminiDubSRTTiming(req.Workdir, inputPath, entries, inputSRT, videoDur)
 	if fixErr != nil {
 		return "", fmt.Errorf("timing fix failed: %w", fixErr)
 	}
+	timingFixed := false
 	if fixedEntries != nil {
 		fmt.Printf("Fixed %d entries using origin SRT timing\n", len(fixedEntries))
 		entries = fixedEntries
+		timingFixed = true
 	}
 
 	// Check for untranslated CJK — fallback to Python batch translator
@@ -963,8 +969,9 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 			}
 		}
 
-		// Merge adjacent blocks if total count > 35 to reduce freeze frame overhead
-		if len(entries) > 35 {
+		// Merge adjacent blocks only when timing was not rewritten. Rewritten timing preserves
+		// every translated cue so TTS receives complete, auditable subtitle coverage.
+		if !timingFixed && !preserveCoverage && len(entries) > 35 {
 			merged := make([]geminiDubSRTEntry, 0, len(entries))
 			var curr *geminiDubSRTEntry
 			for _, e := range entries {
@@ -998,6 +1005,7 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 	}
 
 	cleaned := sanitizeGeminiDubEntries(entries, req.TimelineMode)
+	cleaned = capGeminiDubEntriesToDuration(cleaned, videoDur)
 
 	if err := validateGeminiDubCleanEntries(cleaned); err != nil {
 		return "", err
@@ -1029,18 +1037,22 @@ func fixGeminiDubSRTTiming(workdir, inputPath string, targetEntries []geminiDubS
 		if err != nil || len(entries) == 0 {
 			continue
 		}
-		if len(entries) != len(targetEntries) || !isGeminiDubTimingBetter(entries, targetEntries, videoDur) {
-			originEntries = entries
+		if !isGeminiDubTimingBetter(entries, targetEntries, videoDur) {
 			continue
 		}
-		originEntries = entries
-		break
+		// Equal-length anchors are always accepted for 1:1 index mapping.
+		// Length-mismatched anchors (e.g. short_origin_srt) may cause time offset
+		// and are only accepted when the target is non‑monotonic (scaling cannot fix ordering).
+		if len(entries) == len(targetEntries) || hasGeminiDubNonMonotonic(targetEntries) {
+			originEntries = entries
+			break
+		}
 	}
-	if len(originEntries) == 0 || len(originEntries) != len(targetEntries) || !isGeminiDubTimingBetter(originEntries, targetEntries, videoDur) {
+	if len(originEntries) == 0 {
 		return nil, nil
 	}
 
-	fixed := distributeGeminiDubTimingByOriginGroups(originEntries, targetEntries, videoDur)
+	fixed := distributeGeminiDubTimingByAnchors(originEntries, targetEntries, videoDur)
 	if len(fixed) == 0 {
 		return nil, nil
 	}
@@ -1090,6 +1102,19 @@ func needsGeminiDubTimingFix(entries []geminiDubSRTEntry, videoDur float64) bool
 	return videoDur > 0 && lastEnd > videoDur+5.0 && oneSecond*5 > len(entries)
 }
 
+func hasGeminiDubNonMonotonic(entries []geminiDubSRTEntry) bool {
+	lastEnd := 0.0
+	for _, entry := range entries {
+		if entry.Start < lastEnd-0.001 {
+			return true
+		}
+		if entry.End > lastEnd {
+			lastEnd = entry.End
+		}
+	}
+	return false
+}
+
 func isGeminiDubTimingBetter(originEntries, targetEntries []geminiDubSRTEntry, videoDur float64) bool {
 	originScore := geminiDubTimingBadness(originEntries, videoDur)
 	targetScore := geminiDubTimingBadness(targetEntries, videoDur)
@@ -1124,108 +1149,147 @@ func geminiDubTimingBadness(entries []geminiDubSRTEntry, videoDur float64) int {
 	return badness
 }
 
-func distributeGeminiDubTimingByOriginGroups(originEntries, targetEntries []geminiDubSRTEntry, videoDur float64) []geminiDubSRTEntry {
-	textByIndex := make(map[int]string, len(targetEntries))
-	for i, entry := range targetEntries {
-		idx := entry.Index
-		if idx == 0 {
-			idx = i + 1
-		}
-		textByIndex[idx] = entry.Text
+func distributeGeminiDubTimingByAnchors(anchors, targets []geminiDubSRTEntry, videoDur float64) []geminiDubSRTEntry {
+	if len(anchors) == 0 || len(targets) == 0 {
+		return nil
 	}
 
-	ordered := append([]geminiDubSRTEntry(nil), originEntries...)
-	sort.SliceStable(ordered, func(i, j int) bool {
-		if ordered[i].Start == ordered[j].Start {
-			return ordered[i].Index < ordered[j].Index
+	// Sort anchors by start time (and index as tiebreaker for stability)
+	sortedAnchors := append([]geminiDubSRTEntry(nil), anchors...)
+	sort.SliceStable(sortedAnchors, func(i, j int) bool {
+		if sortedAnchors[i].Start == sortedAnchors[j].Start {
+			return sortedAnchors[i].Index < sortedAnchors[j].Index
 		}
-		return ordered[i].Start < ordered[j].Start
+		return sortedAnchors[i].Start < sortedAnchors[j].Start
 	})
 
-	groups := make([][]geminiDubSRTEntry, 0, len(ordered))
-	for _, entry := range ordered {
-		if len(groups) == 0 || entry.Start-groups[len(groups)-1][len(groups[len(groups)-1])-1].Start >= 0.1 {
-			groups = append(groups, []geminiDubSRTEntry{entry})
-			continue
+	nTarget := len(targets)
+	fixed := make([]geminiDubSRTEntry, nTarget)
+	const innerGap = 0.05
+
+	// Map each target entry to an anchor window by proportional index.
+	// When anchors == targets length, this gives a perfect 1:1 mapping.
+	for i := 0; i < nTarget; i++ {
+		j := (i * len(sortedAnchors)) / nTarget
+		if j >= len(sortedAnchors) {
+			j = len(sortedAnchors) - 1
 		}
-		groups[len(groups)-1] = append(groups[len(groups)-1], entry)
+		fixed[i] = geminiDubSRTEntry{
+			Index: i + 1,
+			Text:  targets[i].Text,
+		}
 	}
 
-	fixed := make([]geminiDubSRTEntry, 0, len(targetEntries))
-	const innerGap = 0.15
-	for gi, group := range groups {
-		groupStart := group[0].Start
-		groupEnd := videoDur
-		if gi < len(groups)-1 {
-			groupEnd = groups[gi+1][0].Start
-		} else if groupEnd <= groupStart {
-			groupEnd = group[len(group)-1].End
+	// Assign timing per anchor window, then distribute among its targets
+	type groupInfo struct{ start, length int }
+	groups := make([]groupInfo, 0, len(sortedAnchors))
+	start := 0
+	for j := 0; j < len(sortedAnchors); j++ {
+		// Count how many fixed entries map to this anchor
+		count := 0
+		for i := start; i < nTarget; i++ {
+			want := (i * len(sortedAnchors)) / nTarget
+			if want != j {
+				break
+			}
+			count++
 		}
-		if groupEnd-groupStart < 0.5 {
-			groupEnd = groupStart + 0.5
+		if count > 0 {
+			groups = append(groups, groupInfo{start: start, length: count})
+			start += count
+		}
+	}
+	// In case some targets were left unassigned (rounding)
+	if start < nTarget && len(groups) > 0 {
+		groups[len(groups)-1].length += nTarget - start
+	}
+
+	for gi, g := range groups {
+		aj := gi
+		if aj >= len(sortedAnchors) {
+			aj = len(sortedAnchors) - 1
+		}
+		winStart := sortedAnchors[aj].Start
+
+		var winEnd float64
+		if aj+1 < len(sortedAnchors) {
+			winEnd = sortedAnchors[aj+1].Start
+		} else {
+			winEnd = sortedAnchors[aj].End
+			if videoDur > 0 && videoDur > winStart {
+				winEnd = videoDur
+			}
+		}
+		if winEnd <= winStart {
+			winEnd = winStart + 1.0
+		}
+		if videoDur > 0 && winEnd > videoDur {
+			winEnd = videoDur
+		}
+		if winEnd-winStart < 0.5 {
+			winEnd = winStart + 0.5
 		}
 
-		if len(group) == 1 {
-			entry := group[0]
-			text := strings.TrimSpace(textByIndex[entry.Index])
-			if text == "" {
-				text = strings.TrimSpace(entry.Text)
-			}
-			entryDur := groupEnd - groupStart
-			if entryDur > 5.0 {
-				entryDur = 5.0
-			}
-			if entryDur < 0.5 {
-				entryDur = 0.5
-			}
-			fixed = append(fixed, geminiDubSRTEntry{Index: entry.Index, Text: text, Start: groupStart, End: groupStart + entryDur})
+		if g.length == 1 {
+			idx := g.start
+			fixed[idx].Start = winStart
+			fixed[idx].End = winEnd
 			continue
 		}
 
+		// Distribute proportionally by character length
 		totalChars := 0
-		for _, entry := range group {
-			text := strings.TrimSpace(textByIndex[entry.Index])
-			if text == "" {
-				text = strings.TrimSpace(entry.Text)
-			}
-			totalChars += len([]rune(text))
+		charLens := make([]int, g.length)
+		for k := 0; k < g.length; k++ {
+			cl := len([]rune(fixed[g.start+k].Text))
+			charLens[k] = cl
+			totalChars += cl
 		}
-		available := groupEnd - groupStart - float64(len(group)-1)*innerGap
-		if available < float64(len(group))*0.3 {
-			available = float64(len(group)) * 0.3
+
+		available := winEnd - winStart - float64(g.length-1)*innerGap
+		if available < float64(g.length)*0.25 {
+			available = float64(g.length) * 0.25
 		}
-		cursor := groupStart
-		for _, entry := range group {
-			text := strings.TrimSpace(textByIndex[entry.Index])
-			if text == "" {
-				text = strings.TrimSpace(entry.Text)
-			}
-			ratio := 1.0 / float64(len(group))
+
+		cursor := winStart
+		for k := 0; k < g.length; k++ {
+			idx := g.start + k
+			ratio := 1.0 / float64(g.length)
 			if totalChars > 0 {
-				ratio = float64(len([]rune(text))) / float64(totalChars)
+				ratio = float64(charLens[k]) / float64(totalChars)
 			}
 			dur := ratio * available
-			if dur < 0.3 {
-				dur = 0.3
+			if dur < 0.25 {
+				dur = 0.25
 			}
 			end := cursor + dur
-			if end > groupEnd-0.05 {
-				end = groupEnd - 0.05
+			if end > winEnd-0.05 {
+				end = winEnd - 0.05
 			}
 			if end <= cursor {
 				end = cursor + 0.05
 			}
-			fixed = append(fixed, geminiDubSRTEntry{Index: entry.Index, Text: text, Start: cursor, End: end})
+			fixed[idx].Start = cursor
+			fixed[idx].End = end
 			cursor = end + innerGap
 		}
 	}
 
-	sort.SliceStable(fixed, func(i, j int) bool {
-		if fixed[i].Start == fixed[j].Start {
-			return fixed[i].Index < fixed[j].Index
+	// Final monotonicity pass: fix any negative gaps from rounding
+	lastEnd := 0.0
+	for i := 0; i < nTarget; i++ {
+		if fixed[i].Text == "" {
+			fixed[i].Text = targets[i].Text
 		}
-		return fixed[i].Start < fixed[j].Start
-	})
+		if fixed[i].Start < lastEnd {
+			fixed[i].Start = lastEnd + 0.02
+		}
+		if fixed[i].End <= fixed[i].Start {
+			fixed[i].End = fixed[i].Start + 0.5
+		}
+		lastEnd = fixed[i].End
+	}
+
 	return fixed
 }
 
@@ -1285,6 +1349,40 @@ func capGeminiDubTimeline(entries []geminiDubSRTEntry, videoDur float64) []gemin
 		e := entries[len(entries)-1]
 		e.End = maxDur
 		entries[len(entries)-1] = e
+	}
+	return entries
+}
+
+func capGeminiDubEntriesToDuration(entries []geminiDubSRTEntry, videoDur float64) []geminiDubSRTEntry {
+	if videoDur <= 0 || len(entries) == 0 {
+		return entries
+	}
+	maxEnd := entries[len(entries)-1].End
+	if maxEnd <= videoDur+1.0 {
+		return entries
+	}
+	scale := (videoDur - 0.25) / maxEnd
+	last := 0.0
+	for i, e := range entries {
+		ns := e.Start * scale
+		ne := e.End * scale
+		if ns < last+0.03 {
+			ns = last + 0.03
+		}
+		dur := ne - ns
+		if dur < 0.35 {
+			dur = 0.35
+		}
+		ne = ns + dur
+		if ne > videoDur-0.02 {
+			ne = videoDur - 0.02
+		}
+		if ne <= ns {
+			ne = ns + 0.05
+		}
+		entries[i].Start = ns
+		entries[i].End = ne
+		last = ne
 	}
 	return entries
 }

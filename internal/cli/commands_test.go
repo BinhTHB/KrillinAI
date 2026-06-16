@@ -258,6 +258,83 @@ Câu thứ ba.
 	}
 }
 
+func TestFixGeminiDubSRTTimingUsesShortOriginWhenLengthsDiffer(t *testing.T) {
+	dir := t.TempDir()
+	badOrigin := `1
+00:00:00,000 --> 00:00:01,000
+一
+
+2
+00:01:00,000 --> 00:01:01,000
+二
+
+3
+00:02:00,000 --> 00:02:01,000
+三
+
+4
+00:03:00,000 --> 00:03:01,000
+四
+
+`
+	shortOrigin := `1
+00:00:00,000 --> 00:00:05,000
+第一段
+
+2
+00:00:05,000 --> 00:00:10,000
+第二段
+
+`
+	target := `1
+00:00:00,000 --> 00:00:01,000
+Một.
+
+2
+00:01:00,000 --> 00:01:01,000
+Hai.
+
+3
+00:00:00,500 --> 00:00:01,500
+Ba.
+
+4
+00:03:00,000 --> 00:03:01,000
+Bốn.
+
+`
+	if err := os.WriteFile(filepath.Join(dir, "origin_language_srt.srt"), []byte(badOrigin), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "short_origin_srt.srt"), []byte(shortOrigin), 0644); err != nil {
+		t.Fatal(err)
+	}
+	inputPath := filepath.Join(dir, "target_language_srt.srt")
+	if err := os.WriteFile(inputPath, []byte(target), 0644); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := parseGeminiDubSRT(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fixed, err := fixGeminiDubSRTTiming(dir, inputPath, entries, "target_language_srt.srt", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fixed) != 4 {
+		t.Fatalf("fixed entries = %d, want 4", len(fixed))
+	}
+	if fixed[0].Start != 0 || fixed[1].Start <= fixed[0].End || fixed[2].Start != 5 || fixed[3].Start <= fixed[2].End {
+		t.Fatalf("unexpected distributed timing: %#v", fixed)
+	}
+	for i, entry := range fixed {
+		if strings.TrimSpace(entry.Text) == "" {
+			t.Fatalf("entry %d lost text", i+1)
+		}
+	}
+}
+
 func TestExecuteDryRunSubtitleReturnsJSONReadyResponse(t *testing.T) {
 	cmd, err := Parse([]string{
 		"subtitle",
