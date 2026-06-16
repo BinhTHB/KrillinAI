@@ -692,6 +692,21 @@ async def main():
         a_mix = prefix.with_suffix('.mix.wav')
         combined = prefix.with_suffix('.combined.mp4')
 
+        if args.keep_cache and combined.exists() and get_duration(combined) > 0.05:
+            real_dur = get_duration(combined)
+            tts_dur = get_duration(tts_speed) if tts_speed.exists() else real_dur
+            chunk.tts_duration = tts_dur
+            chunk.final_duration = real_dur
+            chunk.freeze_duration = max(0.0, real_dur - chunk.source_duration)
+            chunk.actual_start = current
+            chunk.actual_end = current + real_dur
+            current = chunk.actual_end
+            source_cursor = max(source_cursor, chunk.end)
+            concat_parts.append(combined)
+            processed.append(chunk)
+            print(f"  cached: final={real_dur:.2f}s timeline={current:.2f}s", flush=True)
+            continue
+
         # Generate voiceover based on provider
         used_gemini = False
         tts_text_normalized = chunk.normalized_tts_text
