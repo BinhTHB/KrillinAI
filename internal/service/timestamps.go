@@ -53,6 +53,10 @@ func (tg *TimestampGenerator) RegisterMatcher(language types.StandardLanguageCod
 
 // GenerateTimestamps generates timestamps for SRT blocks using the appropriate language matcher
 func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, words []types.Word, language types.StandardLanguageCode, tsOffset float64) ([]*util.SrtBlock, error) {
+	if shouldUseProportionalCJKTimestamps(language, words) {
+		return generateProportionalTimestamps(srtBlocks, words, tsOffset), nil
+	}
+
 	matcher, exists := tg.matchers[language]
 	if !exists {
 		// Fallback to English matcher for unsupported languages
@@ -329,6 +333,71 @@ type BaseLanguageMatcher struct {
 
 func (jlm *BaseLanguageMatcher) GetLanguageType() types.StandardLanguageCode {
 	return jlm.language
+}
+
+func shouldUseProportionalCJKTimestamps(language types.StandardLanguageCode, words []types.Word) bool {
+	if language != types.LanguageNameSimplifiedChinese && language != types.LanguageNameTraditionalChinese && language != types.LanguageNameJapanese && language != types.LanguageNameKorean {
+		return false
+	}
+	if len(words) == 0 {
+		return false
+	}
+	bad := 0
+	for _, word := range words {
+		if strings.ContainsRune(word.Text, '\ufffd') {
+			bad++
+		}
+	}
+	return float64(bad)/float64(len(words)) > 0.02
+}
+
+func generateProportionalTimestamps(srtBlocks []*util.SrtBlock, words []types.Word, tsOffset float64) []*util.SrtBlock {
+	updatedBlocks := make([]*util.SrtBlock, len(srtBlocks))
+	if len(srtBlocks) == 0 || len(words) == 0 {
+		return updatedBlocks
+	}
+
+	startTime := words[0].Start
+	endTime := words[len(words)-1].End
+	if endTime <= startTime {
+		endTime = startTime + float64(len(srtBlocks))
+	}
+
+	totalWeight := 0.0
+	weights := make([]float64, len(srtBlocks))
+	for i, block := range srtBlocks {
+		weight := float64(len([]rune(block.OriginLanguageSentence)))
+		if weight < 1 {
+			weight = 1
+		}
+		weights[i] = weight
+		totalWeight += weight
+	}
+	if totalWeight <= 0 {
+		totalWeight = float64(len(srtBlocks))
+	}
+
+	span := endTime - startTime
+	cursor := startTime
+	for i, block := range srtBlocks {
+		blockCopy := *block
+		duration := span * weights[i] / totalWeight
+		if duration < 0.35 {
+			duration = 0.35
+		}
+		next := cursor + duration
+		if i == len(srtBlocks)-1 || next > endTime {
+			next = endTime
+		}
+		if next <= cursor {
+			next = cursor + 0.35
+		}
+		blockCopy.Timestamp = util.ConvertTimes(float32(cursor+tsOffset), float32(next+tsOffset))
+		updatedBlocks[i] = &blockCopy
+		cursor = next
+	}
+
+	return updatedBlocks
 }
 
 func (jlm *BaseLanguageMatcher) MatchSentenceTimestamp(sentence string, words []types.Word, lastTs float64) (startTime, endTime float64, err error) {
