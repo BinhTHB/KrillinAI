@@ -1032,15 +1032,16 @@ func sanitizeGeminiDubEntries(entries []geminiDubSRTEntry) []geminiDubSRTEntry {
 		if text == "" {
 			continue
 		}
+
+		start := entry.Start
+		if start < lastEnd {
+			start = lastEnd + 0.05
+		}
+
 		dur := entry.End - entry.Start
 		estDur := estimateGeminiDubDuration(text)
 		if dur < 1.5 || dur > 12.0 {
 			dur = estDur
-		}
-
-		start := entry.Start
-		if start < lastEnd || start-lastEnd > 2.0 {
-			start = lastEnd + 0.05
 		}
 
 		end := start + dur
