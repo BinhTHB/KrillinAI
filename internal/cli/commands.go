@@ -59,28 +59,28 @@ type Command struct {
 }
 
 type GeminiDubRequest struct {
-	Input       string
-	Workdir     string
-	TaskID      string
-	OriginLang  string
-	TargetLang  string
-	UserLang    string
-	CaptionSrc  string
-	SRT         string
-	Video       string
-	OutputDir   string
-	Provider    string
-	Model       string
-	Voice       string
-	Speed       string
-	Gap         string
-	VoiceVolume string
-	BgVolume    string
+	Input        string
+	Workdir      string
+	TaskID       string
+	OriginLang   string
+	TargetLang   string
+	UserLang     string
+	CaptionSrc   string
+	SRT          string
+	Video        string
+	OutputDir    string
+	Provider     string
+	Model        string
+	Voice        string
+	Speed        string
+	Gap          string
+	VoiceVolume  string
+	BgVolume     string
 	TimelineMode string
-	Python      string
-	Script      string
-	MaxChunks   string
-	KeepCache   bool
+	Python       string
+	Script       string
+	MaxChunks    string
+	KeepCache    bool
 }
 
 func Parse(args []string) (Command, error) {
@@ -381,28 +381,28 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 		Name:   name,
 		DryRun: *dryRun,
 		GeminiDub: GeminiDubRequest{
-			Input:       input,
-			Workdir:     resolvedWorkdir,
-			TaskID:      *taskID,
-			OriginLang:  *originLang,
-			TargetLang:  *targetLang,
-			UserLang:    *userLang,
-			CaptionSrc:  *captionSource,
-			SRT:         *srt,
-			Video:       *video,
-			OutputDir:   *outputDir,
-			Provider:    *provider,
-			Model:       *model,
-			Voice:       *voice,
-			Speed:       *speed,
-			Gap:         *gap,
-			VoiceVolume: *voiceVolume,
-			BgVolume:    *bgVolume,
+			Input:        input,
+			Workdir:      resolvedWorkdir,
+			TaskID:       *taskID,
+			OriginLang:   *originLang,
+			TargetLang:   *targetLang,
+			UserLang:     *userLang,
+			CaptionSrc:   *captionSource,
+			SRT:          *srt,
+			Video:        *video,
+			OutputDir:    *outputDir,
+			Provider:     *provider,
+			Model:        *model,
+			Voice:        *voice,
+			Speed:        *speed,
+			Gap:          *gap,
+			VoiceVolume:  *voiceVolume,
+			BgVolume:     *bgVolume,
 			TimelineMode: *timelineMode,
-			Python:      *python,
-			Script:      *script,
-			MaxChunks:   *maxChunks,
-			KeepCache:   *keepCache,
+			Python:       *python,
+			Script:       *script,
+			MaxChunks:    *maxChunks,
+			KeepCache:    *keepCache,
 		},
 	}, nil
 }
@@ -799,7 +799,6 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 		"--gemini-model", req.Model,
 		"--gemini-voice", req.Voice,
 		"--force-speed",
-		"--preserve-cues",
 		"--speed", req.Speed,
 		"--gap", req.Gap,
 		"--voice-volume", req.VoiceVolume,
@@ -925,7 +924,68 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 	videoPath := filepath.Join(req.Workdir, req.Video)
 	videoDur := getGeminiDubVideoDuration(videoPath)
 
-	_ = videoDur
+	if videoDur > 0 && len(entries) > 0 {
+		maxEnd := entries[len(entries)-1].End
+		if maxEnd > videoDur+1.0 {
+			scale := (videoDur - 0.25) / maxEnd
+			last := 0.0
+			for i, e := range entries {
+				ns := e.Start * scale
+				ne := e.End * scale
+				if ns < last+0.03 {
+					ns = last + 0.03
+				}
+				dur := ne - ns
+				if dur < 0.35 {
+					dur = 0.35
+				}
+				ne = ns + dur
+				if ne > videoDur-0.02 {
+					ne = videoDur - 0.02
+				}
+				if ne <= ns {
+					ne = ns + 0.05
+				}
+				entries[i].Start = ns
+				entries[i].End = ne
+				last = ne
+			}
+		}
+
+		// Merge adjacent blocks if total count > 35 to reduce freeze frame overhead
+		if len(entries) > 35 {
+			merged := make([]geminiDubSRTEntry, 0, len(entries))
+			var curr *geminiDubSRTEntry
+			for _, e := range entries {
+				if curr == nil {
+					curr = &geminiDubSRTEntry{Start: e.Start, End: e.End, Text: e.Text}
+				} else {
+					gap := e.Start - curr.End
+					duration := e.End - curr.Start
+					if gap < 0.8 && duration < 5.5 {
+						t1 := strings.TrimSpace(curr.Text)
+						t2 := strings.TrimSpace(e.Text)
+						if t1 != "" {
+							lastChar := t1[len(t1)-1]
+							if lastChar != '.' && lastChar != '!' && lastChar != '?' && lastChar != ',' && lastChar != ':' && lastChar != ';' {
+								t1 += "."
+							}
+						}
+						curr.Text = t1 + " " + t2
+						curr.End = e.End
+					} else {
+						merged = append(merged, *curr)
+						curr = &geminiDubSRTEntry{Start: e.Start, End: e.End, Text: e.Text}
+					}
+				}
+			}
+			if curr != nil {
+				merged = append(merged, *curr)
+			}
+			entries = merged
+		}
+	}
+
 	cleaned := sanitizeGeminiDubEntries(entries, req.TimelineMode)
 
 	if err := validateGeminiDubCleanEntries(cleaned); err != nil {
