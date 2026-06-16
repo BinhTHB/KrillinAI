@@ -263,19 +263,99 @@ def load_api_key() -> str:
     return match.group(1) if match else ""
 
 
+import re as _re
 async def edge_tts_text(text: str, output_mp3: Path, voice: str, rate: str, retries: int = 5) -> bool:
+    # Edge-TTS fails on text > ~90 chars - split into sub-chunks
+    max_sub = 80
+    def split_text(t):
+        if len(t) <= max_sub:
+            return [t]
+        # split on punctuation boundaries
+        parts=[]
+        while len(t)>max_sub:
+            br=max_sub
+            while br>max_sub//2 and t[br] not in '.!?。,！？；;': br-=1
+            if br<=max_sub//2: br=max_sub
+            parts.append(t[:br+1].strip())
+            t=t[br+1:].strip()
+        if t: parts.append(t)
+        return parts
     for attempt in range(1, retries + 1):
         try:
-            if output_mp3.exists():
-                output_mp3.unlink()
-            communicate = edge_tts.Communicate(text=text, voice=voice, rate=rate)
-            await communicate.save(str(output_mp3))
-            if output_mp3.exists() and output_mp3.stat().st_size > 1000:
-                return True
+            sub_parts = split_text(text)
+            if len(sub_parts)==1:
+                if output_mp3.exists(): output_mp3.unlink()
+                communicate = edge_tts.Communicate(text=text, voice=voice, rate=rate)
+                await communicate.save(str(output_mp3))
+                if output_mp3.exists() and output_mp3.stat().st_size > 1000:
+                    return True
+            else:
+                concat_list = output_mp3.with_suffix('.concat.txt')
+                concat_lines=[]
+                for idx,chunk in enumerate(sub_parts):
+                    tmp=output_mp3.parent/f'{output_mp3.stem}_part{idx}.mp3'
+                    if tmp.exists(): tmp.unlink()
+                    communicate=edge_tts.Communicate(text=chunk,voice=voice,rate=rate)
+                    await communicate.save(str(tmp))
+                    if not (tmp.exists() and tmp.stat().st_size>1000): raise RuntimeError(f'part {idx} failed size {tmp.stat().st_size if tmp.exists() else 0}')
+                    run_cmd(f'ffmpeg -y -i "{tmp}" -af "silenceremove=start_periods=1:start_duration=0.1:start_threshold=-50dB" -ac 1 -ar 44100 "{tmp}" 2>nul', check=False)
+                    concat_lines.append(f"file '{tmp.resolve().as_posix()}'")
+                con_file=output_mp3.parent/f'{output_mp3.stem}.concat.txt'
+                con_file.write_text('\n'.join(concat_lines),encoding='utf-8')
+                run_cmd(f'ffmpeg -y -f concat -safe 0 -i "{con_file}" -c copy "{output_mp3}"')
+                if output_mp3.exists() and output_mp3.stat().st_size>1000:
+                    for idx in range(len(sub_parts)):
+                        (output_mp3.parent/f'{output_mp3.stem}_part{idx}.mp3').unlink(missing_ok=True)
+                    con_file.unlink()
+                    return True
         except Exception as exc:
             print(f"  Edge-TTS retry {attempt}/{retries}: {exc}", flush=True)
             await asyncio.sleep(2)
-    return False
+    print("  Edge-TTS failed. Falling back to Google Translate TTS...", flush=True)
+    return google_tts_text(text, output_mp3)
+
+
+def google_tts_text(text: str, output_mp3: Path) -> bool:
+    import urllib.parse
+    import urllib.request
+    max_sub = 160
+    parts = []
+    t = text.strip()
+    while len(t) > max_sub:
+        br = max_sub
+        while br > max_sub // 2 and t[br] not in '.!?。,！？；;,':
+            br -= 1
+        if br <= max_sub // 2:
+            br = max_sub
+        parts.append(t[:br + 1].strip())
+        t = t[br + 1:].strip()
+    if t:
+        parts.append(t)
+    try:
+        concat_lines = []
+        for idx, part in enumerate(parts):
+            tmp = output_mp3.parent / f'{output_mp3.stem}_gtts_part{idx}.mp3'
+            url = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=vi&q=' + urllib.parse.quote(part)
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = resp.read()
+            if len(data) < 1000:
+                raise RuntimeError(f'gTTS part {idx} returned {len(data)} bytes')
+            tmp.write_bytes(data)
+            concat_lines.append(f"file '{tmp.resolve().as_posix()}'")
+        if len(parts) == 1:
+            output_mp3.write_bytes((output_mp3.parent / f'{output_mp3.stem}_gtts_part0.mp3').read_bytes())
+        else:
+            con_file = output_mp3.parent / f'{output_mp3.stem}.gtts.concat.txt'
+            con_file.write_text('\n'.join(concat_lines), encoding='utf-8')
+            run_cmd(f'ffmpeg -y -f concat -safe 0 -i "{con_file}" -c copy "{output_mp3}"')
+            con_file.unlink(missing_ok=True)
+        for idx in range(len(parts)):
+            (output_mp3.parent / f'{output_mp3.stem}_gtts_part{idx}.mp3').unlink(missing_ok=True)
+        return output_mp3.exists() and output_mp3.stat().st_size > 1000
+    except Exception as exc:
+        print(f"  Google TTS fallback failed: {exc}", flush=True)
+        return False
 
 
 async def gemini_tts_text(text: str, output_wav: Path, api_key: str, model_name: str, voice_name: str = "Puck", retries: int = 3) -> bool:
@@ -364,7 +444,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 def write_srt(path: Path, chunks: list[Chunk]):
     blocks = []
     for i, chunk in enumerate(chunks, 1):
-        blocks.append(f"{i}\n{format_srt_time(chunk.actual_start)} --> {format_srt_time(chunk.actual_end)}\n{chunk.text}\n")
+        text = chunk.text.replace('\n', ' ').replace('\r', '').strip()
+        blocks.append(f"{i}\n{format_srt_time(chunk.actual_start)} --> {format_srt_time(chunk.actual_end)}\n{text}\n")
     path.write_text('\n'.join(blocks), encoding='utf-8')
 
 
