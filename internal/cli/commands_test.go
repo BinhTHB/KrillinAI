@@ -78,6 +78,22 @@ func TestParseTTSCommandRequiresInputSRT(t *testing.T) {
 	}
 }
 
+func TestParseGeminiDubDefaultsToGeminiProvider(t *testing.T) {
+	cmd, err := Parse([]string{"gemini-dub", "https://example.com/video", "--workdir", "tasks/demo"})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if cmd.GeminiDub.Provider != "gemini" {
+		t.Fatalf("Provider = %q, want gemini", cmd.GeminiDub.Provider)
+	}
+	if cmd.GeminiDub.Model != "gemini-3.1-flash-live-preview" {
+		t.Fatalf("Model = %q, want gemini live default", cmd.GeminiDub.Model)
+	}
+	if cmd.GeminiDub.Voice != "Aoede" {
+		t.Fatalf("Voice = %q, want Aoede", cmd.GeminiDub.Voice)
+	}
+}
+
 func TestParseRenderCommandAcceptsSubtitleStyleFile(t *testing.T) {
 	cmd, err := Parse([]string{
 		"render-horizontal",
@@ -182,6 +198,66 @@ func TestHelpDryRunTextDoesNotClaimManifestWrites(t *testing.T) {
 	}
 }
 
+func TestFixGeminiDubSRTTimingUsesOriginTiming(t *testing.T) {
+	dir := t.TempDir()
+	origin := `1
+00:00:00,000 --> 00:00:05,000
+一句话
+
+2
+00:00:05,000 --> 00:00:10,000
+第二句话
+
+3
+00:00:10,000 --> 00:00:12,000
+第三句话
+
+`
+	target := `1
+00:00:00,000 --> 00:00:01,000
+Câu thứ nhất.
+
+2
+00:01:00,000 --> 00:01:01,000
+Câu thứ hai dài hơn.
+
+3
+00:02:00,000 --> 00:02:01,000
+Câu thứ ba.
+
+`
+	originPath := filepath.Join(dir, "origin_language_srt.srt")
+	inputPath := filepath.Join(dir, "target_language_srt.srt")
+	if err := os.WriteFile(originPath, []byte(origin), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(inputPath, []byte(target), 0644); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := parseGeminiDubSRT(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fixed, err := fixGeminiDubSRTTiming(dir, inputPath, entries, "target_language_srt.srt", 12)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fixed) != 3 {
+		t.Fatalf("fixed entries = %d, want 3", len(fixed))
+	}
+	if fixed[0].Start != 0 || fixed[1].Start != 5 || fixed[2].Start != 10 {
+		t.Fatalf("starts = %.3f %.3f %.3f, want 0 5 10", fixed[0].Start, fixed[1].Start, fixed[2].Start)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "target_language_srt.bad.srt")); err != nil {
+		t.Fatalf("bad backup not written: %v", err)
+	}
+	fixedPath := filepath.Join(dir, "target_language_srt_fixed.srt")
+	if _, err := os.Stat(fixedPath); err != nil {
+		t.Fatalf("fixed SRT not written: %v", err)
+	}
+}
+
 func TestExecuteDryRunSubtitleReturnsJSONReadyResponse(t *testing.T) {
 	cmd, err := Parse([]string{
 		"subtitle",
@@ -263,12 +339,13 @@ func TestLoadSubtitleStyleFindsRepoDefaultFromDifferentWorkingDir(t *testing.T) 
 	if !ok {
 		t.Fatal("default subtitle style path not found")
 	}
+	tempDir := t.TempDir()
 	t.Cleanup(func() {
 		if err := os.Chdir(originalWd); err != nil {
 			t.Fatalf("restore cwd: %v", err)
 		}
 	})
-	if err := os.Chdir(t.TempDir()); err != nil {
+	if err := os.Chdir(tempDir); err != nil {
 		t.Fatal(err)
 	}
 

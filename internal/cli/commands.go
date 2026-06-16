@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -342,7 +343,7 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 	srt := fs.String("srt", "target_language_srt.srt", "input translated srt")
 	video := fs.String("video", "origin_video.mp4", "input video")
 	outputDir := fs.String("output-dir", "controlled_gemini_live", "output directory under workdir")
-	provider := fs.String("provider", "edge", "tts provider")
+	provider := fs.String("provider", "gemini", "tts provider")
 	model := fs.String("model", "gemini-3.1-flash-live-preview", "gemini live model")
 	voice := fs.String("voice", "Aoede", "gemini voice")
 	speed := fs.String("speed", "2.1", "local speed-up factor")
@@ -879,6 +880,19 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 		return "", fmt.Errorf("input SRT has no entries: %s", inputPath)
 	}
 
+	videoPath := filepath.Join(req.Workdir, req.Video)
+	videoDur := getGeminiDubVideoDuration(videoPath)
+
+	// Fix timing using origin_language_srt.srt when input SRT has suspicious timestamps
+	fixedEntries, fixErr := fixGeminiDubSRTTiming(req.Workdir, inputPath, entries, inputSRT, videoDur)
+	if fixErr != nil {
+		return "", fmt.Errorf("timing fix failed: %w", fixErr)
+	}
+	if fixedEntries != nil {
+		fmt.Printf("Fixed %d entries using origin SRT timing\n", len(fixedEntries))
+		entries = fixedEntries
+	}
+
 	// Check for untranslated CJK — fallback to Python batch translator
 	cjkCount := 0
 	viCount := 0
@@ -921,9 +935,6 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 	}
 
 	// Determine video duration to cap the final timeline
-	videoPath := filepath.Join(req.Workdir, req.Video)
-	videoDur := getGeminiDubVideoDuration(videoPath)
-
 	if videoDur > 0 && len(entries) > 0 {
 		maxEnd := entries[len(entries)-1].End
 		if maxEnd > videoDur+1.0 {
@@ -999,6 +1010,242 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 	return cleanName, nil
 }
 
+func fixGeminiDubSRTTiming(workdir, inputPath string, targetEntries []geminiDubSRTEntry, inputSRT string, videoDur float64) ([]geminiDubSRTEntry, error) {
+	if !needsGeminiDubTimingFix(targetEntries, videoDur) {
+		return nil, nil
+	}
+	originCandidates := []string{"origin_language_srt.srt", "short_origin_srt.srt"}
+	var originEntries []geminiDubSRTEntry
+	for _, name := range originCandidates {
+		originPath := filepath.Join(workdir, name)
+		if !fileExists(originPath) {
+			continue
+		}
+		content, err := os.ReadFile(originPath)
+		if err != nil {
+			continue
+		}
+		entries, err := parseGeminiDubSRT(string(content))
+		if err != nil || len(entries) == 0 {
+			continue
+		}
+		if len(entries) != len(targetEntries) || !isGeminiDubTimingBetter(entries, targetEntries, videoDur) {
+			originEntries = entries
+			continue
+		}
+		originEntries = entries
+		break
+	}
+	if len(originEntries) == 0 || len(originEntries) != len(targetEntries) || !isGeminiDubTimingBetter(originEntries, targetEntries, videoDur) {
+		return nil, nil
+	}
+
+	fixed := distributeGeminiDubTimingByOriginGroups(originEntries, targetEntries, videoDur)
+	if len(fixed) == 0 {
+		return nil, nil
+	}
+	if err := validateGeminiDubFixedEntries(fixed); err != nil {
+		return nil, err
+	}
+
+	badPath := strings.TrimSuffix(inputPath, filepath.Ext(inputPath)) + ".bad" + filepath.Ext(inputPath)
+	if !fileExists(badPath) {
+		if err := os.WriteFile(badPath, []byte(formatGeminiDubSRT(targetEntries)), 0644); err != nil {
+			return nil, err
+		}
+	}
+	fixedName := strings.TrimSuffix(filepath.Base(inputSRT), filepath.Ext(inputSRT)) + "_fixed.srt"
+	fixedPath := filepath.Join(workdir, fixedName)
+	if err := os.WriteFile(fixedPath, []byte(formatGeminiDubSRT(fixed)), 0644); err != nil {
+		return nil, err
+	}
+	return fixed, nil
+}
+
+func needsGeminiDubTimingFix(entries []geminiDubSRTEntry, videoDur float64) bool {
+	if len(entries) == 0 {
+		return false
+	}
+	oneSecond := 0
+	nonMonotonic := false
+	lastEnd := 0.0
+	for _, entry := range entries {
+		dur := entry.End - entry.Start
+		if dur >= 0.99 && dur <= 1.01 {
+			oneSecond++
+		}
+		if entry.Start < lastEnd-0.001 {
+			nonMonotonic = true
+		}
+		if entry.End > lastEnd {
+			lastEnd = entry.End
+		}
+	}
+	if nonMonotonic {
+		return true
+	}
+	if oneSecond*3 > len(entries) {
+		return true
+	}
+	return videoDur > 0 && lastEnd > videoDur+5.0 && oneSecond*5 > len(entries)
+}
+
+func isGeminiDubTimingBetter(originEntries, targetEntries []geminiDubSRTEntry, videoDur float64) bool {
+	originScore := geminiDubTimingBadness(originEntries, videoDur)
+	targetScore := geminiDubTimingBadness(targetEntries, videoDur)
+	return originScore+5 < targetScore
+}
+
+func geminiDubTimingBadness(entries []geminiDubSRTEntry, videoDur float64) int {
+	badness := 0
+	lastEnd := 0.0
+	maxEnd := 0.0
+	for _, entry := range entries {
+		dur := entry.End - entry.Start
+		if dur >= 0.99 && dur <= 1.01 {
+			badness += 2
+		}
+		if dur <= 0 {
+			badness += 5
+		}
+		if entry.Start < lastEnd-0.001 {
+			badness += 5
+		}
+		if entry.End > lastEnd {
+			lastEnd = entry.End
+		}
+		if entry.End > maxEnd {
+			maxEnd = entry.End
+		}
+	}
+	if videoDur > 0 && maxEnd > videoDur+5.0 {
+		badness += int(maxEnd - videoDur)
+	}
+	return badness
+}
+
+func distributeGeminiDubTimingByOriginGroups(originEntries, targetEntries []geminiDubSRTEntry, videoDur float64) []geminiDubSRTEntry {
+	textByIndex := make(map[int]string, len(targetEntries))
+	for i, entry := range targetEntries {
+		idx := entry.Index
+		if idx == 0 {
+			idx = i + 1
+		}
+		textByIndex[idx] = entry.Text
+	}
+
+	ordered := append([]geminiDubSRTEntry(nil), originEntries...)
+	sort.SliceStable(ordered, func(i, j int) bool {
+		if ordered[i].Start == ordered[j].Start {
+			return ordered[i].Index < ordered[j].Index
+		}
+		return ordered[i].Start < ordered[j].Start
+	})
+
+	groups := make([][]geminiDubSRTEntry, 0, len(ordered))
+	for _, entry := range ordered {
+		if len(groups) == 0 || entry.Start-groups[len(groups)-1][len(groups[len(groups)-1])-1].Start >= 0.1 {
+			groups = append(groups, []geminiDubSRTEntry{entry})
+			continue
+		}
+		groups[len(groups)-1] = append(groups[len(groups)-1], entry)
+	}
+
+	fixed := make([]geminiDubSRTEntry, 0, len(targetEntries))
+	const innerGap = 0.15
+	for gi, group := range groups {
+		groupStart := group[0].Start
+		groupEnd := videoDur
+		if gi < len(groups)-1 {
+			groupEnd = groups[gi+1][0].Start
+		} else if groupEnd <= groupStart {
+			groupEnd = group[len(group)-1].End
+		}
+		if groupEnd-groupStart < 0.5 {
+			groupEnd = groupStart + 0.5
+		}
+
+		if len(group) == 1 {
+			entry := group[0]
+			text := strings.TrimSpace(textByIndex[entry.Index])
+			if text == "" {
+				text = strings.TrimSpace(entry.Text)
+			}
+			entryDur := groupEnd - groupStart
+			if entryDur > 5.0 {
+				entryDur = 5.0
+			}
+			if entryDur < 0.5 {
+				entryDur = 0.5
+			}
+			fixed = append(fixed, geminiDubSRTEntry{Index: entry.Index, Text: text, Start: groupStart, End: groupStart + entryDur})
+			continue
+		}
+
+		totalChars := 0
+		for _, entry := range group {
+			text := strings.TrimSpace(textByIndex[entry.Index])
+			if text == "" {
+				text = strings.TrimSpace(entry.Text)
+			}
+			totalChars += len([]rune(text))
+		}
+		available := groupEnd - groupStart - float64(len(group)-1)*innerGap
+		if available < float64(len(group))*0.3 {
+			available = float64(len(group)) * 0.3
+		}
+		cursor := groupStart
+		for _, entry := range group {
+			text := strings.TrimSpace(textByIndex[entry.Index])
+			if text == "" {
+				text = strings.TrimSpace(entry.Text)
+			}
+			ratio := 1.0 / float64(len(group))
+			if totalChars > 0 {
+				ratio = float64(len([]rune(text))) / float64(totalChars)
+			}
+			dur := ratio * available
+			if dur < 0.3 {
+				dur = 0.3
+			}
+			end := cursor + dur
+			if end > groupEnd-0.05 {
+				end = groupEnd - 0.05
+			}
+			if end <= cursor {
+				end = cursor + 0.05
+			}
+			fixed = append(fixed, geminiDubSRTEntry{Index: entry.Index, Text: text, Start: cursor, End: end})
+			cursor = end + innerGap
+		}
+	}
+
+	sort.SliceStable(fixed, func(i, j int) bool {
+		if fixed[i].Start == fixed[j].Start {
+			return fixed[i].Index < fixed[j].Index
+		}
+		return fixed[i].Start < fixed[j].Start
+	})
+	return fixed
+}
+
+func validateGeminiDubFixedEntries(entries []geminiDubSRTEntry) error {
+	lastEnd := 0.0
+	for i, entry := range entries {
+		if strings.TrimSpace(entry.Text) == "" {
+			return fmt.Errorf("fixed SRT has empty text at entry %d", i+1)
+		}
+		if entry.Start < lastEnd-0.001 {
+			return fmt.Errorf("fixed SRT is non-monotonic at entry %d", i+1)
+		}
+		if entry.End <= entry.Start {
+			return fmt.Errorf("fixed SRT has non-positive duration at entry %d", i+1)
+		}
+		lastEnd = entry.End
+	}
+	return nil
+}
+
 func getGeminiDubVideoDuration(videoPath string) float64 {
 	cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", videoPath)
 	out, err := cmd.Output()
@@ -1043,6 +1290,7 @@ func capGeminiDubTimeline(entries []geminiDubSRTEntry, videoDur float64) []gemin
 }
 
 type geminiDubSRTEntry struct {
+	Index int
 	Text  string
 	Start float64
 	End   float64
@@ -1055,6 +1303,10 @@ func parseGeminiDubSRT(content string) ([]geminiDubSRTEntry, error) {
 	for _, block := range blocks {
 		lines := strings.Split(strings.TrimSpace(block), "\n")
 		if len(lines) < 3 {
+			continue
+		}
+		idx, err := strconv.Atoi(strings.TrimSpace(lines[0]))
+		if err != nil {
 			continue
 		}
 		m := srtTimeLineRE.FindStringSubmatch(lines[1])
@@ -1073,7 +1325,7 @@ func parseGeminiDubSRT(content string) ([]geminiDubSRTEntry, error) {
 		if text == "" {
 			continue
 		}
-		entries = append(entries, geminiDubSRTEntry{Text: text, Start: start, End: end})
+		entries = append(entries, geminiDubSRTEntry{Index: idx, Text: text, Start: start, End: end})
 	}
 	return entries, nil
 }
