@@ -689,8 +689,14 @@ async def main():
             run_cmd(f'ffmpeg -y -ss {chunk.start:.3f} -to {end:.3f} -i "{video_path}" -c:v libx264 -preset fast -crf 23 -an "{v_src}"')
             v_src_dur = get_duration(v_src)
             if final_dur > v_src_dur + 0.01:
-                freeze = final_dur - v_src_dur
-                run_cmd(f'ffmpeg -y -i "{v_src}" -vf "tpad=stop_mode=clone:stop_duration={freeze:.3f}" -c:v libx264 -preset fast -crf 23 "{v_out}"')
+                # Freeze the first frame of the source cue for the whole TTS duration.
+                # This makes the scene wait for the translated audio instead of playing
+                # the cue and then cloning only the last frame.
+                run_cmd(
+                    f'ffmpeg -y -i "{v_src}" '
+                    f'-vf "select=eq(n\\,0),loop=loop=-1:size=1:start=0,trim=duration={final_dur:.3f},setpts=N/FRAME_RATE/TB" '
+                    f'-an -c:v libx264 -preset fast -crf 23 "{v_out}"'
+                )
             else:
                 shutil.copy2(v_src, v_out)
             run_cmd(f'ffmpeg -y -ss {chunk.start:.3f} -to {end:.3f} -i "{video_path}" -vn -ac 2 -ar 44100 -acodec pcm_s16le "{a_bg}"')
