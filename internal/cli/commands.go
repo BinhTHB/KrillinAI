@@ -11,9 +11,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
+	"unicode"
 )
 
 const defaultSubtitleStylePath = "config/subtitle-style-default.json"
@@ -775,11 +778,15 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 	if err != nil {
 		return geminiDubFailure(req, "resolve_srt_failed", err, start)
 	}
+	cleanSRT, err := prepareGeminiDubCleanSRT(req, resolvedSRT)
+	if err != nil {
+		return geminiDubFailure(req, "prepare_clean_srt_failed", err, start)
+	}
 
 	args := []string{
 		req.Script,
 		"--workdir", req.Workdir,
-		"--srt", resolvedSRT,
+		"--srt", cleanSRT,
 		"--video", req.Video,
 		"--output-dir", req.OutputDir,
 		"--tts-provider", req.Provider,
@@ -846,6 +853,173 @@ func resolveGeminiDubSRT(req GeminiDubRequest) (string, error) {
 		return "target_language_srt.srt", nil
 	}
 	return "", fmt.Errorf("input SRT not found: %s", filepath.Join(req.Workdir, req.SRT))
+}
+
+var srtTimeLineRE = regexp.MustCompile(`(\d{2}):(\d{2}):(\d{2}),(\d{3})\s+-->\s+(\d{2}):(\d{2}):(\d{2}),(\d{3})`)
+
+func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, error) {
+	inputPath := filepath.Join(req.Workdir, inputSRT)
+	content, err := os.ReadFile(inputPath)
+	if err != nil {
+		return "", err
+	}
+	entries, err := parseGeminiDubSRT(string(content))
+	if err != nil {
+		return "", err
+	}
+	if len(entries) == 0 {
+		return "", fmt.Errorf("input SRT has no entries: %s", inputPath)
+	}
+	cleaned := sanitizeGeminiDubEntries(entries)
+	if err := validateGeminiDubCleanEntries(cleaned); err != nil {
+		return "", err
+	}
+	cleanName := strings.TrimSuffix(filepath.Base(inputSRT), filepath.Ext(inputSRT)) + "_gemini_clean.srt"
+	cleanPath := filepath.Join(req.Workdir, cleanName)
+	if err := os.WriteFile(cleanPath, []byte(formatGeminiDubSRT(cleaned)), 0644); err != nil {
+		return "", err
+	}
+	return cleanName, nil
+}
+
+type geminiDubSRTEntry struct {
+	Text  string
+	Start float64
+	End   float64
+}
+
+func parseGeminiDubSRT(content string) ([]geminiDubSRTEntry, error) {
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+	blocks := strings.Split(strings.TrimSpace(content), "\n\n")
+	entries := make([]geminiDubSRTEntry, 0, len(blocks))
+	for _, block := range blocks {
+		lines := strings.Split(strings.TrimSpace(block), "\n")
+		if len(lines) < 3 {
+			continue
+		}
+		m := srtTimeLineRE.FindStringSubmatch(lines[1])
+		if m == nil {
+			continue
+		}
+		start, err := parseSRTTimeParts(m[1:5])
+		if err != nil {
+			return nil, err
+		}
+		end, err := parseSRTTimeParts(m[5:9])
+		if err != nil {
+			return nil, err
+		}
+		text := strings.TrimSpace(strings.Join(lines[2:], " "))
+		if text == "" {
+			continue
+		}
+		entries = append(entries, geminiDubSRTEntry{Text: text, Start: start, End: end})
+	}
+	return entries, nil
+}
+
+func parseSRTTimeParts(parts []string) (float64, error) {
+	if len(parts) != 4 {
+		return 0, fmt.Errorf("invalid srt time parts")
+	}
+	vals := make([]int, 4)
+	for i, part := range parts {
+		v, err := strconv.Atoi(part)
+		if err != nil {
+			return 0, err
+		}
+		vals[i] = v
+	}
+	return float64(vals[0]*3600+vals[1]*60+vals[2]) + float64(vals[3])/1000, nil
+}
+
+func sanitizeGeminiDubEntries(entries []geminiDubSRTEntry) []geminiDubSRTEntry {
+	cleaned := make([]geminiDubSRTEntry, 0, len(entries))
+	lastEnd := 0.0
+	for _, entry := range entries {
+		text := strings.TrimSpace(entry.Text)
+		if text == "" || containsCJK(text) {
+			continue
+		}
+		dur := entry.End - entry.Start
+		if dur <= 0 || dur > 15 {
+			dur = estimateGeminiDubDuration(text)
+		}
+		start := entry.Start
+		if start < lastEnd || start-lastEnd > 20 || entry.End-entry.Start > 15 {
+			start = lastEnd + 0.05
+		}
+		end := start + dur
+		cleaned = append(cleaned, geminiDubSRTEntry{Text: text, Start: start, End: end})
+		lastEnd = end
+	}
+	return cleaned
+}
+
+func validateGeminiDubCleanEntries(entries []geminiDubSRTEntry) error {
+	if len(entries) == 0 {
+		return fmt.Errorf("clean SRT has no usable Vietnamese entries")
+	}
+	lastEnd := 0.0
+	for i, entry := range entries {
+		if containsCJK(entry.Text) {
+			return fmt.Errorf("clean SRT still contains CJK at entry %d", i+1)
+		}
+		if entry.Start < lastEnd {
+			return fmt.Errorf("clean SRT is non-monotonic at entry %d", i+1)
+		}
+		if entry.End <= entry.Start {
+			return fmt.Errorf("clean SRT has non-positive duration at entry %d", i+1)
+		}
+		if entry.End-entry.Start > 15 {
+			return fmt.Errorf("clean SRT entry %d is too long: %.2fs", i+1, entry.End-entry.Start)
+		}
+		lastEnd = entry.End
+	}
+	return nil
+}
+
+func estimateGeminiDubDuration(text string) float64 {
+	runes := []rune(text)
+	dur := float64(len(runes)) * 0.075
+	if dur < 1.0 {
+		return 1.0
+	}
+	if dur > 8.0 {
+		return 8.0
+	}
+	return dur
+}
+
+func formatGeminiDubSRT(entries []geminiDubSRTEntry) string {
+	var b strings.Builder
+	for i, entry := range entries {
+		fmt.Fprintf(&b, "%d\n%s --> %s\n%s\n\n", i+1, formatSRTTime(entry.Start), formatSRTTime(entry.End), entry.Text)
+	}
+	return b.String()
+}
+
+func formatSRTTime(seconds float64) string {
+	if seconds < 0 {
+		seconds = 0
+	}
+	millis := int(seconds*1000 + 0.5)
+	h := millis / 3600000
+	millis %= 3600000
+	m := millis / 60000
+	millis %= 60000
+	s := millis / 1000
+	ms := millis % 1000
+	return fmt.Sprintf("%02d:%02d:%02d,%03d", h, m, s, ms)
+}
+
+func containsCJK(text string) bool {
+	for _, r := range text {
+		if unicode.In(r, unicode.Han) {
+			return true
+		}
+	}
+	return false
 }
 
 func ensureGeminiDubVideo(req GeminiDubRequest) error {
