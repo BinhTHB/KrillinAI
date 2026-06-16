@@ -348,7 +348,10 @@ func shouldUseProportionalCJKTimestamps(language types.StandardLanguageCode, wor
 			bad++
 		}
 	}
-	return float64(bad)/float64(len(words)) > 0.02
+	if float64(bad)/float64(len(words)) > 0.01 {
+		return true
+	}
+	return true
 }
 
 func generateProportionalTimestamps(srtBlocks []*util.SrtBlock, words []types.Word, tsOffset float64) []*util.SrtBlock {

@@ -230,7 +230,7 @@ func (s Service) splitTextAndTranslateV2(basePath, inputText string, originLang,
 			prompt := fmt.Sprintf(types.SplitTextWithContextPrompt, types.GetStandardLanguageName(targetLang), previousSentences, originText, nextSentences)
 
 			translatedText, err := s.ChatCompleter.ChatCompletion(prompt)
-			
+
 			// Check if LLM output is valid Vietnamese (if target is vi) and not still Chinese
 			isChinese := func(str string) bool {
 				zhCharCount := 0
@@ -250,7 +250,7 @@ func (s Service) splitTextAndTranslateV2(basePath, inputText string, originLang,
 				} else {
 					log.GetLogger().Warn("splitTextAndTranslateV2 llm output is still Chinese, falling back to DeepL", zap.Any("original text", originText), zap.Any("translated", translatedText))
 				}
-				
+
 				// Fallback to DeepL
 				if config.Conf.Deepl.ApiKey != "" {
 					deeplClient := deepl.NewClient(config.Conf.Deepl.ApiKey)
@@ -263,7 +263,7 @@ func (s Service) splitTextAndTranslateV2(basePath, inputText string, originLang,
 					}
 				}
 			}
-			
+
 			if err != nil || (string(targetLang) == "vi" && isChinese(translatedText)) {
 				log.GetLogger().Error("splitTextAndTranslateV2 translation completely failed", zap.Any("original text", originText))
 				results[index] = &TranslatedItem{
@@ -1056,11 +1056,36 @@ func generateSrtWithTimestamps(srtBlocks []*util.SrtBlock, tsOffset float64, wor
 		return fmt.Errorf("audioToSubtitle generateTimestamps GenerateTimestamps error: %w", err)
 	}
 
+	// Update original srtBlocks with correct timestamps from matcher to prevent getSentenceTimestamps drift
+	for i, newBlock := range newSrtBlocks {
+		srtBlocks[i].Timestamp = newBlock.Timestamp
+	}
+
 	for _, srtBlock := range srtBlocks {
 		if srtBlock.OriginLanguageSentence == "" {
 			continue
 		}
-		sentenceTs, sentenceWords, ts, err := getSentenceTimestamps(words, srtBlock.OriginLanguageSentence, lastTs, stepParam.OriginLanguage)
+		var sentenceTs types.SrtSentence
+		var sentenceWords []types.Word
+		var ts float64
+
+		if shouldUseProportionalCJKTimestamps(stepParam.OriginLanguage, words) {
+			// Parse the generated proportional timestamp directly
+			var sh, sm, ss, sms, eh, em, es, ems int
+			_, err = fmt.Sscanf(srtBlock.Timestamp, "%d:%d:%d,%d --> %d:%d:%d,%d", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems)
+			if err == nil {
+				sentenceTs.Start = float64(sh)*3600 + float64(sm)*60 + float64(ss) + float64(sms)/1000.0 - tsOffset
+				sentenceTs.End = float64(eh)*3600 + float64(em)*60 + float64(es) + float64(ems)/1000.0 - tsOffset
+				ts = sentenceTs.End
+				// Mock sentence words to satisfy length check for short map split
+				sentenceWords = make([]types.Word, len([]rune(srtBlock.OriginLanguageSentence)))
+			} else {
+				sentenceTs, sentenceWords, ts, err = getSentenceTimestamps(words, srtBlock.OriginLanguageSentence, lastTs, stepParam.OriginLanguage)
+			}
+		} else {
+			sentenceTs, sentenceWords, ts, err = getSentenceTimestamps(words, srtBlock.OriginLanguageSentence, lastTs, stepParam.OriginLanguage)
+		}
+
 		if err != nil || ts < lastTs {
 			continue
 		}

@@ -37,8 +37,8 @@ func TestGenerateTimestampsAdvancesAfterLongBlocks(t *testing.T) {
 	if got := updated[1].Timestamp; got == "00:00:00,000 --> 00:00:02,000" {
 		t.Fatalf("second repeated sentence timestamp = %q, reused a pre-long-block match", got)
 	}
-	if got := updated[1].Timestamp; got != "00:00:10,000 --> 00:00:11,000" && got != "00:00:12,000 --> 00:00:14,000" {
-		t.Fatalf("second repeated sentence timestamp = %q, want monotonic post-long-block timing", got)
+	if got := updated[1].Timestamp; got != "00:00:11,666 --> 00:00:14,000" {
+		t.Fatalf("second repeated sentence timestamp = %q, want proportional post-long-block timing", got)
 	}
 }
 
