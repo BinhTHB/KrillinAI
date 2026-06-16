@@ -871,6 +871,47 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 		return "", fmt.Errorf("input SRT has no entries: %s", inputPath)
 	}
 
+	// Check for untranslated CJK — fallback to Python batch translator
+	cjkCount := 0
+	viCount := 0
+	for _, e := range entries {
+		if containsCJK(e.Text) {
+			cjkCount++
+		} else {
+			viCount++
+		}
+	}
+	if cjkCount > viCount {
+		// Too many CJK — not enough Vietnamese; retranslate using fallback script
+		return "", fmt.Errorf("too many untranslated CJK entries (%d vs %d Vietnamese), need to retranslate", cjkCount, viCount)
+	}
+	if cjkCount > 0 && viCount > 0 {
+		// Partial CJK — run fallback script on origin SRT
+		originSRT := filepath.Join(req.Workdir, "origin_language_srt.srt")
+		if !containsCJK(string(content)) || fileExists(originSRT) {
+			if fileExists(originSRT) {
+				fmt.Printf("Translating %d CJK entries via Gemini batch fallback...\n", cjkCount)
+				cmd := exec.Command("python", "-u", "scripts/translate_gemini.py",
+					"--workdir", req.Workdir,
+				)
+				cmd.Stdout = os.Stderr
+				cmd.Stderr = os.Stderr
+				if err := cmd.Run(); err != nil {
+					return "", fmt.Errorf("CJK fallback translation failed: %w (will continue with %d CJK remaining)", err, cjkCount)
+				}
+				// Re-read the updated SRT
+				content, err = os.ReadFile(inputPath)
+				if err != nil {
+					return "", fmt.Errorf("re-read after fallback: %w", err)
+				}
+				entries, err = parseGeminiDubSRT(string(content))
+				if err != nil {
+					return "", fmt.Errorf("parse after fallback: %w", err)
+				}
+			}
+		}
+	}
+
 	// Determine video duration to cap the final timeline
 	videoPath := filepath.Join(req.Workdir, req.Video)
 	videoDur := getGeminiDubVideoDuration(videoPath)
