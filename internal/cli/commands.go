@@ -938,7 +938,7 @@ func sanitizeGeminiDubEntries(entries []geminiDubSRTEntry) []geminiDubSRTEntry {
 	lastEnd := 0.0
 	for _, entry := range entries {
 		text := strings.TrimSpace(entry.Text)
-		if text == "" || containsCJK(text) {
+		if text == "" {
 			continue
 		}
 		dur := entry.End - entry.Start
@@ -958,12 +958,12 @@ func sanitizeGeminiDubEntries(entries []geminiDubSRTEntry) []geminiDubSRTEntry {
 
 func validateGeminiDubCleanEntries(entries []geminiDubSRTEntry) error {
 	if len(entries) == 0 {
-		return fmt.Errorf("clean SRT has no usable Vietnamese entries")
+		return fmt.Errorf("clean SRT has no usable entries")
 	}
 	lastEnd := 0.0
 	for i, entry := range entries {
 		if containsCJK(entry.Text) {
-			return fmt.Errorf("clean SRT still contains CJK at entry %d", i+1)
+			return fmt.Errorf("clean SRT still contains untranslated CJK at entry %d", i+1)
 		}
 		if entry.Start < lastEnd {
 			return fmt.Errorf("clean SRT is non-monotonic at entry %d", i+1)
