@@ -17,11 +17,13 @@ export GOOGLE_API_KEY="AIzaSy..."
 Sử dụng các giá trị cấu hình được thiết lập sẵn trong hệ thống để thực hiện nhanh từ URL video đầu vào ra video lồng tiếng Việt cuối cùng.
 
 ```bash
-# Sử dụng go run
+# Git Bash / Linux / macOS
 go run ./cmd/cli gemini-dub 'YOUR_VIDEO_URL' --workdir tasks/my-task --provider gemini
-
-# Hoặc sử dụng file build sẵn (.exe trên Windows)
 ./krillinai-cli.exe gemini-dub 'YOUR_VIDEO_URL' --workdir tasks/my-task --provider gemini
+
+# Windows cmd.exe / PowerShell: dùng dấu nháy kép, không dùng dấu nháy đơn; dùng .\ thay vì ./
+go run ./cmd/cli gemini-dub "YOUR_VIDEO_URL" --workdir tasks/my-task --provider gemini
+.\krillinai-cli.exe gemini-dub "YOUR_VIDEO_URL" --workdir tasks/my-task --provider gemini
 ```
 
 **Kết quả đầu ra sẽ nằm tại:**
@@ -29,7 +31,23 @@ go run ./cmd/cli gemini-dub 'YOUR_VIDEO_URL' --workdir tasks/my-task --provider 
 
 ---
 
-## 3. Các cờ cấu hình chi tiết (Customization)
+## 3. Lưu ý Windows cmd.exe / PowerShell
+
+Nếu chạy trong `E:\projects\KrillinAI>` bằng cmd.exe hoặc PowerShell:
+
+- Không dùng dấu nháy đơn `'...'` cho URL. Dùng dấu nháy kép `"..."` hoặc không nháy nếu URL không có ký tự đặc biệt.
+- Không dùng `./krillinai-cli.exe`. Dùng `.\krillinai-cli.exe`.
+- Nếu URL Douyin bị yt-dlp báo `is not a valid URL`, nguyên nhân thường là URL được truyền kèm cả dấu nháy đơn do chạy trong cmd.exe.
+
+Ví dụ đúng:
+
+```powershell
+.\krillinai-cli.exe gemini-dub "https://www.douyin.com/video/7513809997889834277" --workdir tasks/my-task --provider gemini
+```
+
+---
+
+## 4. Các cờ cấu hình chi tiết (Customization)
 
 Khi cần tùy biến sâu quy trình dịch thuật và lồng tiếng, bạn có thể truyền thêm các tham số sau vào lệnh `gemini-dub`:
 
@@ -66,7 +84,7 @@ go run ./cmd/cli gemini-dub 'https://example.com/video.mp4' \
 
 ---
 
-## 4. Các lệnh đơn lẻ (Chạy từng bước)
+## 5. Các lệnh đơn lẻ (Chạy từng bước)
 KrillinAI CLI hỗ trợ chạy bóc tách từng giai đoạn nhỏ để kiểm tra dữ liệu trung gian:
 
 ### Bước A: Tạo phụ đề từ video
