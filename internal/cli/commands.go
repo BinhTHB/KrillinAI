@@ -916,8 +916,8 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 	videoPath := filepath.Join(req.Workdir, req.Video)
 	videoDur := getGeminiDubVideoDuration(videoPath)
 
+	_ = videoDur
 	cleaned := sanitizeGeminiDubEntries(entries)
-	cleaned = capGeminiDubTimeline(cleaned, videoDur)
 
 	if err := validateGeminiDubCleanEntries(cleaned); err != nil {
 		return "", err
@@ -1027,7 +1027,7 @@ func parseSRTTimeParts(parts []string) (float64, error) {
 func sanitizeGeminiDubEntries(entries []geminiDubSRTEntry) []geminiDubSRTEntry {
 	cleaned := make([]geminiDubSRTEntry, 0, len(entries))
 	lastEnd := 0.0
-	for _, entry := range entries {
+	for i, entry := range entries {
 		text := strings.TrimSpace(entry.Text)
 		if text == "" {
 			continue
@@ -1038,10 +1038,21 @@ func sanitizeGeminiDubEntries(entries []geminiDubSRTEntry) []geminiDubSRTEntry {
 			start = lastEnd + 0.05
 		}
 
-		dur := entry.End - entry.Start
-		estDur := estimateGeminiDubDuration(text)
-		if dur < 1.5 || dur > 12.0 {
-			dur = estDur
+		dur := estimateGeminiDubDuration(text)
+		if originalDur := entry.End - entry.Start; originalDur >= 1.5 && originalDur < dur {
+			dur = originalDur
+		}
+		if i+1 < len(entries) {
+			nextStart := entries[i+1].Start
+			if nextStart > start+0.35 && start+dur >= nextStart {
+				dur = nextStart - start - 0.05
+			}
+		}
+		if dur < 0.8 {
+			dur = 0.8
+		}
+		if dur > 12.0 {
+			dur = 12.0
 		}
 
 		end := start + dur
