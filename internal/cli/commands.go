@@ -1370,8 +1370,8 @@ func capGeminiDubEntriesToDuration(entries []geminiDubSRTEntry, videoDur float64
 			ns = last + 0.03
 		}
 		dur := ne - ns
-		if dur < 0.35 {
-			dur = 0.35
+		if dur < 0.5 {
+			dur = 0.5
 		}
 		ne = ns + dur
 		if ne > videoDur-0.02 {
