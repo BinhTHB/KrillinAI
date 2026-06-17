@@ -542,7 +542,7 @@ async def main():
                 if ok:
                     used_gemini = True
                     print("  Gemini TTS OK.", flush=True)
-                elif args.tts_provider == 'hybrid':
+                else:
                     print("  Gemini failed. Falling back to Edge-TTS...", flush=True)
                     tmp_mp3 = prefix.with_suffix('.tts.mp3')
                     ok = await edge_tts_text(tts_text_normalized, tmp_mp3, args.voice, args.rate)
@@ -552,8 +552,6 @@ async def main():
                             tmp_mp3.unlink()
                         except Exception:
                             pass
-                else:
-                    ok = False
             else:
                 tmp_mp3 = prefix.with_suffix('.tts.mp3')
                 ok = await edge_tts_text(tts_text_normalized, tmp_mp3, args.voice, args.rate)
@@ -717,7 +715,7 @@ async def main():
             if ok:
                 used_gemini = True
                 print("  Gemini TTS OK.", flush=True)
-            elif args.tts_provider == 'hybrid':
+            else:
                 print("  Gemini failed. Falling back to Edge-TTS...", flush=True)
                 tmp_mp3 = prefix.with_suffix('.tts.mp3')
                 ok = await edge_tts_text(tts_text_normalized, tmp_mp3, args.voice, args.rate)
@@ -725,10 +723,8 @@ async def main():
                     run_cmd(f'ffmpeg -y -i "{tmp_mp3}" -ac 1 -ar 44100 "{tts_raw}"')
                     try:
                         tmp_mp3.unlink()
-                    except:
+                    except Exception:
                         pass
-            else:
-                ok = False
         else:
             # Edge-TTS
             tmp_mp3 = prefix.with_suffix('.tts.mp3')

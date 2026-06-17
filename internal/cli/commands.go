@@ -1047,10 +1047,11 @@ func fixGeminiDubSRTTiming(workdir, inputPath string, targetEntries []geminiDubS
 		if !isGeminiDubTimingBetter(entries, targetEntries, videoDur) {
 			continue
 		}
-		// Equal-length anchors are always accepted for 1:1 index mapping.
-		// Length-mismatched anchors (e.g. short_origin_srt) may cause time offset
-		// and are only accepted when the target is non‑monotonic (scaling cannot fix ordering).
-		if len(entries) == len(targetEntries) || hasGeminiDubNonMonotonic(targetEntries) {
+		// Equal-length anchors are accepted for 1:1 index mapping.
+		// short_origin_srt is the reliable Whisper segment timeline when the full
+		// origin/target SRT contains hallucinated one-second cues or extends beyond
+		// the video; distribute all translated target entries over its anchor windows.
+		if len(entries) == len(targetEntries) || name == "short_origin_srt.srt" || hasGeminiDubNonMonotonic(targetEntries) {
 			originEntries = entries
 			break
 		}
