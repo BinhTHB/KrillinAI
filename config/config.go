@@ -69,6 +69,7 @@ type Transcribe struct {
 	Fasterwhisper         LocalModelConfig       `toml:"fasterwhisper"`
 	Whisperkit            LocalModelConfig       `toml:"whisperkit"`
 	Whispercpp            LocalModelConfig       `toml:"whispercpp"`
+	Whisperx              LocalModelConfig       `toml:"whisperx"`
 	Aliyun                AliyunTranscribeConfig `toml:"aliyun"`
 }
 
@@ -208,6 +209,10 @@ func validateConfig() error {
 		}
 		if Conf.Transcribe.Whispercpp.Model != "large-v2" {
 			return errors.New("检测到开启了whisper.cpp，但模型选型配置不正确，请检查配置")
+		}
+	case "whisperx":
+		if Conf.Transcribe.Whisperx.Model != "large-v2" && Conf.Transcribe.Whisperx.Model != "large-v3" && Conf.Transcribe.Whisperx.Model != "medium" {
+			return errors.New("检测到开启了whisperx，但模型选型配置不正确，请检查配置")
 		}
 	case "aliyun":
 		if Conf.Transcribe.Aliyun.Speech.AccessKeyId == "" || Conf.Transcribe.Aliyun.Speech.AccessKeySecret == "" || Conf.Transcribe.Aliyun.Speech.AppKey == "" {

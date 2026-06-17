@@ -2,7 +2,6 @@ package whisperx
 
 import (
 	"encoding/json"
-	"krillin-ai/internal/storage"
 	"krillin-ai/internal/types"
 	"krillin-ai/log"
 	"krillin-ai/pkg/util"
@@ -21,14 +20,13 @@ func (c *WhisperXProcessor) Transcription(audioFile, language, workDir string) (
 		cmd     *exec.Cmd
 	)
 	if runtime.GOOS == "windows" {
-		envPath = ".\\bin\\whisperx\\.venv\\Scripts\\activate"
-	} else {
-		envPath = storage.WhisperXPath
-	}
-	if runtime.GOOS == "windows" {
+		// Use cmd /c to activate venv then run whisperx (exec.Command can't handle batch && directly)
+		pythonPath := ".\\bin\\whisperx\\.venv\\Scripts\\python.exe"
+		whisperxModule := "-m"
+		whisperxPkg := "whisperx"
 		cmdArgs = []string{
-			"&&",
-			storage.WhisperXPath,
+			"/c",
+			pythonPath, whisperxModule, whisperxPkg,
 			audioFile,
 			"--model_dir", "./models/whisperx",
 			"--model", c.Model,
@@ -36,9 +34,8 @@ func (c *WhisperXProcessor) Transcription(audioFile, language, workDir string) (
 			"--output_dir", workDir,
 			"--compute_type", "float16",
 			"--batch_size", "8",
-			"--model_cache_only", "True",
 		}
-		cmd = exec.Command(envPath, cmdArgs...)
+		cmd = exec.Command("cmd.exe", cmdArgs...)
 	} else {
 		cmdArgs = []string{
 			audioFile,

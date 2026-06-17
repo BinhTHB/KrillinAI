@@ -1041,12 +1041,9 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 }
 
 func fixGeminiDubSRTTiming(workdir, inputPath string, targetEntries []geminiDubSRTEntry, inputSRT string, videoDur float64) ([]geminiDubSRTEntry, error) {
-	if !needsGeminiDubTimingFix(targetEntries, videoDur) {
-		return nil, nil
-	}
-	// Try text-matching first: read full origin (87 entries with Chinese)
-	// and short_origin (43 entries with reliable timing), then map target
-	// entries to short_origin anchors via Chinese character overlap.
+	// Try text-matching first when both origin files are available,
+	// regardless of needsGeminiDubTimingFix, as already-fixed SRTs
+	// should still use text-matching to preserve separate target cues.
 	fullOriginPath := filepath.Join(workdir, "origin_language_srt.srt")
 	shortOriginPath := filepath.Join(workdir, "short_origin_srt.srt")
 	if fileExists(fullOriginPath) && fileExists(shortOriginPath) {
@@ -1057,6 +1054,10 @@ func fixGeminiDubSRTTiming(workdir, inputPath string, targetEntries []geminiDubS
 			}
 			return fixed, nil
 		}
+	}
+
+	if !needsGeminiDubTimingFix(targetEntries, videoDur) {
+		return nil, nil
 	}
 	// Fall back to proportional index mapping when text matching can't be used
 	originCandidates := []string{"origin_language_srt.srt", "short_origin_srt.srt"}
