@@ -107,6 +107,28 @@ func TestParseGeminiDubMatchTimestampsOnly(t *testing.T) {
 	}
 }
 
+func TestSplitGeminiDubLongEntriesSplitsSentenceBlocks(t *testing.T) {
+	entries := []geminiDubSRTEntry{{
+		Text:  "Một câu dài. Câu thứ hai? Câu thứ ba.",
+		Start: 10,
+		End:   16,
+	}}
+
+	split := splitGeminiDubLongEntries(entries)
+	if len(split) != 3 {
+		t.Fatalf("split entries = %d, want 3: %#v", len(split), split)
+	}
+	if split[0].Text != "Một câu dài." || split[1].Text != "Câu thứ hai?" || split[2].Text != "Câu thứ ba." {
+		t.Fatalf("unexpected split text: %#v", split)
+	}
+	if split[0].Start != 10 || split[2].End != 16 {
+		t.Fatalf("unexpected timing: %#v", split)
+	}
+	if split[1].Start <= split[0].End || split[2].Start <= split[1].End {
+		t.Fatalf("split entries are not monotonic: %#v", split)
+	}
+}
+
 func TestParseRenderCommandAcceptsSubtitleStyleFile(t *testing.T) {
 	cmd, err := Parse([]string{
 		"render-horizontal",

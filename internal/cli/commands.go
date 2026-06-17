@@ -1044,6 +1044,8 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 		}
 	}
 
+	entries = splitGeminiDubLongEntries(entries)
+
 	// When timing has been fixed by text-matching, use overlay mode so the
 	// text-matched anchor timing is preserved rather than re-estimated.
 	cleanMode := req.TimelineMode
@@ -1727,6 +1729,96 @@ func capGeminiDubEntriesToDuration(entries []geminiDubSRTEntry, videoDur float64
 		last = ne
 	}
 	return entries
+}
+
+func splitGeminiDubLongEntries(entries []geminiDubSRTEntry) []geminiDubSRTEntry {
+	split := make([]geminiDubSRTEntry, 0, len(entries))
+	for _, entry := range entries {
+		parts := splitGeminiDubSentences(entry.Text)
+		if len(parts) <= 1 || entry.End-entry.Start < 1.0 {
+			split = append(split, entry)
+			continue
+		}
+
+		gap := 0.05
+		available := entry.End - entry.Start - gap*float64(len(parts)-1)
+		if available < 0.35*float64(len(parts)) {
+			split = append(split, entry)
+			continue
+		}
+
+		totalChars := 0
+		charLens := make([]int, len(parts))
+		for i, part := range parts {
+			charLens[i] = len([]rune(part))
+			totalChars += charLens[i]
+		}
+
+		cursor := entry.Start
+		for i, part := range parts {
+			ratio := 1.0 / float64(len(parts))
+			if totalChars > 0 {
+				ratio = float64(charLens[i]) / float64(totalChars)
+			}
+			dur := ratio * available
+			if dur < 0.35 {
+				dur = 0.35
+			}
+			end := cursor + dur
+			if i == len(parts)-1 || end > entry.End {
+				end = entry.End
+			}
+			if end <= cursor {
+				end = cursor + 0.05
+			}
+			split = append(split, geminiDubSRTEntry{Index: len(split) + 1, Text: part, Start: cursor, End: end})
+			cursor = end + gap
+		}
+	}
+	return split
+}
+
+func splitGeminiDubSentences(text string) []string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return nil
+	}
+
+	parts := make([]string, 0, 2)
+	var b strings.Builder
+	runes := []rune(text)
+	for i, r := range runes {
+		b.WriteRune(r)
+		if !isGeminiDubSentenceEnd(r) {
+			continue
+		}
+		nextIsBoundary := i == len(runes)-1 || unicode.IsSpace(runes[i+1]) || runes[i+1] == '"' || runes[i+1] == '“' || runes[i+1] == '”'
+		if !nextIsBoundary {
+			continue
+		}
+		part := strings.TrimSpace(b.String())
+		part = strings.Trim(part, "\"“” ")
+		if part != "" {
+			parts = append(parts, part)
+		}
+		b.Reset()
+	}
+	if rest := strings.TrimSpace(b.String()); rest != "" {
+		rest = strings.Trim(rest, "\"“” ")
+		if rest != "" {
+			parts = append(parts, rest)
+		}
+	}
+	return parts
+}
+
+func isGeminiDubSentenceEnd(r rune) bool {
+	switch r {
+	case '.', '!', '?', '。', '！', '？':
+		return true
+	default:
+		return false
+	}
 }
 
 type geminiDubSRTEntry struct {
