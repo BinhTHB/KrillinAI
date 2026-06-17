@@ -92,6 +92,9 @@ func TestParseGeminiDubDefaultsToGeminiProvider(t *testing.T) {
 	if cmd.GeminiDub.Voice != "Aoede" {
 		t.Fatalf("Voice = %q, want Aoede", cmd.GeminiDub.Voice)
 	}
+	if !cmd.GeminiDub.PreserveCues {
+		t.Fatal("PreserveCues should default to true")
+	}
 }
 
 func TestParseRenderCommandAcceptsSubtitleStyleFile(t *testing.T) {

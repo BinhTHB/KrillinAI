@@ -82,6 +82,7 @@ type GeminiDubRequest struct {
 	Script       string
 	MaxChunks    string
 	KeepCache    bool
+	PreserveCues bool
 }
 
 func Parse(args []string) (Command, error) {
@@ -229,6 +230,7 @@ Flags:
   --gap <n>              Gap after each chunk in seconds (default 0.02)
   --voice-volume <n>     Voice volume multiplier (default 1.6)
   --max-chunks <n>       Optional preview limit
+  --preserve-cues        One TTS chunk per SRT cue; preserve source subtitle timing and freeze if needed (default true)
   --python <path>        Python executable (default python)
   --script <path>        Dubbing script path (default scripts/controlled_tts_segment_freezing_dub.py)
   --keep-cache           Keep existing output/cache directory
@@ -354,6 +356,7 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 	python := fs.String("python", "python", "python executable")
 	script := fs.String("script", filepath.Join("scripts", "controlled_tts_segment_freezing_dub.py"), "dubbing script")
 	maxChunks := fs.String("max-chunks", "", "optional preview limit")
+	preserveCues := fs.Bool("preserve-cues", true, "render one TTS chunk per SRT cue to preserve source subtitle timing (freezes frame if TTS is longer)")
 	keepCache := fs.Bool("keep-cache", false, "keep existing output/cache directory")
 	dryRun := fs.Bool("dry-run", false, "validate command without running the script")
 	input := ""
@@ -404,6 +407,7 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 			Script:       *script,
 			MaxChunks:    *maxChunks,
 			KeepCache:    *keepCache,
+			PreserveCues: *preserveCues,
 		},
 	}, nil
 }
@@ -811,6 +815,9 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 	}
 	if req.KeepCache {
 		args = append(args, "--keep-cache")
+	}
+	if req.PreserveCues {
+		args = append(args, "--preserve-cues")
 	}
 
 	cmd := exec.Command(req.Python, args...)
