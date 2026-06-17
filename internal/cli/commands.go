@@ -1011,7 +1011,22 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 		}
 	}
 
-	cleaned := sanitizeGeminiDubEntries(entries, req.TimelineMode)
+	// When timing has been fixed by text-matching, use overlay mode so the
+	// text-matched anchor timing is preserved rather than re-estimated.
+	cleanMode := req.TimelineMode
+	maxEntryDur := 12.0
+	if timingFixed {
+		cleanMode = "overlay"
+	}
+	cleaned := sanitizeGeminiDubEntries(entries, cleanMode)
+	// Cap individual entry duration to prevent validator from rejecting
+	// long anchor windows (e.g. the first anchor spans 4→22s of silence).
+	for i, e := range cleaned {
+		if d := e.End - e.Start; d > maxEntryDur {
+			e.End = e.Start + maxEntryDur
+			cleaned[i] = e
+		}
+	}
 	cleaned = capGeminiDubEntriesToDuration(cleaned, videoDur)
 
 	if err := validateGeminiDubCleanEntries(cleaned); err != nil {
@@ -1029,6 +1044,21 @@ func fixGeminiDubSRTTiming(workdir, inputPath string, targetEntries []geminiDubS
 	if !needsGeminiDubTimingFix(targetEntries, videoDur) {
 		return nil, nil
 	}
+	// Try text-matching first: read full origin (87 entries with Chinese)
+	// and short_origin (43 entries with reliable timing), then map target
+	// entries to short_origin anchors via Chinese character overlap.
+	fullOriginPath := filepath.Join(workdir, "origin_language_srt.srt")
+	shortOriginPath := filepath.Join(workdir, "short_origin_srt.srt")
+	if fileExists(fullOriginPath) && fileExists(shortOriginPath) {
+		if fixed, err := fixByTextMatch(fullOriginPath, shortOriginPath, targetEntries, videoDur); err == nil && fixed != nil {
+			fmt.Printf("Fixed %d entries using text-matched anchor timing\n", len(fixed))
+			if err := validateGeminiDubFixedEntries(fixed); err != nil {
+				return nil, err
+			}
+			return fixed, nil
+		}
+	}
+	// Fall back to proportional index mapping when text matching can't be used
 	originCandidates := []string{"origin_language_srt.srt", "short_origin_srt.srt"}
 	var originEntries []geminiDubSRTEntry
 	for _, name := range originCandidates {
@@ -1157,6 +1187,276 @@ func geminiDubTimingBadness(entries []geminiDubSRTEntry, videoDur float64) int {
 	return badness
 }
 
+// fixByTextMatch reads the full origin SRT (87 entries with Chinese text,
+// one-per-target-entry) and short_origin SRT (43 entries, reliable timing)
+// and maps each target entry to the short_origin anchor whose Chinese text
+// has the strongest character overlap (≥8 chars).
+// Entries without a strong match are linearly interpolated between their
+// nearest matched neighbours, giving smooth timing even for dialogue lines
+// that the short Whisper SRT didn't independently transcribe.
+func fixByTextMatch(fullOriginPath, shortOriginPath string, targets []geminiDubSRTEntry, videoDur float64) ([]geminiDubSRTEntry, error) {
+	fullContent, err := os.ReadFile(fullOriginPath)
+	if err != nil {
+		return nil, err
+	}
+	shortContent, err := os.ReadFile(shortOriginPath)
+	if err != nil {
+		return nil, err
+	}
+	fullEntries, err := parseGeminiDubSRT(string(fullContent))
+	if err != nil {
+		return nil, err
+	}
+	shortEntries, err := parseGeminiDubSRT(string(shortContent))
+	if err != nil {
+		return nil, err
+	}
+	if len(fullEntries) != len(targets) {
+		return nil, fmt.Errorf("full origin length %d does not match targets %d", len(fullEntries), len(targets))
+	}
+	if len(shortEntries) == 0 {
+		return nil, fmt.Errorf("short origin is empty")
+	}
+
+	nTarget := len(targets)
+	nAnchor := len(shortEntries)
+
+	// Sort short_origin by start time for stable window assignment
+	sortedAnchors := append([]geminiDubSRTEntry(nil), shortEntries...)
+	sort.SliceStable(sortedAnchors, func(i, j int) bool {
+		return sortedAnchors[i].Start < sortedAnchors[j].Start
+	})
+
+	// Clean Chinese text (keep only CJK+alnum)
+	cleanFull := make([]string, nTarget)
+	for i, e := range fullEntries {
+		cleanFull[i] = cleanChineseText(e.Text)
+	}
+	cleanAnchor := make([]string, nAnchor)
+	for j, e := range sortedAnchors {
+		cleanAnchor[j] = cleanChineseText(e.Text)
+	}
+
+	fixed := make([]geminiDubSRTEntry, nTarget)
+	for i := 0; i < nTarget; i++ {
+		fixed[i] = geminiDubSRTEntry{Index: i + 1, Text: targets[i].Text}
+	}
+
+	// Phase 1 — find strong text matches
+	type match struct{ targetIdx, anchorIdx int }
+	const minOverlap = 8
+	matched := []match{}
+	// per‑target best anchor (pre‑threshold)
+	bestAnchor := make([]int, nTarget)
+	bestOverlap := make([]int, nTarget)
+	for i := 0; i < nTarget; i++ {
+		bj, bo := -1, -1
+		for j := 0; j < nAnchor; j++ {
+			o := chineseOverlapScore(cleanFull[i], cleanAnchor[j])
+			if o > bo {
+				bo = o
+				bj = j
+			}
+		}
+		bestAnchor[i] = bj
+		bestOverlap[i] = bo
+	}
+
+	// Accept strong matches while enforcing sequential anchor order
+	lastAJ := -1
+	for i := 0; i < nTarget; i++ {
+		if bestOverlap[i] >= minOverlap && bestAnchor[i] > lastAJ {
+			if len(matched) > 0 && bestAnchor[i] == lastAJ {
+				// consecutive targets can share the same anchor
+				matched = append(matched, match{targetIdx: i, anchorIdx: bestAnchor[i]})
+				continue
+			}
+			if bestAnchor[i] > lastAJ {
+				matched = append(matched, match{targetIdx: i, anchorIdx: bestAnchor[i]})
+				lastAJ = bestAnchor[i]
+			}
+		}
+	}
+
+	// If too few matches, fall back to proportional mapping
+	if len(matched) < 2 && nTarget > 1 {
+		return nil, fmt.Errorf("only %d text matches, insufficient for interpolation", len(matched))
+	}
+
+	const innerGap = 0.05
+
+	// Phase 2 — assign timing for strong matches
+	for mi, m := range matched {
+		aj := m.anchorIdx
+		if aj >= nAnchor {
+			aj = nAnchor - 1
+		}
+		winStart := sortedAnchors[aj].Start
+		var winEnd float64
+		if aj+1 < nAnchor {
+			winEnd = sortedAnchors[aj+1].Start
+		} else {
+			winEnd = sortedAnchors[aj].End
+			if videoDur > 0 && videoDur > winStart {
+				winEnd = videoDur
+			}
+		}
+		if winEnd <= winStart {
+			winEnd = winStart + 1.0
+		}
+		if videoDur > 0 && winEnd > videoDur {
+			winEnd = videoDur
+		}
+		if winEnd-winStart < 0.5 {
+			winEnd = winStart + 0.5
+		}
+
+		// Count how many targets share this anchor
+		groupStart := m.targetIdx
+		groupEnd := m.targetIdx
+		for k := mi + 1; k < len(matched); k++ {
+			if matched[k].anchorIdx == aj {
+				groupEnd = matched[k].targetIdx
+			} else {
+				break
+			}
+		}
+		groupLen := groupEnd - groupStart + 1
+
+		// Distribute proportionally by character length
+		totalChars := 0
+		charLens := make([]int, groupLen)
+		for k := 0; k < groupLen; k++ {
+			cl := len([]rune(fixed[groupStart+k].Text))
+			charLens[k] = cl
+			totalChars += cl
+		}
+		available := winEnd - winStart - float64(groupLen-1)*innerGap
+		if available < float64(groupLen)*0.25 {
+			available = float64(groupLen) * 0.25
+		}
+		cursor := winStart
+		for k := 0; k < groupLen; k++ {
+			idx := groupStart + k
+			ratio := 1.0 / float64(groupLen)
+			if totalChars > 0 {
+				ratio = float64(charLens[k]) / float64(totalChars)
+			}
+			dur := ratio * available
+			if dur < 0.25 {
+				dur = 0.25
+			}
+			end := cursor + dur
+			if end > winEnd-0.05 {
+				end = winEnd - 0.05
+			}
+			if end <= cursor {
+				end = cursor + 0.05
+			}
+			fixed[idx].Start = cursor
+			fixed[idx].End = end
+			cursor = end + innerGap
+		}
+	}
+
+	// Phase 3 — interpolate unmatched entries between matched anchors
+	for gi, m := range matched {
+		if gi == 0 {
+			// entries before the first match: extend backwards
+			prevStart := fixed[m.targetIdx].Start
+			if m.targetIdx > 0 {
+				// extend backwards from the first match using its start with fallback
+				for k := 0; k < m.targetIdx; k++ {
+					t := prevStart - float64(m.targetIdx-k)*0.5
+					if t < 0 {
+						t = 0
+					}
+					fixed[k].Start = t
+					fixed[k].End = t + 0.5
+				}
+			}
+			continue
+		}
+		prevM := matched[gi-1]
+		prevEnd := fixed[prevM.targetIdx].End
+		currStart := fixed[m.targetIdx].Start
+
+		// Interpolate entries between prevM and m
+		between := m.targetIdx - prevM.targetIdx - 1
+		if between > 0 && currStart > prevEnd+0.01 {
+			dur := currStart - prevEnd
+			perEntry := dur / float64(between)
+			for k := 0; k < between; k++ {
+				idx := prevM.targetIdx + 1 + k
+				s := prevEnd + float64(k)*perEntry
+				e := s + perEntry*0.9
+				fixed[idx].Start = s
+				fixed[idx].End = e
+			}
+		}
+	}
+
+	// Phase 4 — entries after the last match
+	lastM := matched[len(matched)-1]
+	lastEnd := fixed[lastM.targetIdx].End
+	for i := lastM.targetIdx + 1; i < nTarget; i++ {
+		s := lastEnd + float64(i-lastM.targetIdx)*0.25
+		e := s + 0.5
+		if videoDur > 0 && e > videoDur {
+			e = videoDur
+		}
+		fixed[i].Start = s
+		fixed[i].End = e
+		lastEnd = e
+	}
+
+	// Final monotonicity pass
+	last := 0.0
+	for i := 0; i < nTarget; i++ {
+		if fixed[i].Start < last {
+			fixed[i].Start = last + 0.02
+		}
+		if fixed[i].End <= fixed[i].Start {
+			fixed[i].End = fixed[i].Start + 0.5
+		}
+		last = fixed[i].End
+	}
+
+	return fixed, nil
+}
+
+// cleanChineseText returns only CJK unified ideograph characters
+// and alphanumerics from s, lowercased.
+func cleanChineseText(s string) string {
+	var sb strings.Builder
+	for _, r := range s {
+		if (r >= 0x4e00 && r <= 0x9fff) || unicode.IsLetter(r) || unicode.IsDigit(r) {
+			sb.WriteRune(unicode.ToLower(r))
+		}
+	}
+	return sb.String()
+}
+
+// chineseOverlapScore counts the number of unique runes shared between
+// two cleaned Chinese-text strings.
+func chineseOverlapScore(s1, s2 string) int {
+	r1 := []rune(s1)
+	r2 := []rune(s2)
+	if len(r1) == 0 || len(r2) == 0 {
+		return 0
+	}
+	set2 := make(map[rune]bool)
+	for _, r := range r2 {
+		set2[r] = true
+	}
+	score := 0
+	for _, r := range r1 {
+		if set2[r] {
+			score++
+		}
+	}
+	return score
+}
 func distributeGeminiDubTimingByAnchors(anchors, targets []geminiDubSRTEntry, videoDur float64) []geminiDubSRTEntry {
 	if len(anchors) == 0 || len(targets) == 0 {
 		return nil
@@ -1484,6 +1784,12 @@ func sanitizeGeminiDubEntries(entries []geminiDubSRTEntry, timelineMode string) 
 				dur = 12.0
 			}
 			end = start + dur
+			// DEBUG: first 3 entries with compute details
+			if i < 3 || entry.Index == 25 || entry.Index == 38 {
+				fmt.Printf("DEBUG sanitize[%d(entry=%d)]: input=(%.3f-%.3f) start=%.3f textRunes=%d estDur=%.3f originalDur=%.3f dur=%.3f final=(%.3f-%.3f)\n",
+					i, entry.Index, entry.Start, entry.End, start,
+					len([]rune(text)), estimateGeminiDubDuration(text), entry.End-entry.Start, dur, start, start+dur)
+			}
 		} else if end <= start {
 			end = start + 0.5
 		}
