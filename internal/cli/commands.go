@@ -60,29 +60,30 @@ type Command struct {
 }
 
 type GeminiDubRequest struct {
-	Input        string
-	Workdir      string
-	TaskID       string
-	OriginLang   string
-	TargetLang   string
-	UserLang     string
-	CaptionSrc   string
-	SRT          string
-	Video        string
-	OutputDir    string
-	Provider     string
-	Model        string
-	Voice        string
-	Speed        string
-	Gap          string
-	VoiceVolume  string
-	BgVolume     string
-	TimelineMode string
-	Python       string
-	Script       string
-	MaxChunks    string
-	KeepCache    bool
-	PreserveCues bool
+	Input         string
+	Workdir       string
+	TaskID        string
+	OriginLang    string
+	TargetLang    string
+	UserLang      string
+	CaptionSrc    string
+	SRT           string
+	Video         string
+	OutputDir     string
+	Provider      string
+	Model         string
+	Voice         string
+	Speed         string
+	Gap           string
+	VoiceVolume   string
+	BgVolume      string
+	TimelineMode  string
+	Python        string
+	Script        string
+	MaxChunks     string
+	KeepCache     bool
+	PreserveCues  bool
+	TimestampOnly bool
 }
 
 func Parse(args []string) (Command, error) {
@@ -230,6 +231,7 @@ Flags:
   --gap <n>              Gap after each chunk in seconds (default 0.02)
   --voice-volume <n>     Voice volume multiplier (default 1.6)
   --max-chunks <n>       Optional preview limit
+  --match-timestamps-only  Stop after writing a timestamp-matched clean SRT; do not run TTS/render
   --preserve-cues        One TTS chunk per SRT cue; preserve source subtitle timing and freeze if needed (default true)
   --python <path>        Python executable (default python)
   --script <path>        Dubbing script path (default scripts/controlled_tts_segment_freezing_dub.py)
@@ -357,6 +359,7 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 	script := fs.String("script", filepath.Join("scripts", "controlled_tts_segment_freezing_dub.py"), "dubbing script")
 	maxChunks := fs.String("max-chunks", "", "optional preview limit")
 	preserveCues := fs.Bool("preserve-cues", true, "render one TTS chunk per SRT cue to preserve source subtitle timing (freezes frame if TTS is longer)")
+	timestampOnly := fs.Bool("match-timestamps-only", false, "stop after writing a timestamp-matched clean SRT; do not run TTS/render")
 	keepCache := fs.Bool("keep-cache", false, "keep existing output/cache directory")
 	dryRun := fs.Bool("dry-run", false, "validate command without running the script")
 	input := ""
@@ -385,29 +388,30 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 		Name:   name,
 		DryRun: *dryRun,
 		GeminiDub: GeminiDubRequest{
-			Input:        input,
-			Workdir:      resolvedWorkdir,
-			TaskID:       *taskID,
-			OriginLang:   *originLang,
-			TargetLang:   *targetLang,
-			UserLang:     *userLang,
-			CaptionSrc:   *captionSource,
-			SRT:          *srt,
-			Video:        *video,
-			OutputDir:    *outputDir,
-			Provider:     *provider,
-			Model:        *model,
-			Voice:        *voice,
-			Speed:        *speed,
-			Gap:          *gap,
-			VoiceVolume:  *voiceVolume,
-			BgVolume:     *bgVolume,
-			TimelineMode: *timelineMode,
-			Python:       *python,
-			Script:       *script,
-			MaxChunks:    *maxChunks,
-			KeepCache:    *keepCache,
-			PreserveCues: *preserveCues,
+			Input:         input,
+			Workdir:       resolvedWorkdir,
+			TaskID:        *taskID,
+			OriginLang:    *originLang,
+			TargetLang:    *targetLang,
+			UserLang:      *userLang,
+			CaptionSrc:    *captionSource,
+			SRT:           *srt,
+			Video:         *video,
+			OutputDir:     *outputDir,
+			Provider:      *provider,
+			Model:         *model,
+			Voice:         *voice,
+			Speed:         *speed,
+			Gap:           *gap,
+			VoiceVolume:   *voiceVolume,
+			BgVolume:      *bgVolume,
+			TimelineMode:  *timelineMode,
+			Python:        *python,
+			Script:        *script,
+			MaxChunks:     *maxChunks,
+			KeepCache:     *keepCache,
+			PreserveCues:  *preserveCues,
+			TimestampOnly: *timestampOnly,
 		},
 	}, nil
 }
@@ -793,6 +797,35 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 	if err != nil {
 		return geminiDubFailure(req, "prepare_clean_srt_failed", err, start)
 	}
+	if req.TimestampOnly {
+		cleanPath := filepath.Join(req.Workdir, cleanSRT)
+		defaultCleanPath := filepath.Join(req.Workdir, "target_language_srt_clean.srt")
+		if cleanSRT != "target_language_srt_clean.srt" {
+			data, readErr := os.ReadFile(cleanPath)
+			if readErr != nil {
+				return geminiDubFailure(req, "read_clean_srt_failed", readErr, start)
+			}
+			if writeErr := os.WriteFile(defaultCleanPath, data, 0644); writeErr != nil {
+				return geminiDubFailure(req, "write_default_clean_srt_failed", writeErr, start)
+			}
+			cleanPath = defaultCleanPath
+			cleanSRT = "target_language_srt_clean.srt"
+		}
+		return pipeline.Response{
+			OK:      true,
+			Stage:   pipeline.StageGeminiDub,
+			Workdir: req.Workdir,
+			TaskID:  req.TaskID,
+			Inputs: map[string]string{
+				"video": filepath.Join(req.Workdir, req.Video),
+				"srt":   filepath.Join(req.Workdir, resolvedSRT),
+			},
+			Outputs: pipeline.Outputs{
+				TargetSRT: cleanPath,
+			},
+			DurationMS: time.Since(start).Milliseconds(),
+		}
+	}
 
 	args := []string{
 		req.Script,
@@ -916,11 +949,11 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 			viCount++
 		}
 	}
-	if cjkCount > viCount {
+	if cjkCount > viCount && !req.TimestampOnly {
 		// Too many CJK — not enough Vietnamese; retranslate using fallback script
 		return "", fmt.Errorf("too many untranslated CJK entries (%d vs %d Vietnamese), need to retranslate", cjkCount, viCount)
 	}
-	if cjkCount > 0 && viCount > 0 {
+	if cjkCount > 0 && viCount > 0 && !req.TimestampOnly {
 		// Partial CJK — run fallback script on origin SRT
 		originSRT := filepath.Join(req.Workdir, "origin_language_srt.srt")
 		if !containsCJK(string(content)) || fileExists(originSRT) {
@@ -1785,12 +1818,6 @@ func sanitizeGeminiDubEntries(entries []geminiDubSRTEntry, timelineMode string) 
 				dur = 12.0
 			}
 			end = start + dur
-			// DEBUG: first 3 entries with compute details
-			if i < 3 || entry.Index == 25 || entry.Index == 38 {
-				fmt.Printf("DEBUG sanitize[%d(entry=%d)]: input=(%.3f-%.3f) start=%.3f textRunes=%d estDur=%.3f originalDur=%.3f dur=%.3f final=(%.3f-%.3f)\n",
-					i, entry.Index, entry.Start, entry.End, start,
-					len([]rune(text)), estimateGeminiDubDuration(text), entry.End-entry.Start, dur, start, start+dur)
-			}
 		} else if end <= start {
 			end = start + 0.5
 		}

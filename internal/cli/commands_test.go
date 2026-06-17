@@ -97,6 +97,16 @@ func TestParseGeminiDubDefaultsToGeminiProvider(t *testing.T) {
 	}
 }
 
+func TestParseGeminiDubMatchTimestampsOnly(t *testing.T) {
+	cmd, err := Parse([]string{"gemini-dub", "--workdir", "tasks/demo", "--match-timestamps-only"})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if !cmd.GeminiDub.TimestampOnly {
+		t.Fatal("TimestampOnly = false, want true")
+	}
+}
+
 func TestParseRenderCommandAcceptsSubtitleStyleFile(t *testing.T) {
 	cmd, err := Parse([]string{
 		"render-horizontal",
