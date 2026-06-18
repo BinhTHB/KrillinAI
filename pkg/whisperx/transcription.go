@@ -50,6 +50,8 @@ func (c *WhisperXProcessor) Transcription(audioFile, language, workDir string) (
 			"--output_dir", workDir,
 			"--compute_type", "float16",
 			"--batch_size", "8",
+			"--vad_onset", "0.25",
+			"--vad_offset", "0.20",
 		}
 		cmd = exec.Command(pythonPath, cmdArgs...)
 		cmd.Env = withPythonUTF8Env(os.Environ())
