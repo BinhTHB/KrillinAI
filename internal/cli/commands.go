@@ -356,7 +356,7 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 	voiceVolume := fs.String("voice-volume", "1.6", "voice volume multiplier")
 	bgVolume := fs.String("bg-volume", "0.15", "background original audio volume multiplier")
 	timelineMode := fs.String("timeline-mode", "freeze", "timeline mode: overlay or freeze")
-	asrTimestampOffset := fs.String("asr-timestamp-offset", "0", "seconds added to ASR/origin subtitle timestamps before TTS/render")
+	asrTimestampOffset := fs.String("asr-timestamp-offset", "-1.0", "seconds added to ASR/origin subtitle timestamps before TTS/render")
 	python := fs.String("python", "python", "python executable")
 	script := fs.String("script", filepath.Join("scripts", "controlled_tts_segment_freezing_dub.py"), "dubbing script")
 	maxChunks := fs.String("max-chunks", "", "optional preview limit")
