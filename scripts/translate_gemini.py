@@ -53,20 +53,37 @@ def load_srt_entries(srt_path):
         })
     return entries
 
-def translate_batch(batch, base_url, api_key, model, context_before="", context_after=""):
+def translate_batch(batch, base_url, api_key, model, context_before="", context_after="", asr_ref=""):
     # Target endpoint
     url = base_url.rstrip('/') + '/chat/completions'
     
-    prompt = f"""You are a professional Chinese-to-Vietnamese translation expert.
-Translate the following list of sentences into Vietnamese.
-Maintain the exact style, tone (informal storytelling/vlog), and keep natural Vietnamese phrasing.
-Remove any stuttering or filler words.
-Do not shorten or summarize the sentences, translate everything fully.
+    prompt = f"""You are a professional Chinese-to-Vietnamese translation expert translating a Chinese Xianxia/Tu Tiên (tu tiên, ma đạo, huyền huyễn) video.
+
+Role relationship: Sư phụ (Master) and Đồ nhi (Disciple).
+Pronoun guide:
+- Disciple/Student addressing Master: Sư phụ / Người.
+- Master addressing Disciple: Đồ nhi / Con.
+- Avoid using common generic words like "bạn", "cậu" or "tôi" unless context requires.
+
+Glossary for reference:
+- 万魂幡 / 万魂番 -> Vạn Hồn Phiên
+- 气海 -> Khí Hải
+- 凝气 -> Ngưng Khí
+- 神魂 -> Thần Hồn
+- 僵尸 -> Cương Thi
+
+We extracted the subtitle text via OCR, which may have typos (e.g. 炳父 instead of 师父, 虿 instead of 至, 曰夜 instead of 日夜, 东酉 instead of 东西).
+Use the following ASR (Speech-to-Text) reference text to verify and correct any typos in the OCR sentences before translating:
+
+ASR Reference Text (accurate pronunciation reference):
+\"\"\"
+{asr_ref}
+\"\"\"
 
 Context before:
 {context_before}
 
-Sentences to translate (JSON array of strings):
+OCR Sentences to translate (JSON array of strings):
 {json.dumps([e['text'] for e in batch], ensure_ascii=False)}
 
 Context after:
@@ -120,6 +137,7 @@ Example output:
 def main():
     parser = argparse.ArgumentParser(description="Translate SRT using Gemini API")
     parser.add_argument("--workdir", type=str, default="tasks/douyin-new", help="Working directory containing origin_language_srt.srt")
+    parser.add_argument("--asr-reference", type=str, default="origin_language_srt.asr_backup.srt", help="optional ASR reference SRT used to correct OCR text before translation")
     args = parser.parse_args()
 
     base_url, api_key, model = load_config()
@@ -141,6 +159,15 @@ def main():
         
     entries = load_srt_entries(origin_srt)
     print(f"Loaded {len(entries)} entries for translation.")
+
+    asr_path = workdir / args.asr_reference
+    asr_ref = ""
+    if asr_path.exists():
+        asr_entries = load_srt_entries(asr_path)
+        asr_ref = " ".join(e['text'] for e in asr_entries)
+        print(f"Loaded ASR reference for OCR correction: {asr_path} entries={len(asr_entries)}")
+    else:
+        print(f"No ASR reference found at {asr_path}; translating OCR text directly.")
     
     batch_size = 10
     total = len(entries)
@@ -155,7 +182,7 @@ def main():
         before = "\n".join([e['text'] for e in entries[max(0, i-5):i]])
         after = "\n".join([e['text'] for e in entries[i+batch_size:min(total, i+batch_size+5)]])
         
-        translations = translate_batch(batch, base_url, api_key, model, before, after)
+        translations = translate_batch(batch, base_url, api_key, model, before, after, asr_ref)
         
         if translations:
             for entry, trans in zip(batch, translations):

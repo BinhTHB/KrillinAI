@@ -360,7 +360,7 @@ def google_tts_text(text: str, output_mp3: Path) -> bool:
         return False
 
 
-async def gemini_tts_text(text: str, output_wav: Path, api_key: str, model_name: str, voice_name: str = "Puck", retries: int = 3) -> bool:
+async def gemini_tts_text(text: str, output_wav: Path, api_key: str, model_name: str, voice_name: str = "Puck", retries: int = 3, retry_base_delay: float = 2.0) -> bool:
     if not genai or not api_key:
         return False
 
@@ -415,9 +415,15 @@ async def gemini_tts_text(text: str, output_wav: Path, api_key: str, model_name:
                     pass
                 if output_wav.exists() and get_duration(output_wav) > 0.05:
                     return True
+                print(f"  Gemini-TTS retry {attempt}/{retries}: returned invalid audio", flush=True)
+            else:
+                print(f"  Gemini-TTS retry {attempt}/{retries}: no audio returned", flush=True)
         except Exception as exc:
             print(f"  Gemini-TTS retry {attempt}/{retries}: {exc}", flush=True)
-            await asyncio.sleep(2)
+        if attempt < retries:
+            delay = retry_base_delay * (1.5 ** (attempt - 1))
+            print(f"  Waiting {delay:.1f}s before Gemini retry...", flush=True)
+            await asyncio.sleep(delay)
             
     return False
 
@@ -471,6 +477,9 @@ async def main():
     parser.add_argument('--tts-provider', default='hybrid', choices=['edge', 'gemini', 'hybrid'])
     parser.add_argument('--gemini-voice', default='Puck', choices=['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'])
     parser.add_argument('--gemini-model', default='gemini-2.5-flash-native-audio-preview-12-2025')
+    parser.add_argument('--gemini-retries', type=int, default=8, help='Gemini TTS retry attempts before failing or falling back')
+    parser.add_argument('--gemini-retry-base-delay', type=float, default=8.0, help='base delay in seconds for exponential Gemini TTS retry backoff')
+    parser.add_argument('--no-edge-fallback', action='store_true', help='fail the render instead of falling back to Edge-TTS when Gemini TTS fails')
     parser.add_argument('--force-speed', action='store_true', help='Use --speed exactly for all providers, including Gemini, instead of adaptive Gemini speed')
     parser.add_argument('--preserve-cues', action='store_true', help='Render one TTS chunk per SRT cue to preserve source subtitle timing')
     parser.add_argument('--timeline-mode', default='overlay', choices=['overlay', 'freeze'], help='overlay keeps original video timeline; freeze cuts/freezes segments and builds a new timeline')
@@ -541,11 +550,15 @@ async def main():
 
             if args.tts_provider in ['gemini', 'hybrid']:
                 print("  Generating voice via Gemini Live...", flush=True)
-                ok = await gemini_tts_text(tts_text_normalized, tts_raw, api_key, args.gemini_model, args.gemini_voice)
+                ok = await gemini_tts_text(
+                    tts_text_normalized, tts_raw, api_key,
+                    args.gemini_model, args.gemini_voice,
+                    retries=args.gemini_retries, retry_base_delay=args.gemini_retry_base_delay
+                )
                 if ok:
                     used_gemini = True
                     print("  Gemini TTS OK.", flush=True)
-                else:
+                elif not args.no_edge_fallback:
                     print("  Gemini failed. Falling back to Edge-TTS...", flush=True)
                     tmp_mp3 = prefix.with_suffix('.tts.mp3')
                     ok = await edge_tts_text(tts_text_normalized, tmp_mp3, args.voice, args.rate)
@@ -555,6 +568,8 @@ async def main():
                             tmp_mp3.unlink()
                         except Exception:
                             pass
+                else:
+                    print(f"  ERROR: Gemini TTS failed after {args.gemini_retries} retries for chunk {chunk.index}: {tts_text_normalized}", flush=True)
             else:
                 tmp_mp3 = prefix.with_suffix('.tts.mp3')
                 ok = await edge_tts_text(tts_text_normalized, tmp_mp3, args.voice, args.rate)
@@ -566,8 +581,7 @@ async def main():
                         pass
 
             if not ok or not tts_raw.exists():
-                print(f"  SKIP chunk {chunk.index}: TTS generation failed", flush=True)
-                continue
+                raise RuntimeError(f"TTS generation failed for chunk {chunk.index}: {tts_text_normalized}")
 
             shutil.copy2(tts_raw, tts_wav)
             raw_dur = ensure_media(tts_wav, 'raw TTS wav')
@@ -711,11 +725,15 @@ async def main():
 
         if args.tts_provider in ['gemini', 'hybrid']:
             print("  Generating voice via Gemini Live...", flush=True)
-            ok = await gemini_tts_text(tts_text_normalized, tts_raw, api_key, args.gemini_model, args.gemini_voice)
+            ok = await gemini_tts_text(
+                tts_text_normalized, tts_raw, api_key,
+                args.gemini_model, args.gemini_voice,
+                retries=args.gemini_retries, retry_base_delay=args.gemini_retry_base_delay
+            )
             if ok:
                 used_gemini = True
                 print("  Gemini TTS OK.", flush=True)
-            else:
+            elif not args.no_edge_fallback:
                 print("  Gemini failed. Falling back to Edge-TTS...", flush=True)
                 tmp_mp3 = prefix.with_suffix('.tts.mp3')
                 ok = await edge_tts_text(tts_text_normalized, tmp_mp3, args.voice, args.rate)
@@ -725,6 +743,8 @@ async def main():
                         tmp_mp3.unlink()
                     except Exception:
                         pass
+            else:
+                print(f"  ERROR: Gemini TTS failed after {args.gemini_retries} retries for chunk {chunk.index}: {tts_text_normalized}", flush=True)
         else:
             # Edge-TTS
             tmp_mp3 = prefix.with_suffix('.tts.mp3')
@@ -737,8 +757,7 @@ async def main():
                     pass
 
         if not ok or not tts_raw.exists():
-            print(f"  SKIP chunk {chunk.index}: TTS generation failed", flush=True)
-            continue
+            raise RuntimeError(f"TTS generation failed for chunk {chunk.index}: {tts_text_normalized}")
             
         shutil.copy2(tts_raw, tts_wav)
         ensure_media(tts_wav, 'raw TTS wav')
