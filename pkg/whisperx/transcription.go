@@ -40,14 +40,9 @@ func (c *WhisperXProcessor) Transcription(audioFile, language, workDir string) (
 		cmd     *exec.Cmd
 	)
 	if runtime.GOOS == "windows" {
-		// Use cmd /c with UTF-8 enabled because WhisperX prints CJK transcripts to stdout.
 		pythonPath := ".\\bin\\whisperx\\.venv\\Scripts\\python.exe"
-		whisperxModule := "-m"
-		whisperxPkg := "whisperx"
 		cmdArgs = []string{
-			"/c",
-			"chcp 65001 >NUL &&",
-			pythonPath, whisperxModule, whisperxPkg,
+			"-m", "whisperx",
 			audioFile,
 			"--model_dir", "./models/whisperx",
 			"--model", c.Model,
@@ -56,7 +51,7 @@ func (c *WhisperXProcessor) Transcription(audioFile, language, workDir string) (
 			"--compute_type", "float16",
 			"--batch_size", "8",
 		}
-		cmd = exec.Command("cmd.exe", cmdArgs...)
+		cmd = exec.Command(pythonPath, cmdArgs...)
 		cmd.Env = withPythonUTF8Env(os.Environ())
 	} else {
 		envPath := ""
