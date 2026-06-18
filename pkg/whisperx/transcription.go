@@ -13,19 +13,40 @@ import (
 	"go.uber.org/zap"
 )
 
+func withPythonUTF8Env(env []string) []string {
+	var hasPythonUTF8, hasPythonIOEncoding bool
+	for i, v := range env {
+		if strings.HasPrefix(v, "PYTHONUTF8=") {
+			env[i] = "PYTHONUTF8=1"
+			hasPythonUTF8 = true
+		}
+		if strings.HasPrefix(v, "PYTHONIOENCODING=") {
+			env[i] = "PYTHONIOENCODING=utf-8"
+			hasPythonIOEncoding = true
+		}
+	}
+	if !hasPythonUTF8 {
+		env = append(env, "PYTHONUTF8=1")
+	}
+	if !hasPythonIOEncoding {
+		env = append(env, "PYTHONIOENCODING=utf-8")
+	}
+	return env
+}
+
 func (c *WhisperXProcessor) Transcription(audioFile, language, workDir string) (*types.TranscriptionData, error) {
 	var (
 		cmdArgs []string
-		envPath string
 		cmd     *exec.Cmd
 	)
 	if runtime.GOOS == "windows" {
-		// Use cmd /c to activate venv then run whisperx (exec.Command can't handle batch && directly)
+		// Use cmd /c with UTF-8 enabled because WhisperX prints CJK transcripts to stdout.
 		pythonPath := ".\\bin\\whisperx\\.venv\\Scripts\\python.exe"
 		whisperxModule := "-m"
 		whisperxPkg := "whisperx"
 		cmdArgs = []string{
 			"/c",
+			"chcp 65001 >NUL &&",
 			pythonPath, whisperxModule, whisperxPkg,
 			audioFile,
 			"--model_dir", "./models/whisperx",
@@ -36,7 +57,9 @@ func (c *WhisperXProcessor) Transcription(audioFile, language, workDir string) (
 			"--batch_size", "8",
 		}
 		cmd = exec.Command("cmd.exe", cmdArgs...)
+		cmd.Env = withPythonUTF8Env(os.Environ())
 	} else {
+		envPath := ""
 		cmdArgs = []string{
 			audioFile,
 			"--model_dir", "./models/whisperx",
