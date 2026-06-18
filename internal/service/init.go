@@ -12,6 +12,7 @@ import (
 	"krillin-ai/pkg/whisper"
 	"krillin-ai/pkg/whispercpp"
 	"krillin-ai/pkg/whisperkit"
+	"krillin-ai/pkg/whisperx"
 
 	"go.uber.org/zap"
 )
@@ -38,6 +39,8 @@ func NewService() *Service {
 		transcriber = fasterwhisper.NewFastwhisperProcessor(config.Conf.Transcribe.Fasterwhisper.Model)
 	case "whispercpp":
 		transcriber = whispercpp.NewWhispercppProcessor(config.Conf.Transcribe.Whispercpp.Model)
+	case "whisperx":
+		transcriber = whisperx.NewWhisperXProcessor(config.Conf.Transcribe.Whisperx.Model)
 	case "whisperkit":
 		transcriber = whisperkit.NewWhisperKitProcessor(config.Conf.Transcribe.Whisperkit.Model)
 	case "aliyun":
