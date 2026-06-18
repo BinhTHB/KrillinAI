@@ -532,16 +532,23 @@ async def main():
             tts_wav = prefix.with_suffix('.tts.wav')
             tts_speed = prefix.with_suffix('.tts_speed.wav')
 
-            # Reuse existing TTS if keep-cache
+            # Reuse existing speed-adjusted TTS if keep-cache, but still fit it to the OCR cue.
             if args.keep_cache and tts_speed.exists() and get_duration(tts_speed) > 0.05:
-                final_dur = ensure_media(tts_speed, 'cached TTS')
-                chunk.tts_duration = final_dur
-                chunk.final_duration = final_dur
-                chunk.freeze_duration = 0.0
+                speed_dur = ensure_media(tts_speed, 'cached speed-adjusted TTS')
+                fit_wav = prefix.with_suffix('.tts_fit.wav')
+                cue_dur = max(0.05, chunk.source_duration)
+                run_cmd(
+                    f'ffmpeg -y -i "{tts_speed}" -filter:a "apad,atrim=0:{cue_dur:.3f}" '
+                    f'-ac 1 -ar 44100 "{fit_wav}"'
+                )
+                chunk.tts_duration = speed_dur
+                chunk.final_duration = cue_dur
+                chunk.freeze_duration = max(0.0, speed_dur - cue_dur)
                 chunk.actual_start = chunk.start
-                chunk.actual_end = min(video_dur, chunk.start + final_dur)
+                chunk.actual_end = min(video_dur, chunk.end)
                 processed.append(chunk)
-                print(f"  cached: {final_dur:.2f}s start={chunk.actual_start:.2f}s provider=edge", flush=True)
+                overflow = f" clipped={chunk.freeze_duration:.2f}s" if chunk.freeze_duration > 0.02 else ""
+                print(f"  cached: tts={speed_dur:.2f}s cue={cue_dur:.2f}s start={chunk.actual_start:.2f}s{overflow}", flush=True)
                 continue
 
             used_gemini = False
