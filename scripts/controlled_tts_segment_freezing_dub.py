@@ -485,6 +485,7 @@ async def main():
     parser.add_argument('--timeline-mode', default='overlay', choices=['overlay', 'freeze'], help='overlay keeps original video timeline; freeze cuts/freezes segments and builds a new timeline')
     parser.add_argument('--asr-timestamp-offset', type=float, default=0.0, help='offset in seconds to add to ASR/origin SRT timestamps')
     parser.add_argument('--max-fit-speed', type=float, default=4.0, help='maximum per-cue speed used by overlay mode to keep TTS inside the original timeline')
+    parser.add_argument('--cleanup-temp', action='store_true', help='delete temporary segment/audio/cache files after the final video is rendered')
     args = parser.parse_args()
 
     workdir = Path(args.workdir)
@@ -679,6 +680,16 @@ async def main():
         print(f'  srt:   {srt_out}', flush=True)
         print(f'  duration: {get_duration(final_mp4):.2f}s', flush=True)
         print(f'  chunks: {len(processed)}/{len(chunks)}', flush=True)
+        if args.cleanup_temp and seg_dir.exists():
+            print('  Cleaning up temporary segment files...', flush=True)
+            try:
+                shutil.rmtree(seg_dir)
+                for f in out_dir.iterdir():
+                    if f.suffix == '.wav' or f.name.startswith('voiceover_'):
+                        f.unlink(missing_ok=True)
+                print('  Temp files removed.', flush=True)
+            except Exception as e:
+                print(f'  Warning: temp cleanup failed: {e}', flush=True)
         return
     last_frame = out_dir / 'last_frame.png' 
     run_cmd(f'ffmpeg -y -ss {max(0, video_dur - 1):.3f} -i "{video_path}" -frames:v 1 -update 1 "{last_frame}"')
@@ -867,6 +878,16 @@ async def main():
     print(f"  srt:   {srt_out}", flush=True)
     print(f"  duration: {get_duration(final_mp4):.2f}s", flush=True)
     print(f"  chunks: {len(processed)}/{len(chunks)}", flush=True)
+    if args.cleanup_temp and seg_dir.exists():
+        print('  Cleaning up temporary segment files...', flush=True)
+        try:
+            shutil.rmtree(seg_dir)
+            for f in out_dir.iterdir():
+                if f.suffix == '.wav' or f.name in {'concat.txt', 'controlled_concat_raw.mp4', 'last_frame.png'}:
+                    f.unlink(missing_ok=True)
+            print('  Temp files removed.', flush=True)
+        except Exception as e:
+            print(f'  Warning: temp cleanup failed: {e}', flush=True)
 
 
 if __name__ == '__main__':
