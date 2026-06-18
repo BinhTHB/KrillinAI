@@ -53,49 +53,25 @@ def load_srt_entries(srt_path):
         })
     return entries
 
-def translate_batch(batch, base_url, api_key, model, context_before="", context_after="", asr_ref=""):
+def translate_batch(batch, base_url, api_key, model, context_before="", context_after="", asr_ref="", prompt_template=""):
     # Target endpoint
     url = base_url.rstrip('/') + '/chat/completions'
     
-    prompt = f"""You are a professional Chinese-to-Vietnamese translation expert translating a Chinese Xianxia/Tu Tiên (tu tiên, ma đạo, huyền huyễn) video.
-
+    if prompt_template:
+        prompt = (prompt_template
+                  .replace("{asr_ref}", asr_ref)
+                  .replace("{before}", context_before)
+                  .replace("{sentences_json}", json.dumps([e['text'] for e in batch], ensure_ascii=False))
+                  .replace("{after}", context_after))
+    else:
+        # Fallback default prompt
+        prompt = f"""You are a professional Chinese-to-Vietnamese translation expert translating a Chinese Xianxia/Tu Tiên video.
 Role relationship: Sư phụ (Master) and Đồ nhi (Disciple).
-Pronoun guide:
-- Disciple/Student addressing Master: Sư phụ / Người.
-- Master addressing Disciple: Đồ nhi / Con.
-- Avoid using common generic words like "bạn", "cậu" or "tôi" unless context requires.
-
-Glossary for reference:
-- 万魂幡 / 万魂番 -> Vạn Hồn Phiên
-- 气海 -> Khí Hải
-- 凝气 -> Ngưng Khí
-- 神魂 -> Thần Hồn
-- 僵尸 -> Cương Thi
-
-We extracted the subtitle text via OCR, which may have typos (e.g. 炳父 instead of 师父, 虿 instead of 至, 曰夜 instead of 日夜, 东酉 instead of 东西).
-Use the following ASR (Speech-to-Text) reference text to verify and correct any typos in the OCR sentences before translating:
-
-ASR Reference Text (accurate pronunciation reference):
-\"\"\"
-{asr_ref}
-\"\"\"
-
-Context before:
-{context_before}
-
-OCR Sentences to translate (JSON array of strings):
-{json.dumps([e['text'] for e in batch], ensure_ascii=False)}
-
-Context after:
-{context_after}
-
-OUTPUT FORMAT:
-Return ONLY a valid JSON object with a key "translations" containing the list of translated strings in the exact same order.
-Do not include markdown blocks like ```json.
-Example output:
-{{
-  "translations": ["Dịch câu 1", "Dịch câu 2"]
-}}
+ASR Reference: {asr_ref}
+Context before: {context_before}
+OCR Sentences: {json.dumps([e['text'] for e in batch], ensure_ascii=False)}
+Context after: {context_after}
+Return valid JSON key "translations".
 """
     
     headers = {
@@ -138,6 +114,7 @@ def main():
     parser = argparse.ArgumentParser(description="Translate SRT using Gemini API")
     parser.add_argument("--workdir", type=str, default="tasks/douyin-new", help="Working directory containing origin_language_srt.srt")
     parser.add_argument("--asr-reference", type=str, default="origin_language_srt.asr_backup.srt", help="optional ASR reference SRT used to correct OCR text before translation")
+    parser.add_argument("--prompt-file", type=str, default="scripts/translation_prompt.txt", help="prompt template file with {asr_ref}, {before}, {sentences_json}, {after} placeholders")
     args = parser.parse_args()
 
     base_url, api_key, model = load_config()
@@ -169,6 +146,14 @@ def main():
     else:
         print(f"No ASR reference found at {asr_path}; translating OCR text directly.")
     
+    prompt_path = Path(args.prompt_file)
+    prompt_template = ""
+    if prompt_path.exists():
+        prompt_template = prompt_path.read_text(encoding='utf-8')
+        print(f"Loaded translation prompt template: {prompt_path}")
+    else:
+        print(f"No prompt file found at {prompt_path}; using fallback prompt.")
+    
     batch_size = 10
     total = len(entries)
     translated_entries = []
@@ -182,7 +167,7 @@ def main():
         before = "\n".join([e['text'] for e in entries[max(0, i-5):i]])
         after = "\n".join([e['text'] for e in entries[i+batch_size:min(total, i+batch_size+5)]])
         
-        translations = translate_batch(batch, base_url, api_key, model, before, after, asr_ref)
+        translations = translate_batch(batch, base_url, api_key, model, before, after, asr_ref, prompt_template)
         
         if translations:
             for entry, trans in zip(batch, translations):

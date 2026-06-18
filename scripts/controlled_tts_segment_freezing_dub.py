@@ -605,14 +605,22 @@ async def main():
             else:
                 shutil.copy2(tts_wav, tts_speed)
 
-            final_dur = ensure_media(tts_speed, 'speed-adjusted TTS')
-            chunk.tts_duration = final_dur
-            chunk.final_duration = final_dur
-            chunk.freeze_duration = 0.0
+            speed_dur = ensure_media(tts_speed, 'speed-adjusted TTS')
+            fit_wav = prefix.with_suffix('.tts_fit.wav')
+            cue_dur = max(0.05, chunk.source_duration)
+            run_cmd(
+                f'ffmpeg -y -i "{tts_speed}" -filter:a "apad,atrim=0:{cue_dur:.3f}" '
+                f'-ac 1 -ar 44100 "{fit_wav}"'
+            )
+            final_dur = ensure_media(fit_wav, 'timeline-fit TTS')
+            chunk.tts_duration = speed_dur
+            chunk.final_duration = cue_dur
+            chunk.freeze_duration = max(0.0, speed_dur - cue_dur)
             chunk.actual_start = chunk.start
-            chunk.actual_end = min(video_dur, chunk.start + final_dur)
+            chunk.actual_end = min(video_dur, chunk.end)
             processed.append(chunk)
-            print(f"  ok: raw={raw_dur:.2f}s speed={speed_factor:.2f}x final={final_dur:.2f}s start={chunk.actual_start:.2f}s provider={'gemini' if used_gemini else 'edge'}", flush=True)
+            overflow = f" clipped={chunk.freeze_duration:.2f}s" if chunk.freeze_duration > 0.02 else ""
+            print(f"  ok: raw={raw_dur:.2f}s speed={speed_factor:.2f}x tts={speed_dur:.2f}s cue={cue_dur:.2f}s start={chunk.actual_start:.2f}s provider={'gemini' if used_gemini else 'edge'}{overflow}", flush=True)
 
         if not processed:
             raise RuntimeError('No chunks processed')
@@ -633,9 +641,9 @@ async def main():
                 run_cmd(f'ffmpeg -y -f lavfi -i anullsrc=r=44100:cl=mono -t {gap_dur:.3f} -ac 1 -ar 44100 "{silence}"')
                 parts.append(silence)
                 cursor += gap_dur
-            voice_part = seg_dir / f"chunk_{chunk.index:04d}.tts_speed.wav"
+            voice_part = seg_dir / f"chunk_{chunk.index:04d}.tts_fit.wav"
             parts.append(voice_part)
-            cursor = max(cursor, chunk.actual_start + chunk.final_duration)
+            cursor = max(cursor, chunk.actual_end)
         if cursor < video_dur - 0.001:
             tail = seg_dir / 'silence_tail.wav'
             tail_dur = video_dur - cursor
@@ -647,17 +655,8 @@ async def main():
                 f.write(f"file '{part.resolve().as_posix()}'\n")
         run_cmd(f'ffmpeg -y -f concat -safe 0 -i "{voice_concat}" -c:a pcm_s16le -ac 1 -ar 44100 "{voice_track}"')
 
-        # Write subtitles with end capped at next_start to avoid overlaps
+        # Write subtitles using the original OCR cue boundaries exactly.
         print('\nRendering original-timeline overlay...', flush=True)
-        for idx, chunk in enumerate(processed):
-            cap_end = chunk.actual_end
-            if idx + 1 < len(processed):
-                next_start = processed[idx + 1].actual_start
-                if cap_end > next_start - 0.02:
-                    cap_end = max(chunk.actual_start + 0.3, next_start - 0.02)
-                    if cap_end > chunk.actual_end:
-                        cap_end = chunk.actual_end
-            chunk.actual_end = min(video_dur, cap_end)
         write_ass(ass_path, processed)
         write_srt(srt_out, processed)
         run_cmd(
