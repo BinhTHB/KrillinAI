@@ -95,6 +95,9 @@ func TestParseGeminiDubDefaultsToGeminiProvider(t *testing.T) {
 	if !cmd.GeminiDub.PreserveCues {
 		t.Fatal("PreserveCues should default to true")
 	}
+	if cmd.GeminiDub.TimelineMode != "overlay" {
+		t.Fatalf("TimelineMode = %q, want overlay", cmd.GeminiDub.TimelineMode)
+	}
 }
 
 func TestParseGeminiDubMatchTimestampsOnly(t *testing.T) {
