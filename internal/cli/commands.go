@@ -1461,9 +1461,14 @@ func fixByTextMatch(fullOriginPath, shortOriginPath string, targets []geminiDubS
 		lastEnd = e
 	}
 
+	expanded := expandGeminiDubTextMatchedEntries(fixed, fullEntries, sortedAnchors, cleanFull, cleanAnchor, minOverlap, videoDur)
+	if len(expanded) > 0 {
+		fixed = expanded
+	}
+
 	// Final monotonicity pass
 	last := 0.0
-	for i := 0; i < nTarget; i++ {
+	for i := 0; i < len(fixed); i++ {
 		if fixed[i].Start < last {
 			fixed[i].Start = last + 0.02
 		}
@@ -1474,6 +1479,66 @@ func fixByTextMatch(fullOriginPath, shortOriginPath string, targets []geminiDubS
 	}
 
 	return fixed, nil
+}
+
+func expandGeminiDubTextMatchedEntries(entries, fullEntries, sortedAnchors []geminiDubSRTEntry, cleanFull, cleanAnchor []string, minOverlap int, videoDur float64) []geminiDubSRTEntry {
+	if len(entries) == 0 || len(entries) != len(fullEntries) || len(sortedAnchors) == 0 {
+		return entries
+	}
+	expanded := make([]geminiDubSRTEntry, 0, len(entries))
+	for i, entry := range entries {
+		spanStart, spanEnd := geminiDubAnchorSpan(cleanFull[i], cleanAnchor, minOverlap)
+		parts := splitGeminiDubSentences(entry.Text)
+		spanCount := spanEnd - spanStart + 1
+		if spanCount <= 1 || len(parts) <= 1 || len(parts) > spanCount {
+			expanded = append(expanded, entry)
+			continue
+		}
+		for partIdx, part := range parts {
+			aj := spanStart + partIdx
+			start := sortedAnchors[aj].Start
+			var end float64
+			if aj+1 < len(sortedAnchors) {
+				end = sortedAnchors[aj+1].Start
+			} else {
+				end = sortedAnchors[aj].End
+				if videoDur > 0 && videoDur > start {
+					end = videoDur
+				}
+			}
+			if end <= start {
+				end = start + 0.3
+			}
+			expanded = append(expanded, geminiDubSRTEntry{
+				Index: len(expanded) + 1,
+				Text:  part,
+				Start: start,
+				End:   end,
+			})
+		}
+	}
+	for i := range expanded {
+		expanded[i].Index = i + 1
+	}
+	return expanded
+}
+
+func geminiDubAnchorSpan(fullClean string, cleanAnchors []string, minOverlap int) (int, int) {
+	start := -1
+	end := -1
+	for j, anchorClean := range cleanAnchors {
+		if chineseOverlapScore(fullClean, anchorClean) >= minOverlap/2 {
+			if start == -1 {
+				start = j
+			}
+			end = j
+			continue
+		}
+		if start != -1 {
+			break
+		}
+	}
+	return start, end
 }
 
 // cleanChineseText returns only CJK unified ideograph characters
