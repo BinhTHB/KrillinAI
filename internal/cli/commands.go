@@ -60,30 +60,31 @@ type Command struct {
 }
 
 type GeminiDubRequest struct {
-	Input         string
-	Workdir       string
-	TaskID        string
-	OriginLang    string
-	TargetLang    string
-	UserLang      string
-	CaptionSrc    string
-	SRT           string
-	Video         string
-	OutputDir     string
-	Provider      string
-	Model         string
-	Voice         string
-	Speed         string
-	Gap           string
-	VoiceVolume   string
-	BgVolume      string
-	TimelineMode  string
-	Python        string
-	Script        string
-	MaxChunks     string
-	KeepCache     bool
-	PreserveCues  bool
-	TimestampOnly bool
+	Input              string
+	Workdir            string
+	TaskID             string
+	OriginLang         string
+	TargetLang         string
+	UserLang           string
+	CaptionSrc         string
+	SRT                string
+	Video              string
+	OutputDir          string
+	Provider           string
+	Model              string
+	Voice              string
+	Speed              string
+	Gap                string
+	VoiceVolume        string
+	BgVolume           string
+	TimelineMode       string
+	ASRTimestampOffset string
+	Python             string
+	Script             string
+	MaxChunks          string
+	KeepCache          bool
+	PreserveCues       bool
+	TimestampOnly      bool
 }
 
 func Parse(args []string) (Command, error) {
@@ -355,6 +356,7 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 	voiceVolume := fs.String("voice-volume", "1.6", "voice volume multiplier")
 	bgVolume := fs.String("bg-volume", "0.15", "background original audio volume multiplier")
 	timelineMode := fs.String("timeline-mode", "freeze", "timeline mode: overlay or freeze")
+	asrTimestampOffset := fs.String("asr-timestamp-offset", "0", "seconds added to ASR/origin subtitle timestamps before TTS/render")
 	python := fs.String("python", "python", "python executable")
 	script := fs.String("script", filepath.Join("scripts", "controlled_tts_segment_freezing_dub.py"), "dubbing script")
 	maxChunks := fs.String("max-chunks", "", "optional preview limit")
@@ -388,30 +390,31 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 		Name:   name,
 		DryRun: *dryRun,
 		GeminiDub: GeminiDubRequest{
-			Input:         input,
-			Workdir:       resolvedWorkdir,
-			TaskID:        *taskID,
-			OriginLang:    *originLang,
-			TargetLang:    *targetLang,
-			UserLang:      *userLang,
-			CaptionSrc:    *captionSource,
-			SRT:           *srt,
-			Video:         *video,
-			OutputDir:     *outputDir,
-			Provider:      *provider,
-			Model:         *model,
-			Voice:         *voice,
-			Speed:         *speed,
-			Gap:           *gap,
-			VoiceVolume:   *voiceVolume,
-			BgVolume:      *bgVolume,
-			TimelineMode:  *timelineMode,
-			Python:        *python,
-			Script:        *script,
-			MaxChunks:     *maxChunks,
-			KeepCache:     *keepCache,
-			PreserveCues:  *preserveCues,
-			TimestampOnly: *timestampOnly,
+			Input:              input,
+			Workdir:            resolvedWorkdir,
+			TaskID:             *taskID,
+			OriginLang:         *originLang,
+			TargetLang:         *targetLang,
+			UserLang:           *userLang,
+			CaptionSrc:         *captionSource,
+			SRT:                *srt,
+			Video:              *video,
+			OutputDir:          *outputDir,
+			Provider:           *provider,
+			Model:              *model,
+			Voice:              *voice,
+			Speed:              *speed,
+			Gap:                *gap,
+			VoiceVolume:        *voiceVolume,
+			BgVolume:           *bgVolume,
+			TimelineMode:       *timelineMode,
+			ASRTimestampOffset: *asrTimestampOffset,
+			Python:             *python,
+			Script:             *script,
+			MaxChunks:          *maxChunks,
+			KeepCache:          *keepCache,
+			PreserveCues:       *preserveCues,
+			TimestampOnly:      *timestampOnly,
 		},
 	}, nil
 }
@@ -842,6 +845,7 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 		"--voice-volume", req.VoiceVolume,
 		"--bg-volume", req.BgVolume,
 		"--timeline-mode", req.TimelineMode,
+		"--asr-timestamp-offset", req.ASRTimestampOffset,
 	}
 	if strings.TrimSpace(req.MaxChunks) != "" {
 		args = append(args, "--max-chunks", req.MaxChunks)

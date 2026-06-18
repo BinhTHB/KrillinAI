@@ -186,7 +186,7 @@ def format_ass_time(sec: float) -> str:
     return f"{h}:{m:02d}:{s:02d}.{cs:02d}"
 
 
-def parse_srt(path: Path) -> list[Entry]:
+def parse_srt(path: Path, timestamp_offset: float = 0.0) -> list[Entry]:
     content = path.read_text(encoding='utf-8-sig', errors='ignore')
     blocks = [b for b in re.split(r'\n\s*\n', content.strip()) if b.strip()]
     entries = []
@@ -200,7 +200,9 @@ def parse_srt(path: Path) -> list[Entry]:
             text = ' '.join(lines[2:]).strip()
             if not text or '[Translation failed' in text:
                 continue
-            entries.append(Entry(index=idx, start=parse_time(start_s), end=parse_time(end_s), text=text))
+            start = max(0.0, parse_time(start_s) + timestamp_offset)
+            end = max(start + 0.05, parse_time(end_s) + timestamp_offset)
+            entries.append(Entry(index=idx, start=start, end=end, text=text))
         except Exception:
             continue
     entries.sort(key=lambda item: (item.start, item.end, item.index))
@@ -472,6 +474,7 @@ async def main():
     parser.add_argument('--force-speed', action='store_true', help='Use --speed exactly for all providers, including Gemini, instead of adaptive Gemini speed')
     parser.add_argument('--preserve-cues', action='store_true', help='Render one TTS chunk per SRT cue to preserve source subtitle timing')
     parser.add_argument('--timeline-mode', default='overlay', choices=['overlay', 'freeze'], help='overlay keeps original video timeline; freeze cuts/freezes segments and builds a new timeline')
+    parser.add_argument('--asr-timestamp-offset', type=float, default=0.0, help='offset in seconds to add to ASR/origin SRT timestamps')
     parser.add_argument('--max-fit-speed', type=float, default=4.0, help='maximum per-cue speed used by overlay mode to keep TTS inside the original timeline')
     args = parser.parse_args()
 
@@ -498,7 +501,7 @@ async def main():
     seg_dir.mkdir(parents=True, exist_ok=True)
 
     video_dur = get_duration(video_path)
-    entries = parse_srt(srt_path)
+    entries = parse_srt(srt_path, args.asr_timestamp_offset)
     if args.preserve_cues:
         chunks = [Chunk(entries=[e], index=i+1) for i, e in enumerate(entries)]
     else:
