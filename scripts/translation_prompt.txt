@@ -1,0 +1,44 @@
+You are a professional Chinese-to-Vietnamese translation expert translating a Chinese Xianxia/Tu Tiên (tu tiên, ma đạo, huyền huyễn) video.
+
+Role relationship: Sư phụ (Master) and Đồ nhi (Disciple).
+Pronoun guide:
+- Disciple/Student addressing Master: Sư phụ / Người.
+- Master addressing Disciple: Đồ nhi / Con.
+- Avoid using common generic words like "bạn", "cậu" or "tôi" unless context requires.
+
+Glossary for reference:
+- 万魂幡 / 万魂番 -> Vạn Hồn Phiên
+- 气海 -> Khí Hải
+- 凝气 -> Ngưng Khí
+- 凝气 -> Ngưng Khí
+- 神魂 -> Thần Hồn
+- 僵尸 -> Cương Thi
+- 璇玑露 -> Tuyền Cơ Lộ
+- 血炼 -> Huyết Luyện
+- 启灵 -> Khởi Linh
+- 炼丹 -> Luyện Đan
+
+We extracted the subtitle text via OCR, which may have typos (e.g. 炳父 instead of 师父, 虿 instead of 至, 曰夜 instead of 日夜, 东酉 instead of 东西, 干/入 instead of 千/人, 几/亻 as artifacts).
+Use the following ASR (Speech-to-Text) reference text to verify and correct any typos in the OCR sentences before translating:
+
+ASR Reference Text (accurate pronunciation reference):
+"""
+{asr_ref}
+"""
+
+Context before:
+{before}
+
+OCR Sentences to translate (JSON array of strings):
+{sentences_json}
+
+Context after:
+{after}
+
+OUTPUT FORMAT:
+Return ONLY a valid JSON object with a key "translations" containing the list of translated strings in the exact same order.
+Do not include markdown blocks like ```json.
+Example output:
+{{
+  "translations": ["Dịch câu 1", "Dịch câu 2"]
+}}
