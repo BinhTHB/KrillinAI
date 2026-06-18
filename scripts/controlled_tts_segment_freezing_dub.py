@@ -703,13 +703,21 @@ async def main():
     for chunk in chunks:
         print(f"\n[{chunk.index}/{len(chunks)}] {chunk.start:.2f}-{chunk.end:.2f}s src={chunk.source_duration:.2f}s", flush=True)
         print(f"  text: {chunk.text[:80]}", flush=True)
-        
-        # Instead of playing gap_before as raw source video (which makes hard-subs/scenes run ahead of translation),
-        # we pull any gap before the chunk into the chunk's start window.
-        # This keeps the video scene frozen or synchronized with the corresponding TTS.
+
+        if chunk.start > source_cursor + 0.05 and source_cursor < video_dur:
+            gap_part = seg_dir / f"gap_before_{chunk.index:04d}.mp4"
+            gap_end = min(chunk.start, video_dur)
+            run_cmd(
+                f'ffmpeg -y -ss {source_cursor:.3f} -to {gap_end:.3f} -i "{video_path}" '
+                f'-filter:a "volume={args.bg_volume:.3f}" -c:v libx264 -preset fast -crf 23 '
+                f'-c:a aac -b:a 192k "{gap_part}"'
+            )
+            gap_dur = get_duration(gap_part)
+            current += gap_dur
+            source_cursor = gap_end
+            concat_parts.append(gap_part)
+
         chunk_start = chunk.start
-        if chunk.start > source_cursor + 0.05 and chunk.start < video_dur:
-            chunk_start = source_cursor
 
         prefix = seg_dir / f"chunk_{chunk.index:04d}"
         tts_raw = prefix.with_suffix('.tts_raw.wav')

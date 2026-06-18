@@ -64,6 +64,26 @@ def similar_text(a: str, b: str) -> bool:
     return len(shorter) >= 4 and common / max(1, len(shorter)) >= 0.85
 
 
+def merge_duplicate_cues(cues: list[Cue], max_gap: float = 1.0) -> list[Cue]:
+    if not cues:
+        return []
+    merged: list[Cue] = []
+    current = cues[0]
+    for next_cue in cues[1:]:
+        # Merge if duplicate or extremely similar text AND close enough (<= max_gap)
+        if similar_text(current.text, next_cue.text) and (next_cue.start - current.end) <= max_gap:
+            # Keep the longer text
+            if len(normalize_text(next_cue.text)) > len(normalize_text(current.text)):
+                current.text = next_cue.text
+            current.end = next_cue.end
+            current.confidence = (current.confidence + next_cue.confidence) / 2.0
+        else:
+            merged.append(current)
+            current = next_cue
+    merged.append(current)
+    return merged
+
+
 def fmt_ts(seconds: float) -> str:
     seconds = max(0.0, seconds)
     ms = int(round(seconds * 1000))
@@ -214,6 +234,7 @@ def main() -> int:
     parser.add_argument("--min-conf", type=float, default=0.18)
     parser.add_argument("--max-gap", type=float, default=0.28)
     parser.add_argument("--min-duration", type=float, default=0.12)
+    parser.add_argument("--dedup-gap", type=float, default=1.0, help="merge duplicate/similar OCR cues separated by at most this many seconds")
     parser.add_argument("--start", type=float, default=0.0)
     parser.add_argument("--end", type=float, default=0.0, help="0 means until video end")
     parser.add_argument("--gpu", action="store_true")
@@ -222,6 +243,7 @@ def main() -> int:
 
     samples = extract_samples(args)
     cues = group_samples(samples, args.max_gap, args.min_duration)
+    cues = merge_duplicate_cues(cues, args.dedup_gap)
     write_srt(cues, Path(args.output_srt))
     if args.output_json:
         Path(args.output_json).write_text(json.dumps({
