@@ -117,7 +117,7 @@ async def main():
     parser.add_argument('--report', default='')
     parser.add_argument('--provider', default='gemini')
     parser.add_argument('--voice', default='Aoede')
-    parser.add_argument('--model', default='gemini-2.5-flash-preview-native-audio-dialog')
+    parser.add_argument('--model', default='gemini-3.1-flash-live-preview')
     parser.add_argument('--max-speed', type=float, default=1.15)
     parser.add_argument('--hard-speed', type=float, default=1.25)
     parser.add_argument('--pre-roll', type=float, default=0.15)
