@@ -657,28 +657,44 @@ async def main():
         final_mp4 = out_dir / 'controlled_tts_final.mp4'
 
         print('\nBuilding original-timeline voice track...', flush=True)
-        parts = []
-        cursor = 0.0
-        for chunk in processed:
-            if chunk.actual_start > cursor + 0.001:
-                silence = seg_dir / f"silence_before_{chunk.index:04d}.wav"
-                gap_dur = chunk.actual_start - cursor
-                run_cmd(f'ffmpeg -y -f lavfi -i anullsrc=r=44100:cl=mono -t {gap_dur:.3f} -ac 1 -ar 44100 "{silence}"')
-                parts.append(silence)
-                cursor += gap_dur
-            voice_part = seg_dir / f"chunk_{chunk.index:04d}.tts_fit.wav"
-            parts.append(voice_part)
-            cursor = max(cursor, chunk.actual_end)
-        if cursor < video_dur - 0.001:
-            tail = seg_dir / 'silence_tail.wav'
-            tail_dur = video_dur - cursor
-            run_cmd(f'ffmpeg -y -f lavfi -i anullsrc=r=44100:cl=mono -t {tail_dur:.3f} -ac 1 -ar 44100 "{tail}"')
-            parts.append(tail)
+        if voiceover_mode:
+            base_track = out_dir / 'voiceover_base.wav'
+            run_cmd(f'ffmpeg -y -f lavfi -i anullsrc=r=44100:cl=mono -t {video_dur:.3f} -c:a pcm_s16le -ac 1 -ar 44100 "{base_track}"')
+            for chunk in processed:
+                voice_part = seg_dir / f"chunk_{chunk.index:04d}.tts_fit.wav"
+                delay_ms = max(0, int(round(chunk.actual_start * 1000)))
+                temp_track = out_dir / f'voiceover_temp_{chunk.index:04d}.wav'
+                run_cmd(
+                    f'ffmpeg -y -i "{base_track}" -i "{voice_part}" '
+                    f'-filter_complex "[1:a]adelay={delay_ms}|{delay_ms}[delayed];'
+                    f'[0:a][delayed]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[aout]" '
+                    f'-map "[aout]" -c:a pcm_s16le -ac 1 -ar 44100 "{temp_track}"'
+                )
+                shutil.move(str(temp_track), str(base_track))
+            shutil.copy2(base_track, voice_track)
+        else:
+            parts = []
+            cursor = 0.0
+            for chunk in processed:
+                if chunk.actual_start > cursor + 0.001:
+                    silence = seg_dir / f"silence_before_{chunk.index:04d}.wav"
+                    gap_dur = chunk.actual_start - cursor
+                    run_cmd(f'ffmpeg -y -f lavfi -i anullsrc=r=44100:cl=mono -t {gap_dur:.3f} -ac 1 -ar 44100 "{silence}"')
+                    parts.append(silence)
+                    cursor += gap_dur
+                voice_part = seg_dir / f"chunk_{chunk.index:04d}.tts_fit.wav"
+                parts.append(voice_part)
+                cursor = max(cursor, chunk.actual_end)
+            if cursor < video_dur - 0.001:
+                tail = seg_dir / 'silence_tail.wav'
+                tail_dur = video_dur - cursor
+                run_cmd(f'ffmpeg -y -f lavfi -i anullsrc=r=44100:cl=mono -t {tail_dur:.3f} -ac 1 -ar 44100 "{tail}"')
+                parts.append(tail)
 
-        with voice_concat.open('w', encoding='utf-8') as f:
-            for part in parts:
-                f.write(f"file '{part.resolve().as_posix()}'\n")
-        run_cmd(f'ffmpeg -y -f concat -safe 0 -i "{voice_concat}" -c:a pcm_s16le -ac 1 -ar 44100 "{voice_track}"')
+            with voice_concat.open('w', encoding='utf-8') as f:
+                for part in parts:
+                    f.write(f"file '{part.resolve().as_posix()}'\n")
+            run_cmd(f'ffmpeg -y -f concat -safe 0 -i "{voice_concat}" -c:a pcm_s16le -ac 1 -ar 44100 "{voice_track}"')
 
         # Write subtitles using the original OCR cue boundaries exactly.
         print('\nRendering original-timeline overlay...', flush=True)
