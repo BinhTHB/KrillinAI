@@ -3,6 +3,7 @@ import argparse
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
