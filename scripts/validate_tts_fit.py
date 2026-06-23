@@ -61,10 +61,8 @@ def call_fit_api_strict(items, base_url, api_key, model, prompt_template, limite
     return {}
 
 
-async def generate_and_measure(cue, cache_dir, api_key, model, voice, limiter=None):
+async def generate_and_measure(cue, cache_dir, api_key, model, voice):
     wav_path = cache_dir / f"cue_{cue.index:04d}.wav"
-    if limiter:
-        limiter.wait_and_record()
     ok = await gemini_tts_text(cue.text, wav_path, api_key, model, voice, retries=2)
     if not ok or not wav_path.exists():
         return None, 0.0
@@ -80,7 +78,7 @@ async def validate_tts(
     over_budget = []
     for i, cue in enumerate(cues):
         budget = budgets[i]
-        wav_path, dur = await generate_and_measure(cue, cache_dir, api_key, model, voice, limiter)
+        wav_path, dur = await generate_and_measure(cue, cache_dir, api_key, model, voice)
         if not wav_path:
             report.append({
                 'index': cue.index,
@@ -178,7 +176,6 @@ async def main():
             new_text = replacements.get(cue.index, '').strip() or cue.text
             cues[i] = SrtCue(cue.index, cue.start, cue.end, new_text)
             wav_path = cache_dir / f"cue_{cue.index:04d}.wav"
-            limiter.wait_and_record()
             ok = await gemini_tts_text(new_text, wav_path, api_key, args.model, args.voice, retries=2)
             if not ok:
                 report[i]['status'] = 'tts_failed'
