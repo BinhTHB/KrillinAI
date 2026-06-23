@@ -482,9 +482,10 @@ async def main():
     parser.add_argument('--no-edge-fallback', action='store_true', help='fail the render instead of falling back to Edge-TTS when Gemini TTS fails')
     parser.add_argument('--force-speed', action='store_true', help='Use --speed exactly for all providers, including Gemini, instead of adaptive Gemini speed')
     parser.add_argument('--preserve-cues', action='store_true', help='Render one TTS chunk per SRT cue to preserve source subtitle timing')
-    parser.add_argument('--timeline-mode', default='overlay', choices=['overlay', 'freeze'], help='overlay keeps original video timeline; freeze cuts/freezes segments and builds a new timeline')
+    parser.add_argument('--timeline-mode', default='overlay', choices=['overlay', 'voiceover', 'freeze'], help='overlay keeps original video timeline and clips to cues; voiceover keeps original video and allows safe spill; freeze cuts/freezes segments and builds a new timeline')
     parser.add_argument('--asr-timestamp-offset', type=float, default=0.0, help='offset in seconds to add to ASR/origin SRT timestamps')
     parser.add_argument('--max-fit-speed', type=float, default=4.0, help='maximum per-cue speed used by overlay mode to keep TTS inside the original timeline')
+    parser.add_argument('--voiceover-max-speed', type=float, default=1.15, help='maximum natural speed used by voiceover mode before allowing spill')
     parser.add_argument('--cleanup-temp', action='store_true', help='delete temporary segment/audio/cache files after the final video is rendered')
     args = parser.parse_args()
 
@@ -522,7 +523,8 @@ async def main():
     print(f"Input SRT: {srt_path} entries={len(entries)} chunks={len(chunks)}", flush=True)
     print(f"TTS Provider: {args.tts_provider}", flush=True)
 
-    if args.timeline_mode == 'overlay':
+    voiceover_mode = args.timeline_mode == 'voiceover'
+    if args.timeline_mode in ['overlay', 'voiceover']:
         processed = []
         for idx, chunk in enumerate(chunks):
             print(f"\n[{chunk.index}/{len(chunks)}] {chunk.start:.2f}-{chunk.end:.2f}s src={chunk.source_duration:.2f}s", flush=True)
@@ -537,19 +539,23 @@ async def main():
             if args.keep_cache and tts_speed.exists() and get_duration(tts_speed) > 0.05:
                 speed_dur = ensure_media(tts_speed, 'cached speed-adjusted TTS')
                 fit_wav = prefix.with_suffix('.tts_fit.wav')
-                cue_dur = max(0.05, chunk.source_duration)
+                next_start = video_dur
+                if idx + 1 < len(chunks):
+                    next_start = chunks[idx + 1].start
+                available = max(0.35, min(video_dur, next_start) - chunk.start - args.gap)
+                fit_dur = max(0.05, available) if voiceover_mode else max(0.05, chunk.source_duration)
                 run_cmd(
-                    f'ffmpeg -y -i "{tts_speed}" -filter:a "apad,atrim=0:{cue_dur:.3f}" '
+                    f'ffmpeg -y -i "{tts_speed}" -filter:a "apad,atrim=0:{fit_dur:.3f}" '
                     f'-ac 1 -ar 44100 "{fit_wav}"'
                 )
                 chunk.tts_duration = speed_dur
-                chunk.final_duration = cue_dur
-                chunk.freeze_duration = max(0.0, speed_dur - cue_dur)
+                chunk.final_duration = fit_dur
+                chunk.freeze_duration = max(0.0, speed_dur - fit_dur)
                 chunk.actual_start = chunk.start
-                chunk.actual_end = min(video_dur, chunk.end)
+                chunk.actual_end = min(video_dur, chunk.start + fit_dur) if voiceover_mode else min(video_dur, chunk.end)
                 processed.append(chunk)
                 overflow = f" clipped={chunk.freeze_duration:.2f}s" if chunk.freeze_duration > 0.02 else ""
-                print(f"  cached: tts={speed_dur:.2f}s cue={cue_dur:.2f}s start={chunk.actual_start:.2f}s{overflow}", flush=True)
+                print(f"  cached: tts={speed_dur:.2f}s cue={fit_dur:.2f}s start={chunk.actual_start:.2f}s{overflow}", flush=True)
                 continue
 
             used_gemini = False
@@ -599,11 +605,12 @@ async def main():
             available = max(0.35, min(video_dur, next_start) - chunk.start - args.gap)
             required = raw_dur / available if available > 0 else args.max_fit_speed
             speed_factor = max(args.speed, required)
-            if speed_factor > args.max_fit_speed:
-                print(f"  WARN: required speed {speed_factor:.2f}x exceeds max {args.max_fit_speed:.2f}x; using max and allowing spill", flush=True)
-                speed_factor = args.max_fit_speed
+            max_allowed = args.voiceover_max_speed if voiceover_mode else args.max_fit_speed
+            if speed_factor > max_allowed:
+                print(f"  WARN: required speed {speed_factor:.2f}x exceeds max {max_allowed:.2f}x; using max and allowing spill", flush=True)
+                speed_factor = max_allowed
             if used_gemini and not args.force_speed:
-                speed_factor = max(1.05, min(speed_factor, args.max_fit_speed))
+                speed_factor = max(1.05, min(speed_factor, max_allowed))
 
             if abs(speed_factor - 1.0) > 0.01:
                 speed_result = run_cmd(f'ffmpeg -y -i "{tts_wav}" -filter:a "{atempo_filter(speed_factor)}" -ac 1 -ar 44100 "{tts_speed}"', check=False)
@@ -614,21 +621,21 @@ async def main():
                 shutil.copy2(tts_wav, tts_speed)
 
             speed_dur = ensure_media(tts_speed, 'speed-adjusted TTS')
+            fit_dur = max(0.05, available) if voiceover_mode else max(0.05, chunk.source_duration)
             fit_wav = prefix.with_suffix('.tts_fit.wav')
-            cue_dur = max(0.05, chunk.source_duration)
             run_cmd(
-                f'ffmpeg -y -i "{tts_speed}" -filter:a "apad,atrim=0:{cue_dur:.3f}" '
+                f'ffmpeg -y -i "{tts_speed}" -filter:a "apad,atrim=0:{fit_dur:.3f}" '
                 f'-ac 1 -ar 44100 "{fit_wav}"'
             )
             final_dur = ensure_media(fit_wav, 'timeline-fit TTS')
             chunk.tts_duration = speed_dur
-            chunk.final_duration = cue_dur
-            chunk.freeze_duration = max(0.0, speed_dur - cue_dur)
+            chunk.final_duration = fit_dur
+            chunk.freeze_duration = max(0.0, speed_dur - fit_dur)
             chunk.actual_start = chunk.start
-            chunk.actual_end = min(video_dur, chunk.end)
+            chunk.actual_end = min(video_dur, chunk.start + fit_dur) if voiceover_mode else min(video_dur, chunk.end)
             processed.append(chunk)
             overflow = f" clipped={chunk.freeze_duration:.2f}s" if chunk.freeze_duration > 0.02 else ""
-            print(f"  ok: raw={raw_dur:.2f}s speed={speed_factor:.2f}x tts={speed_dur:.2f}s cue={cue_dur:.2f}s start={chunk.actual_start:.2f}s provider={'gemini' if used_gemini else 'edge'}{overflow}", flush=True)
+            print(f"  ok: raw={raw_dur:.2f}s speed={speed_factor:.2f}x tts={speed_dur:.2f}s cue={fit_dur:.2f}s start={chunk.actual_start:.2f}s provider={'gemini' if used_gemini else 'edge'}{overflow}", flush=True)
 
         if not processed:
             raise RuntimeError('No chunks processed')
