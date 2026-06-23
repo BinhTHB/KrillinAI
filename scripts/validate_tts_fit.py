@@ -8,6 +8,8 @@ import sys
 import time
 from pathlib import Path
 
+import requests
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
@@ -15,6 +17,7 @@ if str(SCRIPT_DIR) not in sys.path:
 from srt_utils import SrtCue, load_srt, write_srt
 from voiceover_budget import build_budgets
 from translate_gemini import load_config
+from gemini_rate_limiter import RequestRateLimiter
 
 try:
     from controlled_tts_segment_freezing_dub import gemini_tts_text, load_api_key, get_duration
@@ -23,7 +26,7 @@ except ImportError as e:
     sys.exit(1)
 
 
-def call_fit_api_strict(items, base_url, api_key, model, prompt_template):
+def call_fit_api_strict(items, base_url, api_key, model, prompt_template, limiter=None):
     url = base_url.rstrip('/') + '/chat/completions'
     instruction = prompt_template + '\n\nRewrite stricter: each fitted_text must be noticeably shorter and under max_chars.'
     payload_input = {'cues': items}
@@ -38,17 +41,13 @@ def call_fit_api_strict(items, base_url, api_key, model, prompt_template):
     }
     for attempt in range(4):
         try:
-            r = subprocess.run(
-                ['curl', '-s', '-X', 'POST', url,
-                 '-H', 'Content-Type: application/json',
-                 '-H', f'Authorization: Bearer {api_key}',
-                 '-d', json.dumps(payload)],
-                capture_output=True, text=True, timeout=90
-            )
-            if r.returncode != 0:
+            if limiter:
+                limiter.wait_and_record()
+            r = requests.post(url, headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {api_key}'}, json=payload, timeout=90)
+            if r.status_code != 200:
                 time.sleep(3 * (attempt + 1))
                 continue
-            data = json.loads(r.stdout)
+            data = r.json()
             content = data['choices'][0]['message']['content'].strip()
             if content.startswith('```'):
                 content = re.sub(r'^```(?:json)?\n|```$', '', content, flags=re.MULTILINE).strip()
@@ -62,8 +61,10 @@ def call_fit_api_strict(items, base_url, api_key, model, prompt_template):
     return {}
 
 
-async def generate_and_measure(cue, cache_dir, api_key, model, voice):
+async def generate_and_measure(cue, cache_dir, api_key, model, voice, limiter=None):
     wav_path = cache_dir / f"cue_{cue.index:04d}.wav"
+    if limiter:
+        limiter.wait_and_record()
     ok = await gemini_tts_text(cue.text, wav_path, api_key, model, voice, retries=2)
     if not ok or not wav_path.exists():
         return None, 0.0
@@ -73,13 +74,13 @@ async def generate_and_measure(cue, cache_dir, api_key, model, voice):
 
 async def validate_tts(
     cues, budgets, cache_dir, api_key, model, voice,
-    base_url, fit_model, prompt_template, args
+    base_url, fit_model, prompt_template, args, limiter=None
 ):
     report = []
     over_budget = []
     for i, cue in enumerate(cues):
         budget = budgets[i]
-        wav_path, dur = await generate_and_measure(cue, cache_dir, api_key, model, voice)
+        wav_path, dur = await generate_and_measure(cue, cache_dir, api_key, model, voice, limiter)
         if not wav_path:
             report.append({
                 'index': cue.index,
@@ -127,6 +128,9 @@ async def main():
     parser.add_argument('--chars-per-second', type=float, default=13.0)
     parser.add_argument('--max-rewrite-rounds', type=int, default=3)
     parser.add_argument('--prompt-file', default='scripts/voiceover_fit_prompt.txt')
+    parser.add_argument('--rpm-limit', type=int, default=15, help='requests per minute limit for Gemini requests')
+    parser.add_argument('--rpd-limit', type=int, default=500, help='requests per day limit for Gemini requests')
+    parser.add_argument('--request-log', type=str, default='', help='path to JSON file tracking request timestamps')
     args = parser.parse_args()
 
     cues = load_srt(args.srt)
@@ -148,9 +152,11 @@ async def main():
     base_url, _, fit_model = load_config()
     prompt_template = Path(args.prompt_file).read_text(encoding='utf-8')
 
+    limiter = RequestRateLimiter(args.rpm_limit, args.rpd_limit, args.request_log or (cache_dir / 'requests.json'))
+
     report, over_budget = await validate_tts(
         cues, budgets, cache_dir, api_key, args.model, args.voice,
-        base_url, fit_model, prompt_template, args
+        base_url, fit_model, prompt_template, args, limiter=limiter
     )
 
     for rnd in range(args.max_rewrite_rounds):
@@ -166,12 +172,13 @@ async def main():
                 'duration': round(budget.allowed_duration, 3),
                 'max_chars': budget.max_chars,
             })
-        replacements = call_fit_api_strict(items, base_url, api_key, fit_model, prompt_template)
+        replacements = call_fit_api_strict(items, base_url, api_key, fit_model, prompt_template, limiter=limiter)
         new_over = []
         for i, cue, budget, dur in over_budget:
             new_text = replacements.get(cue.index, '').strip() or cue.text
             cues[i] = SrtCue(cue.index, cue.start, cue.end, new_text)
             wav_path = cache_dir / f"cue_{cue.index:04d}.wav"
+            limiter.wait_and_record()
             ok = await gemini_tts_text(new_text, wav_path, api_key, args.model, args.voice, retries=2)
             if not ok:
                 report[i]['status'] = 'tts_failed'

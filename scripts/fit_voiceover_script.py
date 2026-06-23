@@ -15,6 +15,7 @@ if str(SCRIPT_DIR) not in sys.path:
 from srt_utils import SrtCue, load_srt, write_srt
 from voiceover_budget import build_budgets
 from translate_gemini import load_config
+from gemini_rate_limiter import RequestRateLimiter
 
 CJK_RE = re.compile(r'[\u3400-\u9fff]')
 
@@ -26,7 +27,7 @@ def strip_fences(text: str) -> str:
     return text
 
 
-def call_fit_api(items, base_url, api_key, model, prompt_template, strict=False):
+def call_fit_api(items, base_url, api_key, model, prompt_template, strict=False, limiter=None):
     url = base_url.rstrip('/') + '/chat/completions'
     instruction = prompt_template
     if strict:
@@ -43,6 +44,8 @@ def call_fit_api(items, base_url, api_key, model, prompt_template, strict=False)
     }
     for attempt in range(4):
         try:
+            if limiter:
+                limiter.wait_and_record()
             r = requests.post(url, headers=headers, json=payload, timeout=90)
             if r.status_code != 200:
                 print(f'API error {r.status_code}: {r.text[:400]}')
@@ -66,6 +69,7 @@ def fit_texts(source_cues, translated_cues, budgets, args):
     if not api_key:
         raise RuntimeError('Missing LLM API key in config/config.toml')
     prompt_template = Path(args.prompt_file).read_text(encoding='utf-8')
+    limiter = RequestRateLimiter(args.rpm_limit, args.rpd_limit, args.request_log or (Path(args.output_srt).with_suffix('.requests.json')))
     fitted = []
     report = []
     total = len(translated_cues)
@@ -83,7 +87,7 @@ def fit_texts(source_cues, translated_cues, budgets, args):
                 'max_chars': budget.max_chars,
             })
         print(f'Fitting batch {start // args.batch_size + 1}/{(total + args.batch_size - 1) // args.batch_size}...')
-        replacements = call_fit_api(items, base_url, api_key, model, prompt_template)
+        replacements = call_fit_api(items, base_url, api_key, model, prompt_template, limiter=limiter)
         for src, trans, budget in zip(batch_src, batch_trans, batch_budget):
             text = replacements.get(trans.index, trans.text).strip() or trans.text
             too_long = len(text) > int(budget.max_chars * args.char_slack)
@@ -96,7 +100,7 @@ def fit_texts(source_cues, translated_cues, budgets, args):
                     'max_chars': budget.max_chars,
                 }]
                 for _ in range(args.max_rewrite_rounds - 1):
-                    retry = call_fit_api(retry_item, base_url, api_key, model, prompt_template, strict=True)
+                    retry = call_fit_api(retry_item, base_url, api_key, model, prompt_template, strict=True, limiter=limiter)
                     new_text = retry.get(trans.index, '').strip()
                     if new_text:
                         text = new_text
@@ -138,6 +142,9 @@ def main():
     parser.add_argument('--min-gap-before-next', type=float, default=0.12)
     parser.add_argument('--chars-per-second', type=float, default=13.0)
     parser.add_argument('--char-slack', type=float, default=1.15)
+    parser.add_argument('--rpm-limit', type=int, default=15, help='requests per minute limit for Gemini text API')
+    parser.add_argument('--rpd-limit', type=int, default=500, help='requests per day limit for Gemini text API')
+    parser.add_argument('--request-log', type=str, default='', help='path to JSON file tracking request timestamps')
     args = parser.parse_args()
 
     source = load_srt(args.source_srt)

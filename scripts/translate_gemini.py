@@ -11,6 +11,12 @@ import json
 import requests
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from gemini_rate_limiter import RequestRateLimiter
+
 def load_config():
     config_path = Path("config/config.toml")
     if not config_path.exists():
@@ -53,7 +59,7 @@ def load_srt_entries(srt_path):
         })
     return entries
 
-def translate_batch(batch, base_url, api_key, model, context_before="", context_after="", asr_ref="", prompt_template=""):
+def translate_batch(batch, base_url, api_key, model, context_before="", context_after="", asr_ref="", prompt_template="", limiter=None):
     # Target endpoint
     url = base_url.rstrip('/') + '/chat/completions'
     
@@ -88,6 +94,8 @@ Return valid JSON key "translations".
     
     for attempt in range(4):
         try:
+            if limiter:
+                limiter.wait_and_record()
             r = requests.post(url, headers=headers, json=payload, timeout=60)
             if r.status_code == 200:
                 res_data = r.json()
@@ -115,6 +123,9 @@ def main():
     parser.add_argument("--workdir", type=str, default="tasks/douyin-new", help="Working directory containing origin_language_srt.srt")
     parser.add_argument("--asr-reference", type=str, default="origin_language_srt.asr_backup.srt", help="optional ASR reference SRT used to correct OCR text before translation")
     parser.add_argument("--prompt-file", type=str, default="scripts/translation_prompt.txt", help="prompt template file with {asr_ref}, {before}, {sentences_json}, {after} placeholders")
+    parser.add_argument("--rpm-limit", type=int, default=15, help="requests per minute limit for Gemini text API")
+    parser.add_argument("--rpd-limit", type=int, default=500, help="requests per day limit for Gemini text API")
+    parser.add_argument("--request-log", type=str, default="", help="path to JSON file tracking request timestamps")
     args = parser.parse_args()
 
     base_url, api_key, model = load_config()
@@ -136,6 +147,8 @@ def main():
         
     entries = load_srt_entries(origin_srt)
     print(f"Loaded {len(entries)} entries for translation.")
+
+    limiter = RequestRateLimiter(args.rpm_limit, args.rpd_limit, args.request_log or (workdir / 'translate_requests.json'))
 
     asr_path = workdir / args.asr_reference
     asr_ref = ""
@@ -167,7 +180,7 @@ def main():
         before = "\n".join([e['text'] for e in entries[max(0, i-5):i]])
         after = "\n".join([e['text'] for e in entries[i+batch_size:min(total, i+batch_size+5)]])
         
-        translations = translate_batch(batch, base_url, api_key, model, before, after, asr_ref, prompt_template)
+        translations = translate_batch(batch, base_url, api_key, model, before, after, asr_ref, prompt_template, limiter=limiter)
         
         if translations:
             for entry, trans in zip(batch, translations):
