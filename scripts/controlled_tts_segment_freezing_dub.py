@@ -485,7 +485,9 @@ async def main():
     parser.add_argument('--timeline-mode', default='overlay', choices=['overlay', 'voiceover', 'freeze'], help='overlay keeps original video timeline and clips to cues; voiceover keeps original video and allows safe spill; freeze cuts/freezes segments and builds a new timeline')
     parser.add_argument('--asr-timestamp-offset', type=float, default=0.0, help='offset in seconds to add to ASR/origin SRT timestamps')
     parser.add_argument('--max-fit-speed', type=float, default=4.0, help='maximum per-cue speed used by overlay mode to keep TTS inside the original timeline')
-    parser.add_argument('--voiceover-max-speed', type=float, default=1.15, help='maximum natural speed used by voiceover mode before allowing spill')
+    parser.add_argument('--voiceover-max-speed', type=float, default=2.0, help='maximum speed used by voiceover mode before allowing spill')
+    parser.add_argument('--voiceover-max-spill', type=float, default=1.2, help='maximum seconds a voiceover cue may spill past its original cue end')
+    parser.add_argument('--voiceover-overlap-next', type=float, default=0.3, help='maximum seconds a voiceover cue may overlap the next cue start')
     parser.add_argument('--cleanup-temp', action='store_true', help='delete temporary segment/audio/cache files after the final video is rendered')
     args = parser.parse_args()
 
@@ -542,7 +544,11 @@ async def main():
                 next_start = video_dur
                 if idx + 1 < len(chunks):
                     next_start = chunks[idx + 1].start
-                available = max(0.35, min(video_dur, next_start) - chunk.start - args.gap)
+                if voiceover_mode:
+                    spill_limit_end = min(video_dur, chunk.end + args.voiceover_max_spill, next_start + args.voiceover_overlap_next)
+                    available = max(0.35, spill_limit_end - chunk.start - args.gap)
+                else:
+                    available = max(0.35, min(video_dur, next_start) - chunk.start - args.gap)
                 fit_dur = max(0.05, available) if voiceover_mode else max(0.05, chunk.source_duration)
                 run_cmd(
                     f'ffmpeg -y -i "{tts_speed}" -filter:a "apad,atrim=0:{fit_dur:.3f}" '
@@ -602,7 +608,11 @@ async def main():
             next_start = video_dur
             if idx + 1 < len(chunks):
                 next_start = chunks[idx + 1].start
-            available = max(0.35, min(video_dur, next_start) - chunk.start - args.gap)
+            if voiceover_mode:
+                spill_limit_end = min(video_dur, chunk.end + args.voiceover_max_spill, next_start + args.voiceover_overlap_next)
+                available = max(0.35, spill_limit_end - chunk.start - args.gap)
+            else:
+                available = max(0.35, min(video_dur, next_start) - chunk.start - args.gap)
             required = raw_dur / available if available > 0 else args.max_fit_speed
             speed_factor = max(args.speed, required)
             max_allowed = args.voiceover_max_speed if voiceover_mode else args.max_fit_speed
