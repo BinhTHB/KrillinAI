@@ -102,12 +102,14 @@ func TestGenerateRawChunkSegmentsCallsTTSOncePerChunk(t *testing.T) {
 		{ID: 2, Items: []int{2}, Start: 6, End: 8},
 	}
 
-	gotPlan, gotChunks, err := GenerateRawChunkSegments(context.Background(), tts, plan, chunks, "voice", dir, nil, func(path string) (float64, error) {
+	probe := func(path string) (float64, error) {
 		if strings.Contains(path, "chunk_1.wav") {
 			return 3.2, nil
 		}
 		return 1.1, nil
-	})
+	}
+
+	gotPlan, gotChunks, err := GenerateRawChunkSegments(context.Background(), tts, plan, chunks, "voice", dir, nil, probe, DefaultConfig())
 	if err != nil {
 		t.Fatalf("GenerateRawChunkSegments() error = %v", err)
 	}

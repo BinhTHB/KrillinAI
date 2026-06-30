@@ -20,9 +20,9 @@ from translate_gemini import load_config
 from gemini_rate_limiter import RequestRateLimiter
 
 try:
-    from controlled_tts_segment_freezing_dub import gemini_tts_text, load_api_key, get_duration
+    from controlled_tts_segment_dub import gemini_tts_text, load_api_key, get_duration
 except ImportError as e:
-    print(f"Failed to import from controlled_tts_segment_freezing_dub: {e}")
+    print(f"Failed to import from controlled_tts_segment_dub: {e}")
     sys.exit(1)
 
 
@@ -92,7 +92,7 @@ async def validate_tts(
         required_speed = dur / budget.allowed_duration if budget.allowed_duration > 0 else 999.0
         status = 'pass'
         if required_speed > args.hard_speed:
-            status = 'freeze_fallback'
+            status = 'rewrite_needed'
         elif required_speed > args.max_speed:
             status = 'rewrite_needed'
         elif required_speed > 1.0:
@@ -202,7 +202,6 @@ async def main():
         'passed': sum(1 for r in report if r['status'] == 'pass'),
         'speedup_ok': sum(1 for r in report if r['status'] == 'speedup_ok'),
         'rewrite_needed': sum(1 for r in report if r['status'] == 'rewrite_needed'),
-        'freeze_fallback': sum(1 for r in report if r['status'] == 'freeze_fallback'),
         'tts_failed': sum(1 for r in report if r['status'] == 'tts_failed'),
     }
     report_path = args.report or str(cache_dir / 'tts_fit_report.json')

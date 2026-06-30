@@ -54,7 +54,6 @@ def main():
     parser.add_argument('--tts-report', default='')
     parser.add_argument('--video', default='')
     parser.add_argument('--output', default='')
-    parser.add_argument('--allow-freeze-fallback', action='store_true')
     args = parser.parse_args()
 
     checks = {}
@@ -70,7 +69,6 @@ def main():
         tts = json.loads(Path(args.tts_report).read_text(encoding='utf-8'))
         summary = tts.get('summary', {})
         checks['tts_no_rewrite_needed'] = summary.get('rewrite_needed', 0) == 0
-        checks['tts_no_freeze_fallback'] = summary.get('freeze_fallback', 0) == 0 or args.allow_freeze_fallback
         checks['tts_no_failed'] = summary.get('tts_failed', 0) == 0
 
     if args.video:

@@ -233,9 +233,9 @@ Flags:
   --voice-volume <n>     Voice volume multiplier (default 1.6)
   --max-chunks <n>       Optional preview limit
   --match-timestamps-only  Stop after writing a timestamp-matched clean SRT; do not run TTS/render
-  --preserve-cues        One TTS chunk per SRT cue; preserve source subtitle timing and freeze if needed (default true)
+  --preserve-cues        One TTS chunk per SRT cue; preserve source subtitle timing (default true)
   --python <path>        Python executable (default python)
-  --script <path>        Dubbing script path (default scripts/controlled_tts_segment_freezing_dub.py)
+  --script <path>        Dubbing script path (default scripts/controlled_tts_segment_dub.py)
   --keep-cache           Keep existing output/cache directory
   --dry-run              Validate command without running the script
   -h, --help             Show this help
@@ -355,12 +355,12 @@ func parseGeminiDub(name string, args []string) (Command, error) {
 	gap := fs.String("gap", "0.02", "gap after each chunk")
 	voiceVolume := fs.String("voice-volume", "1.6", "voice volume multiplier")
 	bgVolume := fs.String("bg-volume", "0.15", "background original audio volume multiplier")
-	timelineMode := fs.String("timeline-mode", "freeze", "timeline mode: overlay or freeze")
+	timelineMode := fs.String("timeline-mode", "overlay", "timeline mode: overlay (default) or freeze (deprecated)")
 	asrTimestampOffset := fs.String("asr-timestamp-offset", "0", "seconds added to ASR/origin subtitle timestamps before TTS/render")
 	python := fs.String("python", "python", "python executable")
-	script := fs.String("script", filepath.Join("scripts", "controlled_tts_segment_freezing_dub.py"), "dubbing script")
+	script := fs.String("script", filepath.Join("scripts", "controlled_tts_segment_dub.py"), "dubbing script")
 	maxChunks := fs.String("max-chunks", "", "optional preview limit")
-	preserveCues := fs.Bool("preserve-cues", true, "render one TTS chunk per SRT cue to preserve source subtitle timing (freezes frame if TTS is longer)")
+	preserveCues := fs.Bool("preserve-cues", true, "render one TTS chunk per SRT cue to preserve source subtitle timing")
 	timestampOnly := fs.Bool("match-timestamps-only", false, "stop after writing a timestamp-matched clean SRT; do not run TTS/render")
 	keepCache := fs.Bool("keep-cache", false, "keep existing output/cache directory")
 	dryRun := fs.Bool("dry-run", false, "validate command without running the script")

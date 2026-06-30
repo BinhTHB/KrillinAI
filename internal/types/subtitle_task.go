@@ -22,114 +22,104 @@ import subtitlestyle "krillin-ai/internal/subtitle_style"
 
 // 内容如下:`
 
-var SplitTextPrompt = `你是一个语言处理专家，专注于自然语言处理和翻译任务。按照以下步骤和要求，以最大程度实现字幕的准确和高质量翻译：
+var SplitTextPrompt = `You are a language processing expert specializing in natural language processing and translation tasks. Follow these steps and requirements to achieve the most accurate and high-quality subtitle translation:
 
-1. 将原句翻译为%s，确保译文流畅、自然，达到专业翻译水平，保持意思相同。**如果目标语言是中文，必须使用简体中文，不能使用繁体中文。**
-2. 严格依据标点符号（逗号: ，,、句号:。.、问号:？?等）将内容拆分成单独的句子，并依据以下规则确保拆分长度较短：
-   - 每个句子在保证句意完整的情况下尽可能短，适中的字幕长短能提供舒适的观看体验。
-   - 根据连词（例如 "and", "but", "which", "when", "so", "所以", "但是", "因此", "考虑到" 等）进一步拆分句子，得到较短的结果。
-3. 对每个拆分的句子分别翻译，确保不遗漏或修改任何字词。
-4. 将每对翻译后的句子与原句用独立编号表示，并分别以方括号[]包裹内容。
-5. 输出的翻译与原文应保持对应，严格按照原文顺序呈现，不得有错位，与原文表达的意思保持一致，且原文尽可能使用原文。
-6. 不管内容是正式还是非正式，都要翻译。
+1. Translate the source sentence into %s, ensuring the translation is fluent, natural, and meets professional translation standards while preserving the original meaning. **If the target language is Chinese, you MUST use Simplified Chinese characters, NOT Traditional Chinese.**
+2. Strictly split content into individual sentences based on punctuation marks (comma: ，,、 period: 。.、 question mark: ？? etc.), and ensure short split lengths according to these rules:
+   - Each sentence should be as short as possible while maintaining complete meaning; moderate subtitle length provides a comfortable viewing experience.
+   - Further split sentences based on conjunctions (e.g., "and", "but", "which", "when", "so", "but", "therefore", "considering" etc.) to get shorter results.
+3. Translate each split sentence separately, ensuring no words are omitted or modified.
+4. Represent each translated sentence pair with the original sentence using independent numbering, and wrap each in square brackets [].
+5. The output translation must correspond to the original text, strictly presented in the original order without misalignment, maintaining the same meaning as the original, and the original text should be used as much as possible.
+6. Translate all content regardless of whether it is formal or informal.
 
-翻译输出应采用如下格式：
-**正常翻译的示例（注意每块3部分，每个部分都独占一行，空格分块）**：
+Translation output should follow this format:
+**Normal translation example (each block has 3 parts, each part on its own line, separated by spaces)**:
 1
-[翻译后的句子1]
-[原句子1]
+[Translated sentence 1]
+[Original sentence 1]
 
 2
-[翻译后的句子2]
-[原句子2]
+[Translated sentence 2]
+[Original sentence 2]
 
-**无文本需要翻译的输出示例**：
-[无文本]
+**Example output when no text needs translation**:
+[No text]
 
-确保高效、精确地完成上述翻译任务，输入内容如下：
-
-`
+Complete the above translation task efficiently and accurately. Input content below:`
 
 // 带有语气词过滤的拆分Prompt
-var SplitTextPromptWithModalFilter = `你是一个语言处理专家，专注于自然语言处理和翻译任务。按照以下步骤和要求，以最大程度实现字幕的准确和高质量翻译：
+var SplitTextPromptWithModalFilter = `You are a language processing expert specializing in natural language processing and translation tasks. Follow these steps and requirements to achieve the most accurate and high-quality subtitle translation:
 
-1. 将原句翻译为%s，确保译文流畅、自然，达到专业翻译水平，保持意思相同。**如果目标语言是中文，必须使用简体中文，不能使用繁体中文。**
-2. 严格依据标点符号（逗号: ，,、句号:。.、问号:？?等）将内容拆分成单独的句子，并依据以下规则确保拆分长度较短：
-   - 每个句子在保证句意完整的情况下尽可能短，适中的字幕长短能提供舒适的观看体验。
-   - 根据连词（例如 "and", "but", "which", "when", "so", "所以", "但是", "因此", "考虑到" 等）进一步拆分句子，得到较短的结果。
-3. 对每个拆分的句子分别翻译，确保不遗漏或修改任何字词。
-4. 将每对翻译后的句子与原句用独立编号表示，并分别以方括号[]包裹内容。
-5. 输出的翻译与原文应保持对应，严格按照原文顺序呈现，不得有错位，与原文表达的意思保持一致，且原文尽可能使用原文。
-6. 忽略文本中的语气词，比如"Oh" "Ah" "Wow"等等。
-7. 不管内容是正式还是非正式，都要翻译。
+1. Translate the source sentence into %s, ensuring the translation is fluent, natural, and meets professional translation standards while preserving the original meaning. **If the target language is Chinese, you MUST use Simplified Chinese characters, NOT Traditional Chinese.**
+2. Strictly split content into individual sentences based on punctuation marks (comma: ，,、 period: 。.、 question mark: ？? etc.), and ensure short split lengths according to these rules:
+   - Each sentence should be as short as possible while maintaining complete meaning; moderate subtitle length provides a comfortable viewing experience.
+   - Further split sentences based on conjunctions (e.g., "and", "but", "which", "when", "so", "but", "therefore", "considering" etc.) to get shorter results.
+3. Translate each split sentence separately, ensuring no words are omitted or modified.
+4. Represent each translated sentence pair with the original sentence using independent numbering, and wrap each in square brackets [].
+5. The output translation must correspond to the original text, strictly presented in the original order without misalignment, maintaining the same meaning as the original, and the original text should be used as much as possible.
+6. Ignore modal/filler words in the text, such as "Oh", "Ah", "Wow", etc.
+7. Translate all content regardless of whether it is formal or informal.
 
-翻译输出应采用如下格式：
-**正常翻译的示例（注意每块3部分，每个部分都独占一行，空格分块）**：
+Translation output should follow this format:
+**Normal translation example (each block has 3 parts, each part on its own line, separated by spaces)**:
 1
-[翻译后的句子1]
-[原句子1]
+[Translated sentence 1]
+[Original sentence 1]
 
 2
-[翻译后的句子2]
-[原句子2]
+[Translated sentence 2]
+[Original sentence 2]
 
-**无文本需要翻译的输出示例**：
-[无文本]
+**Example output when no text needs translation**:
+[No text]
 
-确保高效、精确地完成上述翻译任务，输入内容如下：
+Complete the above translation task efficiently and accurately. Input content below:`
 
-`
+var SplitTextPromptJson = `You are a language processing expert specializing in natural language processing and translation tasks. Follow these steps and requirements to achieve the most accurate and high-quality subtitle translation:
 
-var SplitTextPromptJson = `你是一个语言处理专家，专注于自然语言处理和翻译任务。按照以下步骤和要求，以最大程度实现字幕的准确和高质量翻译：
+1. Translate the source sentence into %s, ensuring the translation is fluent, natural, and meets professional translation standards while preserving the original meaning.
+2. Strictly split content into individual sentences based on punctuation marks (comma: ，,、 period: 。.、 question mark: ？? etc.), and ensure short split lengths according to these rules:
+   - Each sentence should be as short as possible while maintaining complete meaning; moderate subtitle length provides a comfortable viewing experience.
+   - Further split sentences based on conjunctions (e.g., "and", "but", "which", "when", "so", "but", "therefore", "considering" etc.) to get shorter results.
+3. Translate each split sentence separately, ensuring no words are omitted or modified.
+4. Ensure the output translation corresponds to the original text, strictly presented in the original order.
+5. The output format MUST be a JSON array, where each element contains 'original_sentence' and 'translated_sentence' fields.
+6. The original sentence in the result must exactly match the original text, including case sensitivity of the first letter, and punctuation marks must also be retained without modification. For English source text, use English punctuation, and do not correct any grammar or spelling mistakes.
+7. Each split sentence can only have one complete statement.
 
-1. 将原句翻译为%s，确保译文流畅、自然，达到专业翻译水平，保持意思相同。
-2. 严格依据标点符号（逗号: ，,、句号:。.、问号:？?等）将内容拆分成单独的句子，并依据以下规则确保拆分长度较短：
-   - 每个句子在保证句意完整的情况下尽可能短，适中的字幕长短能提供舒适的观看体验。
-   - 根据连词（例如 "and", "but", "which", "when", "so", "所以", "但是", "因此", "考虑到" 等）进一步拆分句子，得到较短的结果。
-3. 对每个拆分的句子分别翻译，确保不遗漏或修改任何字词。
-4. 输出的翻译与原文确保相对应，严格按照原文顺序呈现。
-5. 输出格式必须是一个 JSON 数组，每个元素包含 'original_sentence' 和 'translated_sentence' 字段。
-6. 结果中的原句子要和原文中完全一致，包括首字母是否大小写，标点符号也要保留不修改，英文原文请使用英文标点符号，务必不要纠正任何语病和拼写错误。
-7. 每个拆分的句子只能有一个完整的语句。
+Ensure efficient and precise completion of the subtitle translation task. Input content below:`
 
-确保高效、精确地完成上述字幕翻译任务，输入内容如下：
+var SplitTextPromptWithModalFilterJson = `You are a language processing expert specializing in natural language processing and translation tasks. Follow these steps and requirements to achieve the most accurate and high-quality subtitle translation:
 
-`
+1. Translate the source sentence into %s, ensuring the translation is fluent, natural, and meets professional translation standards while preserving the original meaning.
+2. Strictly split content into individual sentences based on punctuation marks (comma: ，,、 period: 。.、 question mark: ？? etc.), and ensure short split lengths according to these rules:
+   - Each sentence should be as short as possible while maintaining complete meaning; moderate subtitle length provides a comfortable viewing experience.
+   - Further split sentences based on conjunctions (e.g., "and", "but", "which", "when", "so", "but", "therefore", "considering" etc.) to get shorter results.
+3. Ignore modal/filler words in the text, such as "Oh", "Ah", "Wow", etc.
+4. Translate each split sentence separately, ensuring no words are omitted or modified.
+5. Ensure the output translation corresponds to the original text, strictly presented in the original order.
+6. The output format MUST be a JSON array, where each element contains 'original_sentence' and 'translated_sentence' fields.
+7. The original sentence in the result must exactly match the original text, including case sensitivity of the first letter, and punctuation marks must also be retained without modification. For English source text, use English punctuation, and do not correct any grammar or spelling mistakes.
+8. Each split sentence can only have one complete statement.
 
-var SplitTextPromptWithModalFilterJson = `你是一个语言处理专家，专注于自然语言处理和翻译任务。按照以下步骤和要求，以最大程度实现字幕的准确和高质量翻译：
+Ensure efficient and precise completion of the subtitle translation task. Input content below:`
 
-1. 将原句翻译为%s，确保译文流畅、自然，达到专业翻译水平，保持意思相同。
-2. 严格依据标点符号（逗号: ，,、句号:。.、问号:？?等）将内容拆分成单独的句子，并依据以下规则确保拆分长度较短：
-   - 每个句子在保证句意完整的情况下尽可能短，适中的字幕长短能提供舒适的观看体验。
-   - 根据连词（例如 "and", "but", "which", "when", "so", "所以", "但是", "因此", "考虑到" 等）进一步拆分句子，得到较短的结果。
-3. 忽略文本中的语气词，比如"Oh" "Ah" "Wow"等等。
-4. 对每个拆分的句子分别翻译，确保不遗漏或修改任何字词。
-5. 输出的翻译与原文确保相对应，严格按照原文顺序呈现。
-6. 输出格式必须是一个 JSON 数组，每个元素包含 'original_sentence' 和 'translated_sentence' 字段。
-7. 结果中的原句子要和原文中完全一致，包括首字母是否大小写，标点符号也要保留不修改，英文原文请使用英文标点符号，务必不要纠正任何语病和拼写错误。
-8. 每个拆分的句子只能有一个完整的语句。
+var TranslateVideoTitleAndDescriptionPrompt = `You are a professional translation expert, please translate the given title and description below (separated by ####), with requirements:
+  - Translate content into %s
+  - The translated content must still be separated by #### to divide the title and description
+  The following is the source content, please translate completely as required:
+ %s`
+var SplitLongSentencePrompt = `Please split the following original and translated text into multiple parts, ensuring each part is as short as possible:
+Original: %s
+Translation: %s
 
-确保高效、精确地完成上述字幕翻译任务，输入内容如下：
-
-`
-
-var TranslateVideoTitleAndDescriptionPrompt = `你是一个专业的翻译专家，请翻译下面给出的标题和描述信息（两者用####来分隔），要求如下：
- - 将内容翻译成 %s
- - 翻译后的内容仍然用####来分隔标题和描述两部分
- 以下全部是源内容，请完整按要求翻译：
-%s
-`
-
-var SplitLongSentencePrompt = `请将以下原文和译文分割成多个部分，确保每个部分都尽可能短：
-原文：%s
-译文：%s
-
-要求：
-1. 分割后的原文与原文不能有偏差 
-2. 分割后的每个翻译句都需要符合语法规范，可进行添加连词、去除助词等操作等保证每句读起来都是自然的
-3. 译文如果有遗漏，请在分割的同时补全
-4. 务必返回JSON格式，包含origin_part和translated_part数组，例如：
-{"align":[{"origin_part":"原文部分1","translated_part":"译文部分1"},{"origin_part":"原文部分2","translated_part":"译文部分2"}]}`
+Requirements:
+1. The split original parts must not deviate from the source original text
+2. Each split translated sentence must conform to grammatical standards, allowing addition of conjunctions, removal of particles, etc., to ensure natural flow when spoken.
+3. If there are omissions in the translation, please fill them in during splitting.
+4. You MUST return JSON format containing origin_part and translated_part arrays, for example:
+{"align":[{"origin_part":"original part 1","translated_part":"translated part 1"},{"origin_part":"original part 2","translated_part":"translated part 2"}]}`
 
 var SplitOriginLongSentencePrompt = `Please split the following text into multiple parts, ensuring it's divided into at most 3 short sentences, preferably 2 parts,
 
@@ -205,12 +195,13 @@ Requirements:
 
 // Please provide only the translation result:`
 
-var SplitTextWithContextPrompt = `You are a professional subtitle translation expert.
+var SplitTextWithContextPrompt = `You are a professional subtitle translation expert specialized in voiceover/dubbing production.
 
 [TRANSLATION TASK]
 **Objective**: 
-Translate the "Target Sentence" below into %s with natural, fluent expression.
+Translate the "Target Sentence" below into %s with natural, fluent expression optimized for text-to-speech (TTS) voiceover.
 Use "Previous Sentences" to understand context and maintain coherence.
+The translation will be read aloud by a speech synthesizer within the available subtitle duration — it MUST be concise enough to fit.
 
 **Critical Rules**:
 1. OUTPUT MUST BE A SINGLE LINE: only the translated text
@@ -222,6 +213,16 @@ Use "Previous Sentences" to understand context and maintain coherence.
 7. Keep the original meaning but express it smoothly and naturally in the target language
 8. If sentence is incomplete/fragmentary, keep it that way but translate fluently
 9. IGNORE the "Next Sentences" - they are for reference only
+
+**[VOICEOVER TIMING — CRITICAL]**
+The translated text will be read by a TTS engine in a fixed time window equal to the original speech duration.
+- AVERAGE reading speed: ~4-5 syllables per second for the target language
+- KEEP the translation CONCISE: aim for the translated text to be readable in the same duration as the original
+- Avoid unnecessarily long or wordy translations — prefer shorter, natural alternatives
+- Do NOT add explanatory words or repetitions — every word must carry meaning
+- If the original sentence is short (~1-2s of speech), keep the translation equally brief
+- For complex/compound sentences, prioritize the core message and trim non-essential modifiers
+- Write for SPEECH, not for reading — use natural, flowing spoken language structure
 
 **Context**:
 [Previous Sentences]

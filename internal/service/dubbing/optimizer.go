@@ -24,15 +24,20 @@ func (o *LLMOptimizer) Optimize(ctx context.Context, text string, availableSecon
 	if o == nil || o.chat == nil {
 		return text, nil
 	}
-	prompt := fmt.Sprintf(`请把下面字幕改写成更自然、更短、 更适合口播的一句话。
-要求：
-1. 保留核心含义，不添加新事实。
-2. 输出目标语言文本，不要解释。
-3. 输出单行纯文本。
-4. 尽量适合 %.1f 秒内自然朗读。
-触发原因：%s
+	prompt := fmt.Sprintf(`Rewrite the subtitle below into a single, concise sentence optimized for text-to-speech (TTS) voiceover.
 
-字幕：
+Constraints:
+1. Target duration: MUST be readable naturally within %.2f seconds
+2. Preserve core meaning exactly — no added facts, no omitted key information
+3. Output target language text ONLY — no explanations, no formatting
+4. Single line of plain text
+5. Use natural spoken language — contractions, conversational flow, simple sentence structure
+6. Typical speech rate: ~150 words/min (English) / ~220 chars/min (Chinese) — choose wording that fits the time budget
+7. If the original is already short enough, return it unchanged
+
+Trigger reason: %s
+
+Subtitle:
 %s`, availableSeconds, reason, text)
 	resp, err := o.chat.ChatCompletion(prompt)
 	if err != nil {
