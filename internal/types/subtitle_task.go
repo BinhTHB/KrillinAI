@@ -216,8 +216,8 @@ The translation will be read aloud by a speech synthesizer within the available 
 
 **[VOICEOVER TIMING — CRITICAL]**
 The translated text will be read by a TTS engine in a fixed time window equal to the original speech duration.
-- AVERAGE reading speed: ~4-5 syllables per second for the target language
-- KEEP the translation CONCISE: aim for the translated text to be readable in the same duration as the original
+- AVAILABLE DURATION: %.1f seconds. The translation MUST be readable at a natural pace within this duration.
+- LENGTH TARGET: Max %d syllables/characters. Keep it concise so it doesn't overrun.
 - Avoid unnecessarily long or wordy translations — prefer shorter, natural alternatives
 - Do NOT add explanatory words or repetitions — every word must carry meaning
 - If the original sentence is short (~1-2s of speech), keep the translation equally brief

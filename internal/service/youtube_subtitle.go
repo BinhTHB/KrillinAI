@@ -894,7 +894,18 @@ func (s *YouTubeSubtitleService) writeVttWordsToSrt(vttWords []VttWord, srtFile 
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
-			translatedBlocks, err := s.translator.SplitTextAndTranslate(sent.Text, types.StandardLanguageCode(req.OriginLanguage), types.StandardLanguageCode(req.TargetLanguage))
+			// 计算句子时长（秒）
+			duration := 0.0
+			if sTime, err := util.ParseVttTime(sent.StartTime); err == nil {
+				if eTime, err := util.ParseVttTime(sent.EndTime); err == nil {
+					duration = eTime - sTime
+				}
+			}
+			if duration <= 0 {
+				duration = 2.0 // fallback cho câu ngắn
+			}
+
+			translatedBlocks, err := s.translator.SplitTextAndTranslate(sent.Text, types.StandardLanguageCode(req.OriginLanguage), types.StandardLanguageCode(req.TargetLanguage), duration)
 			if err != nil {
 				log.GetLogger().Warn("Translation failed, using original text",
 					zap.Int("index", index),

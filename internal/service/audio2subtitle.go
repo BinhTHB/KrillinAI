@@ -11,6 +11,7 @@ import (
 	"krillin-ai/log"
 	"krillin-ai/pkg/deepl"
 	"krillin-ai/pkg/util"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -144,7 +145,7 @@ func IsSplitUseSpace(language types.StandardLanguageCode) bool {
 	return false
 }
 
-func (s Service) splitTextAndTranslateV2(basePath, inputText string, originLang, targetLang types.StandardLanguageCode, enableModalFilter bool, id int) ([]*TranslatedItem, error) {
+func (s Service) splitTextAndTranslateV2(basePath, inputText string, originLang, targetLang types.StandardLanguageCode, enableModalFilter bool, id int, duration float64) ([]*TranslatedItem, error) {
 	sentences := util.SplitTextSentences(inputText, config.Conf.App.MaxSentenceLength)
 	if len(sentences) == 0 {
 		return []*TranslatedItem{}, nil
@@ -227,7 +228,14 @@ func (s Service) splitTextAndTranslateV2(basePath, inputText string, originLang,
 				}
 			}
 
-			prompt := fmt.Sprintf(types.SplitTextWithContextPrompt, types.GetStandardLanguageName(targetLang), previousSentences, originText, nextSentences)
+			// Calculate proportional duration for this sentence
+			sentenceDuration := duration / float64(len(sentences))
+			if sentenceDuration <= 0 {
+				sentenceDuration = 1.0 // fallback
+			}
+			maxSyllables := int(math.Max(5, sentenceDuration*5))
+
+			prompt := fmt.Sprintf(types.SplitTextWithContextPrompt, types.GetStandardLanguageName(targetLang), sentenceDuration, maxSyllables, previousSentences, originText, nextSentences)
 
 			translatedText, err := s.ChatCompleter.ChatCompletion(prompt)
 
@@ -342,7 +350,7 @@ func (s Service) processAudioSegments(ctx context.Context, stepParam *types.Subt
 	splitResultQueue := make(chan DataWithId[string], segmentNum)
 	pendingTranscriptionQueue := make(chan DataWithId[string], segmentNum)
 	transcribedQueue := make(chan DataWithId[*types.TranscriptionData], segmentNum)
-	pendingTranslationQueue := make(chan DataWithId[string], segmentNum)
+	pendingTranslationQueue := make(chan DataWithId[*types.TranscriptionData], segmentNum)
 	translatedQueue := make(chan DataWithId[[]*TranslatedItem], segmentNum)
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -458,7 +466,7 @@ func (s Service) startTranscribeWorkers(ctx context.Context, eg *errgroup.Group,
 
 // 启动翻译工作协程
 func (s Service) startTranslateWorker(ctx context.Context, eg *errgroup.Group, stepParam *types.SubtitleTaskStepParam,
-	pendingTranslationQueue chan DataWithId[string], translatedQueue chan DataWithId[[]*TranslatedItem]) {
+	pendingTranslationQueue chan DataWithId[*types.TranscriptionData], translatedQueue chan DataWithId[[]*TranslatedItem]) {
 
 	eg.Go(func() error {
 		for {
@@ -473,8 +481,16 @@ func (s Service) startTranslateWorker(ctx context.Context, eg *errgroup.Group, s
 				var err error
 				// 翻译文本
 				log.GetLogger().Info("Begin to translate", zap.Any("taskId", stepParam.TaskId), zap.Any("splitId", translateItem.Id))
+
+				duration := 0.0
+				if translateItem.Data != nil && len(translateItem.Data.Words) > 0 {
+					duration = translateItem.Data.Words[len(translateItem.Data.Words)-1].End - translateItem.Data.Words[0].Start
+				}
+				if duration <= 0 {
+					duration = 2.0 // fallback
+				}
 				for range config.Conf.App.TranslateMaxAttempts {
-					translatedResults, err = s.splitTextAndTranslateV2(stepParam.TaskBasePath, translateItem.Data, stepParam.OriginLanguage, stepParam.TargetLanguage, stepParam.EnableModalFilter, translateItem.Id)
+					translatedResults, err = s.splitTextAndTranslateV2(stepParam.TaskBasePath, translateItem.Data.Text, stepParam.OriginLanguage, stepParam.TargetLanguage, stepParam.EnableModalFilter, translateItem.Id, duration)
 					if err == nil {
 						break
 					}
@@ -508,7 +524,7 @@ func (s Service) startTranslateWorker(ctx context.Context, eg *errgroup.Group, s
 func (s Service) startResultHandler(ctx context.Context, eg *errgroup.Group, stepParam *types.SubtitleTaskStepParam,
 	segmentNum int, timePoints []float64, audioSegments []AudioSegment,
 	splitResultQueue chan DataWithId[string], pendingTranscriptionQueue chan DataWithId[string],
-	transcribedQueue chan DataWithId[*types.TranscriptionData], pendingTranslationQueue chan DataWithId[string],
+	transcribedQueue chan DataWithId[*types.TranscriptionData], pendingTranslationQueue chan DataWithId[*types.TranscriptionData],
 	translatedQueue chan DataWithId[[]*TranslatedItem], pendingSplitQueue chan DataWithId[[2]float64]) {
 
 	eg.Go(func() error {
@@ -545,8 +561,8 @@ func (s Service) startResultHandler(ctx context.Context, eg *errgroup.Group, ste
 				// 处理转录结果
 				audioSegments[transcribedItem.Id].TranscriptionData = transcribedItem.Data
 				// 发送翻译任务
-				pendingTranslationQueue <- DataWithId[string]{
-					Data: transcribedItem.Data.Text,
+				pendingTranslationQueue <- DataWithId[*types.TranscriptionData]{
+					Data: transcribedItem.Data,
 					Id:   transcribedItem.Id,
 				}
 			case translatedItems := <-translatedQueue:

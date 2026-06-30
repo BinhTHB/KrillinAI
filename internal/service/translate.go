@@ -8,6 +8,7 @@ import (
 	"krillin-ai/log"
 	"krillin-ai/pkg/openai"
 	"krillin-ai/pkg/util"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -25,7 +26,7 @@ func NewTranslator() *Translator {
 	}
 }
 
-func (t *Translator) SplitTextAndTranslate(inputText string, originLang, targetLang types.StandardLanguageCode) ([]*TranslatedItem, error) {
+func (t *Translator) SplitTextAndTranslate(inputText string, originLang, targetLang types.StandardLanguageCode, availableDuration float64) ([]*TranslatedItem, error) {
 	sentences := util.SplitTextSentences(inputText, config.Conf.App.MaxSentenceLength)
 	if len(sentences) == 0 {
 		return []*TranslatedItem{}, nil
@@ -97,7 +98,14 @@ func (t *Translator) SplitTextAndTranslate(inputText string, originLang, targetL
 				}
 			}
 
-			prompt := fmt.Sprintf(types.SplitTextWithContextPrompt, types.GetStandardLanguageName(targetLang), previousSentences, originText, nextSentences)
+			// Calculate proportional duration for this sentence
+			sentenceDuration := availableDuration / float64(len(sentences))
+			if sentenceDuration <= 0 {
+				sentenceDuration = 1.0 // fallback
+			}
+			maxSyllables := int(math.Max(5, sentenceDuration*5)) // typical 4-5 syllables/second
+
+			prompt := fmt.Sprintf(types.SplitTextWithContextPrompt, types.GetStandardLanguageName(targetLang), sentenceDuration, maxSyllables, previousSentences, originText, nextSentences)
 
 			translatedText, err := t.translateWithRetry(prompt, originText, originLang, targetLang)
 			if err != nil {
