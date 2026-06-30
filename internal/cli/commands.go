@@ -2075,6 +2075,12 @@ func ensureGeminiDubVideo(req GeminiDubRequest) error {
 	if strings.TrimSpace(req.Input) == "" {
 		return fmt.Errorf("input video not found: %s", videoPath)
 	}
+
+	// Use f2 for Douyin, yt-dlp for other platforms
+	if strings.Contains(req.Input, "douyin.com") {
+		return downloadDouyinVideoForGeminiDub(req.Input, videoPath)
+	}
+
 	baseName := strings.TrimSuffix(req.Video, filepath.Ext(req.Video))
 	outputPattern := filepath.Join(req.Workdir, baseName+".%(ext)s")
 	cmd := exec.Command(
@@ -2093,6 +2099,75 @@ func ensureGeminiDubVideo(req GeminiDubRequest) error {
 	if !fileExists(videoPath) {
 		return fmt.Errorf("downloaded video not found: %s", videoPath)
 	}
+	return nil
+}
+
+func downloadDouyinVideoForGeminiDub(inputURL string, videoPath string) error {
+	// Find f2 binary
+	f2Path, err := exec.LookPath("f2")
+	if err != nil {
+		localF2Path := "./bin/f2"
+		if _, err := os.Stat(localF2Path); err == nil {
+			f2Path = localF2Path
+		} else {
+			localF2PathWindows := ".\\bin\\f2.exe"
+			if _, err := os.Stat(localF2PathWindows); err == nil {
+				f2Path = localF2PathWindows
+			} else {
+				return fmt.Errorf("f2 binary not found in PATH or ./bin/f2")
+			}
+		}
+	}
+
+	// Create temp download directory
+	tmpDir := filepath.Join(filepath.Dir(videoPath), "f2_tmp")
+	if err := os.MkdirAll(tmpDir, 0755); err != nil {
+		return fmt.Errorf("create f2 temp dir failed: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Read cookie if available
+	cookiePath := filepath.Join(".", "cookie_string.txt")
+	var cookie string
+	if cookieData, err := os.ReadFile(cookiePath); err == nil {
+		cookie = strings.TrimSpace(string(cookieData))
+	}
+
+	// Build f2 command
+	args := []string{"dy", "-u", inputURL, "--mode", "one", "-p", tmpDir, "-f", "false", "-v", "false", "-d", "false"}
+	if cookie != "" {
+		args = append(args, "-k", cookie)
+	}
+
+	cmd := exec.Command(f2Path, args...)
+	fmt.Fprintf(os.Stderr, "[f2] downloading Douyin video...\n")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("f2 download failed: %w\n%s", err, string(output))
+	}
+
+	// Walk tmpDir to find mp4
+	var mp4File string
+	filepath.WalkDir(tmpDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if !d.IsDir() && strings.HasSuffix(strings.ToLower(path), ".mp4") {
+			mp4File = path
+			return io.EOF
+		}
+		return nil
+	})
+	if mp4File == "" {
+		return fmt.Errorf("no mp4 file found in f2 output directory")
+	}
+
+	// Move to target
+	if err := os.Rename(mp4File, videoPath); err != nil {
+		return fmt.Errorf("move video failed: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "[f2] video saved to %s\n", videoPath)
 	return nil
 }
 
