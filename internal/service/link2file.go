@@ -4,12 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"krillin-ai/config"
 	"krillin-ai/internal/storage"
 	"krillin-ai/internal/types"
 	"krillin-ai/log"
 	"krillin-ai/pkg/util"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"go.uber.org/zap"
@@ -66,20 +69,21 @@ func (s Service) linkToFile(ctx context.Context, stepParam *types.SubtitleTaskSt
 			}
 		}
 	} else if strings.Contains(link, "douyin.com") {
-		videoId := util.GetDouyinVideoId(link)
-		if videoId != "" {
-			stepParam.Link = "https://www.douyin.com/video/" + videoId
-		}
-		cmdArgs := []string{"--extract-audio", "--audio-format", "mp3", "-o", audioPath, stepParam.Link}
-		if config.Conf.App.Proxy != "" {
-			cmdArgs = append(cmdArgs, "--proxy", config.Conf.App.Proxy)
-		}
-		cmd := exec.Command(storage.YtdlpPath, cmdArgs...)
-		output, err = cmd.CombinedOutput()
-		if err != nil {
-			log.GetLogger().Error("linkToFile download audio yt-dlp error", zap.Any("step param", stepParam), zap.String("output", string(output)), zap.Error(err))
-			return fmt.Errorf("linkToFile download audio yt-dlp error: %w", err)
-		}
+			videoId := util.GetDouyinVideoId(link)
+			if videoId != "" {
+				stepParam.Link = "https://www.douyin.com/video/" + videoId
+			}
+			if err := downloadDouyinVideoWithF2(stepParam.Link, videoPath, config.Conf.App.Proxy); err != nil {
+				log.GetLogger().Error("linkToFile download douyin video with f2 error", zap.Any("step param", stepParam), zap.Error(err))
+				return fmt.Errorf("linkToFile download douyin video with f2 error: %w", err)
+			}
+			// Extract audio from downloaded video
+			cmd := exec.Command(storage.FfmpegPath, "-i", videoPath, "-vn", "-ar", "44100", "-ac", "2", "-ab", "192k", "-f", "mp3", audioPath)
+			output, err = cmd.CombinedOutput()
+			if err != nil {
+				log.GetLogger().Error("linkToFile extract audio ffmpeg error", zap.Any("step param", stepParam), zap.String("output", string(output)), zap.Error(err))
+				return fmt.Errorf("linkToFile extract audio ffmpeg error: %w", err)
+			}
 	} else if strings.Contains(link, "bilibili.com") {
 		videoId := util.GetBilibiliVideoId(link)
 		if videoId == "" {
@@ -106,7 +110,7 @@ func (s Service) linkToFile(ctx context.Context, stepParam *types.SubtitleTaskSt
 	stepParam.TaskPtr.ProcessPct = 6
 	stepParam.AudioFilePath = audioPath
 
-	if !strings.HasPrefix(link, "local:") && stepParam.EmbedSubtitleVideoType != "none" {
+	if !strings.HasPrefix(link, "local:") && !strings.Contains(link, "douyin.com") && stepParam.EmbedSubtitleVideoType != "none" {
 		// 需要下载原视频
 		cmdArgs := []string{"-f", "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]", "-o", videoPath, stepParam.Link}
 		if config.Conf.App.Proxy != "" {
@@ -122,9 +126,81 @@ func (s Service) linkToFile(ctx context.Context, stepParam *types.SubtitleTaskSt
 			return fmt.Errorf("linkToFile download video yt-dlp error: %w", err)
 		}
 	}
+
+	// For Douyin, if video is not needed, clean it up
+	if strings.Contains(link, "douyin.com") && stepParam.EmbedSubtitleVideoType == "none" {
+		_ = os.Remove(videoPath)
+	}
 	stepParam.InputVideoPath = videoPath
 
 	// 更新字幕任务信息
-	stepParam.TaskPtr.ProcessPct = 10
-	return nil
-}
+		stepParam.TaskPtr.ProcessPct = 10
+		return nil
+	}
+
+	func downloadDouyinVideoWithF2(url string, outputPath string, proxy string) error {
+		// Find f2 binary
+		f2Path, err := exec.LookPath("f2")
+		if err != nil {
+			// Try local bin directory
+			localF2Path := "./bin/f2"
+			if _, err := os.Stat(localF2Path); err == nil {
+				f2Path = localF2Path
+			} else {
+				return fmt.Errorf("f2 binary not found in PATH or ./bin/f2")
+			}
+		}
+
+		// Create temporary directory for f2 download
+		tmpDir := filepath.Join(filepath.Dir(outputPath), "f2_tmp")
+		if err := os.MkdirAll(tmpDir, 0755); err != nil {
+			return fmt.Errorf("create temp dir failed: %w", err)
+		}
+		defer os.RemoveAll(tmpDir)
+
+		// Read cookie string from file if exists
+		cookiePath := filepath.Join(".", "cookie_string.txt")
+		var cookie string
+		if cookieData, err := os.ReadFile(cookiePath); err == nil {
+			cookie = strings.TrimSpace(string(cookieData))
+		}
+
+		// Build f2 command
+		args := []string{"dy", "-u", url, "--mode", "one", "-p", tmpDir}
+		if cookie != "" {
+			args = append(args, "-k", cookie)
+		}
+		if proxy != "" {
+			args = append(args, "-P", proxy)
+		}
+
+		cmd := exec.Command(f2Path, args...)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			log.GetLogger().Error("f2 download failed", zap.String("url", url), zap.String("output", string(output)), zap.Error(err))
+			return fmt.Errorf("f2 download failed: %w, output: %s", err, string(output))
+		}
+
+		// Find the downloaded mp4 file (f2 creates douyin/one/<author>/<file>.mp4 structure)
+		var mp4File string
+		filepath.WalkDir(tmpDir, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return nil // skip errors
+			}
+			if !d.IsDir() && strings.HasSuffix(strings.ToLower(path), ".mp4") {
+				mp4File = path
+				return io.EOF // stop walking
+			}
+			return nil
+		})
+		if mp4File == "" {
+			return fmt.Errorf("no mp4 file found in f2 output directory")
+		}
+
+		// Move the found mp4 to outputPath
+		if err := os.Rename(mp4File, outputPath); err != nil {
+			return fmt.Errorf("move video file failed: %w", err)
+		}
+
+		return nil
+	}
