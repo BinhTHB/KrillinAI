@@ -69,10 +69,27 @@ func tryOcrSubtitle(ctx context.Context, videoPath, outputPath string, useGpu bo
 		return nil, nil
 	}
 
-	// Find Python executable
+	// Find Python executable (use absolute path to avoid Windows App Execution Alias interception)
 	pythonExe := "python"
-	if _, err := exec.LookPath("python3"); err == nil {
-		pythonExe = "python3"
+	// Priority: python3 > conda python > python (skip WindowsApps)
+	if path, err := exec.LookPath("python3"); err == nil && !strings.Contains(strings.ToLower(path), "windowsapps") {
+		pythonExe = path
+	} else if path, err := exec.LookPath("python"); err == nil && !strings.Contains(strings.ToLower(path), "windowsapps") {
+		pythonExe = path
+	} else {
+		// Fallback: try common Python paths
+		candidates := []string{
+			"E:\\Miniconda\\python.exe",
+			"C:\\Users\\ADMIN\\Miniconda\\python.exe",
+			"C:\\Python311\\python.exe",
+			"C:\\Python310\\python.exe",
+		}
+		for _, cand := range candidates {
+			if _, err := os.Stat(cand); err == nil {
+				pythonExe = cand
+				break
+			}
+		}
 	}
 
 	// Build OCR command args
