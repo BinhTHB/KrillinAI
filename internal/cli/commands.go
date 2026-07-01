@@ -879,10 +879,10 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 	outputBase := filepath.Join(req.Workdir, req.OutputDir)
 
 	// Run render_with_sub_blur.py to blur hardsub and overlay Vietnamese subtitles
-	// This produces final.mp4 with blurred original subs + Vietnamese subs overlaid
+	// Use controlled_tts_final.mp4 (which has TTS) as the input video
 	blurArgs := []string{
 		"scripts/render_with_sub_blur.py",
-		"--input-video", filepath.Join(req.Workdir, req.Video),
+		"--input-video", filepath.Join(outputBase, "controlled_tts_final.mp4"),
 		"--origin-srt", filepath.Join(req.Workdir, "origin_language_srt.srt"),
 		"--overlay-srt", filepath.Join(outputBase, "controlled_aligned.ass"),
 		"--output-video", filepath.Join(outputBase, "final.mp4"),
