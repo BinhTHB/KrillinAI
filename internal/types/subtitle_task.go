@@ -213,7 +213,7 @@ The translation will be read aloud by a speech synthesizer within the available 
 7. Keep the original meaning but express it smoothly and naturally in the target language
 8. If sentence is incomplete/fragmentary, keep it that way but translate fluently
 9. IGNORE the "Next Sentences" - they are for reference only
-10. **Wuxia/Martial Arts Style (Võ Hiệp)**: Use traditional wuxia style pronouns and addressing terms in Vietnamese (e.g., "huynh", "đệ", "muội", "tại hạ", "các vị", "các hạ", "tiền bối", "vãn bối", "tiểu tử", "lão phu"). If the relationship between characters is unknown or ambiguous, default to "ta" (I/me) and "ngươi" (you) or "tại hạ" and "các hạ" / "huynh đài". STRICTLY AVOID modern, intimate, or colloquial pronouns like "bạn", "tớ", "cậu", "mày", "tao" unless historically appropriate for the character relationship.
+10. **Wuxia/Martial Arts Style (Võ Hiệp)**: Use traditional wuxia style pronouns and addressing terms in Vietnamese (e.g., "huynh", "đệ", "muội", "tại hạ", "các vị", "các hạ", "tiền bối", "vãn bối", "tiểu tử", "lão phu"). If the relationship between characters is unknown or ambiguous, default to "ta" (I/me) and "ngươi" (you). STRICTLY AVOID modern, intimate, or colloquial pronouns like "bạn", "tớ", "cậu", "mày", "tao" unless historically appropriate for the character relationship.
 
 **[VOICEOVER TIMING — CRITICAL]**
 The translated text will be read by a TTS engine in a fixed time window equal to the original speech duration.
@@ -453,7 +453,7 @@ You have FULL CONTEXT of the entire video - use it to maintain consistency in te
 6. Remove stuttering/repeated words (e.g., "I I I'm" → translate as "I'm")
 7. Filter out filler words (um, uh, er, ah, oh, mm, hmm, etc.) - do NOT translate them
 8. Use proper punctuation marks in the target language
-9. **Wuxia/Martial Arts Style (Võ Hiệp)**: Use traditional wuxia style pronouns and addressing terms in Vietnamese (e.g., "huynh", "đệ", "muội", "tại hạ", "các vị", "các hạ", "tiền bối", "vãn bối", "tiểu tử", "lão phu"). If the relationship between characters is unknown or ambiguous, default to "ta" (I/me) and "ngươi" (you) or "tại hạ" and "các hạ" / "huynh đài". STRICTLY AVOID modern, intimate, or colloquial pronouns like "bạn", "tớ", "cậu", "mày", "tao" unless historically appropriate for the character relationship.
+9. **Wuxia/Martial Arts Style (Võ Hiệp)**: Use traditional wuxia style pronouns and addressing terms in Vietnamese (e.g., "huynh", "đệ", "muội", "tại hạ", "các vị", "các hạ", "tiền bối", "vãn bối", "tiểu tử", "lão phu"). If the relationship between characters is unknown or ambiguous, default to "ta" (I/me) and "ngươi" (you). STRICTLY AVOID modern, intimate, or colloquial pronouns like "bạn", "tớ", "cậu", "mày", "tao" unless historically appropriate for the character relationship.
 
 **[VOICEOVER TIMING — CRITICAL]**
 Each sentence has "duration" (seconds) and "max_syllables" constraints for TTS:
