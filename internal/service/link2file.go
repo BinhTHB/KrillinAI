@@ -128,9 +128,10 @@ func (s Service) linkToFile(ctx context.Context, stepParam *types.SubtitleTaskSt
 	}
 
 	// For Douyin, if video is not needed, clean it up
-	if strings.Contains(link, "douyin.com") && stepParam.EmbedSubtitleVideoType == "none" {
-		_ = os.Remove(videoPath)
-	}
+		// Keep video if OCR is enabled (OCR needs video file to extract hardcoded subtitles)
+		if strings.Contains(link, "douyin.com") && stepParam.EmbedSubtitleVideoType == "none" && !config.Conf.App.EnableOcr {
+			_ = os.Remove(videoPath)
+		}
 	stepParam.InputVideoPath = videoPath
 
 	// 更新字幕任务信息

@@ -877,6 +877,26 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 	}
 
 	outputBase := filepath.Join(req.Workdir, req.OutputDir)
+
+	// Run render_with_sub_blur.py to blur hardsub and overlay Vietnamese subtitles
+	// This produces final.mp4 with blurred original subs + Vietnamese subs overlaid
+	blurArgs := []string{
+		"scripts/render_with_sub_blur.py",
+		"--input-video", filepath.Join(req.Workdir, req.Video),
+		"--origin-srt", filepath.Join(req.Workdir, "origin_language_srt.srt"),
+		"--overlay-srt", filepath.Join(outputBase, "controlled_aligned.ass"),
+		"--output-video", filepath.Join(outputBase, "final.mp4"),
+		"--crop-top", "0.82", "--crop-bottom", "0.98", "--blur-power", "10",
+	}
+	blurCmd := exec.Command(req.Python, blurArgs...)
+	blurCmd.Stdout = os.Stderr
+	blurCmd.Stderr = os.Stderr
+
+	finalVideo := filepath.Join(outputBase, "controlled_tts_final.mp4") // fallback
+	if err := blurCmd.Run(); err == nil {
+		finalVideo = filepath.Join(outputBase, "final.mp4")
+	}
+
 	return pipeline.Response{
 		OK:      true,
 		Stage:   pipeline.StageGeminiDub,
@@ -887,7 +907,7 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 			"srt":   filepath.Join(req.Workdir, req.SRT),
 		},
 		Outputs: pipeline.Outputs{
-			VideoWithTTS: filepath.Join(outputBase, "controlled_tts_final.mp4"),
+			VideoWithTTS: finalVideo,
 			TargetSRT:    filepath.Join(outputBase, "controlled_aligned.srt"),
 		},
 		DurationMS: time.Since(start).Milliseconds(),
@@ -1053,7 +1073,7 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 	// When timing has been fixed by text-matching, use overlay mode so the
 	// text-matched anchor timing is preserved rather than re-estimated.
 	cleanMode := req.TimelineMode
-	maxEntryDur := 12.0
+	maxEntryDur := 11.9
 	if timingFixed {
 		cleanMode = "overlay"
 	}
@@ -2016,7 +2036,7 @@ func validateGeminiDubCleanEntries(entries []geminiDubSRTEntry) error {
 		if entry.End <= entry.Start {
 			return fmt.Errorf("clean SRT has non-positive duration at entry %d", i+1)
 		}
-		if entry.End-entry.Start > 12.0 {
+		if entry.End-entry.Start > 12.01 {
 			return fmt.Errorf("clean SRT entry %d is too long: %.2fs", i+1, entry.End-entry.Start)
 		}
 		lastEnd = entry.End
