@@ -420,3 +420,54 @@ type SrtBlock struct {
 	OriginLanguageSentence string
 	TargetLanguageSentence string
 }
+
+// TranslationBatchItem represents a single sentence for batch translation
+type TranslationBatchItem struct {
+	Index        int     `json:"index"`
+	Original     string  `json:"original"`
+	Duration     float64 `json:"duration"`
+	MaxSyllables int     `json:"max_syllables"`
+}
+
+// TranslationBatchResult represents the translated output for a single sentence
+type TranslationBatchResult struct {
+	Index      int    `json:"index"`
+	Translated string `json:"translated"`
+}
+
+// TranslateBatchPrompt is used for translating all sentences in a single request
+var TranslateBatchPrompt = `You are a professional subtitle translation expert specialized in voiceover/dubbing production.
+
+[TRANSLATION TASK]
+**Objective**: 
+Translate ALL sentences in the input JSON array into %s with natural, fluent expression optimized for text-to-speech (TTS) voiceover.
+You have FULL CONTEXT of the entire video - use it to maintain consistency in terminology, tone, and style.
+
+**Critical Rules**:
+1. OUTPUT MUST BE A VALID JSON ARRAY with the EXACT same number of items as input
+2. Each output item MUST contain: {"index": <same as input>, "translated": "<translation>"}
+3. If translating to Chinese, MUST use Simplified Chinese characters (简体中文), NOT Traditional Chinese (繁体中文)
+4. Translate naturally and idiomatically - avoid word-for-word literal translation
+5. Maintain consistent terminology and style throughout ALL sentences
+6. Remove stuttering/repeated words (e.g., "I I I'm" → translate as "I'm")
+7. Filter out filler words (um, uh, er, ah, oh, mm, hmm, etc.) - do NOT translate them
+8. Use proper punctuation marks in the target language
+
+**[VOICEOVER TIMING — CRITICAL]**
+Each sentence has "duration" (seconds) and "max_syllables" constraints for TTS:
+- The translation MUST be readable at a natural pace within the given duration
+- Keep translations concise - prefer shorter, natural alternatives
+- Do NOT add explanatory words or repetitions
+- Write for SPEECH, not for reading - use natural, flowing spoken language
+
+**Input Format**:
+JSON array of objects: [{"index": 1, "original": "...", "duration": 2.5, "max_syllables": 12}, ...]
+
+**Output Format** (STRICT):
+JSON array ONLY, no markdown, no explanation:
+[{"index": 1, "translated": "..."}, {"index": 2, "translated": "..."}, ...]
+
+**IMPORTANT**: You MUST translate ALL %d sentences. Do NOT skip, merge, or split any sentence.
+
+Input sentences:
+%s`

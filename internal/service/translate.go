@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"krillin-ai/config"
 	"krillin-ai/internal/types"
@@ -24,6 +25,102 @@ func NewTranslator() *Translator {
 	return &Translator{
 		chatCompleter: openai.NewClient(config.Conf.Llm.BaseUrl, config.Conf.Llm.ApiKey, config.Conf.App.Proxy),
 	}
+}
+
+// translateBatchWithFullContext attempts to translate all sentences in a single request
+func (t *Translator) translateBatchWithFullContext(sentences []string, originLang, targetLang types.StandardLanguageCode, availableDuration float64) ([]*TranslatedItem, error) {
+	if len(sentences) == 0 {
+		return []*TranslatedItem{}, nil
+	}
+
+	// Calculate default duration parameters
+	sentenceDuration := availableDuration / float64(len(sentences))
+	if sentenceDuration <= 0 {
+		sentenceDuration = 1.0 // fallback
+	}
+	maxSyllables := int(math.Max(5, sentenceDuration*5))
+
+	// Build batch items
+	batchItems := make([]types.TranslationBatchItem, len(sentences))
+	for i, s := range sentences {
+		batchItems[i] = types.TranslationBatchItem{
+			Index:        i,
+			Original:     s,
+			Duration:     sentenceDuration,
+			MaxSyllables: maxSyllables,
+		}
+	}
+
+	jsonBytes, err := json.Marshal(batchItems)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal batch items: %w", err)
+	}
+
+	targetLangName := types.GetStandardLanguageName(targetLang)
+	prompt := fmt.Sprintf(types.TranslateBatchPrompt, targetLangName, len(sentences), string(jsonBytes))
+
+	log.GetLogger().Info("Translating full context batch", zap.Int("sentences_count", len(sentences)))
+
+	// Retry batch 3 times on failure
+	const maxRetries = 3
+	var response string
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		response, err = t.chatCompleter.ChatCompletion(prompt)
+		if err != nil {
+			log.GetLogger().Warn("Batch translation request failed", zap.Int("attempt", attempt+1), zap.Error(err))
+			time.Sleep(time.Duration(attempt+1) * time.Second)
+			continue
+		}
+
+		cleanResponse := util.CleanMarkdownCodeBlock(response)
+		var results []types.TranslationBatchResult
+		if err = json.Unmarshal([]byte(cleanResponse), &results); err != nil {
+			log.GetLogger().Warn("Batch translation response JSON unmarshal failed", zap.Int("attempt", attempt+1), zap.String("response", response), zap.Error(err))
+			continue
+		}
+
+		// Validate results: must match length and have correct indexes
+		if len(results) != len(sentences) {
+			log.GetLogger().Warn("Batch translation returned incorrect number of sentences", zap.Int("expected", len(sentences)), zap.Int("got", len(results)))
+			err = fmt.Errorf("length mismatch: expected %d, got %d", len(sentences), len(results))
+			continue
+		}
+
+		// Map results by index
+		resultMap := make(map[int]string)
+		for _, r := range results {
+			resultMap[r.Index] = r.Translated
+		}
+
+		// Ensure all indexes exist
+		valid := true
+		for i := 0; i < len(sentences); i++ {
+			if _, ok := resultMap[i]; !ok {
+				valid = false
+				break
+			}
+		}
+
+		if !valid {
+			log.GetLogger().Warn("Batch translation response missing index mapping")
+			err = errors.New("missing index mappings in response")
+			continue
+		}
+
+		// Build final output
+		output := make([]*TranslatedItem, len(sentences))
+		for i := 0; i < len(sentences); i++ {
+			output[i] = &TranslatedItem{
+				OriginText:     sentences[i],
+				TranslatedText: resultMap[i],
+			}
+		}
+
+		log.GetLogger().Info("Batch translation succeeded")
+		return output, nil
+	}
+
+	return nil, fmt.Errorf("batch translation failed after %d retries: %w", maxRetries, err)
 }
 
 func (t *Translator) SplitTextAndTranslate(inputText string, originLang, targetLang types.StandardLanguageCode, availableDuration float64) ([]*TranslatedItem, error) {
@@ -52,6 +149,13 @@ func (t *Translator) SplitTextAndTranslate(inputText string, originLang, targetL
 	}
 
 	sentences = shortSentences
+
+	// Try batch translation first for better context
+	batchResult, err := t.translateBatchWithFullContext(sentences, originLang, targetLang, availableDuration)
+	if err == nil && batchResult != nil {
+		return batchResult, nil
+	}
+	log.GetLogger().Warn("Batch translation failed, falling back to per-sentence translation", zap.Error(err))
 
 	var (
 		signal  = make(chan struct{}, config.Conf.App.TranslateParallelNum) // 控制最大并发数
