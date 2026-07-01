@@ -24,10 +24,11 @@ type App struct {
 	MaxSentenceLength     int      `toml:"max_sentence_length"`
 	EnableBlockVttBatch   bool     `toml:"enable_block_vtt_batch"`
 	VttBatchSize          int      `toml:"vtt_batch_size"`
-	TargetLanguageFirst   bool     `toml:"target_language_first"`    // 双语字幕中目标语言是否在上
-	ShortSubtitleMaxChars int      `toml:"short_subtitle_max_chars"` // 短字幕英文每行最大字符数
+	TargetLanguageFirst   bool     `toml:"target_language_first"`
+	ShortSubtitleMaxChars int      `toml:"short_subtitle_max_chars"`
 	Proxy                 string   `toml:"proxy"`
 	ParsedProxy           *url.URL `toml:"-"`
+	EnableOcr             bool     `toml:"enable_ocr"`
 }
 
 type Server struct {
@@ -132,6 +133,7 @@ var Conf = Config{
 		MaxSentenceLength:     70,
 		EnableBlockVttBatch:   false,
 		VttBatchSize:          10,
+		EnableOcr:             true,
 	},
 	Server: Server{
 		Host: "127.0.0.1",
