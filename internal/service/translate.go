@@ -27,6 +27,12 @@ func NewTranslator() *Translator {
 	}
 }
 
+func NewTranslatorWithCompleter(chatCompleter types.ChatCompleter) *Translator {
+	return &Translator{
+		chatCompleter: chatCompleter,
+	}
+}
+
 // translateBatchWithFullContext attempts to translate all sentences in a single request
 func (t *Translator) translateBatchWithFullContext(sentences []string, originLang, targetLang types.StandardLanguageCode, availableDuration float64) ([]*TranslatedItem, error) {
 	if len(sentences) == 0 {

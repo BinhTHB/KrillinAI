@@ -392,6 +392,14 @@ func (s Service) splitTextAndTranslateV2(basePath, inputText string, originLang,
 
 	sentences = shortSentences
 
+	// Try batch translation first for better context
+	translator := NewTranslatorWithCompleter(s.ChatCompleter)
+	batchResult, err := translator.translateBatchWithFullContext(sentences, originLang, targetLang, duration)
+	if err == nil && batchResult != nil {
+		return batchResult, nil
+	}
+	log.GetLogger().Warn("Batch translation failed, falling back to per-sentence translation", zap.Error(err))
+
 	var (
 		signal  = make(chan struct{}, config.Conf.App.TranslateParallelNum) // 控制最大并发数
 		wg      sync.WaitGroup
