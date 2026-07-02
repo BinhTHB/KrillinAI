@@ -99,6 +99,8 @@ def main() -> int:
                         help="Right edge of subtitle region (fraction of width)")
     parser.add_argument("--blur-power", type=int, default=15,
                         help="Boxblur luma radius (higher = more blur)")
+    parser.add_argument("--timed", action="store_true",
+                        help="Only apply blur during subtitle cues instead of continuously")
     args = parser.parse_args()
 
     W, H = get_video_resolution(args.input_video)
@@ -155,11 +157,16 @@ def main() -> int:
     #
     # The overlay filter supports 'enable' option for timeline editing.
     
+    if args.timed:
+        overlay_filter = f"overlay={x1}:{y1}:enable='{enable_expr}'"
+    else:
+        overlay_filter = f"overlay={x1}:{y1}"
+
     filter_complex = (
         f"[0:v]split=2[base][tocrop];"
         f"[tocrop]crop={crop_w}:{crop_h}:{x1}:{y1}[cropped];"
         f"[cropped]boxblur={args.blur_power}:1[blurred];"
-        f"[base][blurred]overlay={x1}:{y1}:enable='{enable_expr}'[blurred_video];"
+        f"[base][blurred]{overlay_filter}[blurred_video];"
         f"[blurred_video]ass={ass_escaped}[outv]"
     )
 

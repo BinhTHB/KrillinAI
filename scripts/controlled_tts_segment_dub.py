@@ -393,8 +393,11 @@ async def gemini_tts_text(text: str, output_wav: Path, api_key: str, model_name:
             received_audio = bytearray()
             
             async with client.aio.live.connect(model=model_name, config=config) as session:
-                # Send the text to be read aloud
-                await session.send(input=text, end_of_turn=True)
+                # Send the text to be read aloud (using send_client_content instead of deprecated send)
+                await session.send_client_content(
+                    turns=[types.Content(role="user", parts=[types.Part(text=text)])],
+                    turn_complete=True
+                )
                 
                 # Receive the audio PCM 24kHz stream
                 async for msg in session.receive():
