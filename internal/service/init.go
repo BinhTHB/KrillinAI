@@ -40,7 +40,7 @@ func NewService() *Service {
 	case "whispercpp":
 		transcriber = whispercpp.NewWhispercppProcessor(config.Conf.Transcribe.Whispercpp.Model)
 	case "whisperx":
-		transcriber = whisperx.NewWhisperXProcessor(config.Conf.Transcribe.Whisperx.Model)
+		transcriber = whisperx.NewWhisperXProcessor(config.Conf.Transcribe.Whisperx.Model, config.Conf.Transcribe.EnableGpuAcceleration)
 	case "whisperkit":
 		transcriber = whisperkit.NewWhisperKitProcessor(config.Conf.Transcribe.Whisperkit.Model)
 	case "aliyun":

@@ -39,6 +39,22 @@ func (c *WhisperXProcessor) Transcription(audioFile, language, workDir string) (
 		cmdArgs []string
 		cmd     *exec.Cmd
 	)
+
+	// Detect GPU availability for compute_type selection
+	useGPU := c.EnableGPU && runtime.GOOS == "windows" // Windows: use WhisperX venv with CUDA
+	if runtime.GOOS != "windows" {
+		// Linux: check if CUDA is available (simplified check)
+		// For GitHub Actions CPU runner, force CPU mode
+		useGPU = false
+	}
+
+	computeType := "float16"
+	batchSize := "8"
+	if !useGPU {
+		computeType = "float32"
+		batchSize = "1" // CPU needs smaller batch to avoid OOM
+	}
+
 	if runtime.GOOS == "windows" {
 		pythonPath := ".\\bin\\whisperx\\.venv\\Scripts\\python.exe"
 		cmdArgs = []string{
@@ -48,30 +64,28 @@ func (c *WhisperXProcessor) Transcription(audioFile, language, workDir string) (
 			"--model", c.Model,
 			"--language", language,
 			"--output_dir", workDir,
-			"--compute_type", "float16",
-			"--batch_size", "8",
+			"--compute_type", computeType,
+			"--batch_size", batchSize,
 			"--vad_onset", "0.25",
 			"--vad_offset", "0.20",
 		}
 		cmd = exec.Command(pythonPath, cmdArgs...)
 		cmd.Env = withPythonUTF8Env(os.Environ())
 	} else {
-		envPath := ""
+		envPath := "python3"
 		cmdArgs = []string{
 			audioFile,
 			"--model_dir", "./models/whisperx",
 			"--model", c.Model,
 			"--language", language,
 			"--output_dir", workDir,
-			"--compute_type", "float16",
-			"--batch_size", "16",
+			"--compute_type", computeType,
+			"--batch_size", batchSize,
 			"--model_cache_only", "True",
 		}
 		cmd = exec.Command(envPath, cmdArgs...)
-		cudaLibPath := "LD_LIBRARY_PATH=./bin/whisperx/.venv/lib/python3.12/site-packages/nvidia/cudnn/lib"
 		currentEnv := os.Environ()
-		newEnv := append(currentEnv, cudaLibPath)
-		cmd.Env = newEnv
+		cmd.Env = currentEnv
 	}
 	log.GetLogger().Info("WhisperXProcessor转录开始", zap.String("cmd", cmd.String()))
 	output, err := cmd.CombinedOutput()
