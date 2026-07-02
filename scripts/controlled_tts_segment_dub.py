@@ -702,7 +702,7 @@ async def main():
         print('\nRendering original-timeline overlay...', flush=True)
         write_ass(ass_path, processed)
         write_srt(srt_out, processed)
-        ass_escaped = str(ass_path.resolve()).replace("\", "/").replace(":", "\\:")
+        ass_escaped = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\\\:")
         run_cmd(
             f'ffmpeg -y -i "{video_path}" -i "{voice_track}" '
             f'-filter_complex "[0:a]volume={args.bg_volume:.3f}[bg];[1:a]volume={args.voice_volume:.3f}[voice];[bg][voice]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[aout]" '

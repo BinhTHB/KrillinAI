@@ -769,6 +769,11 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 		}
 	}
 
+	// Clean up old SRT/VTT files when starting a new task from URL to avoid cross-contamination
+	if req.Input != "" {
+		cleanOldSubtitleFiles(req.Workdir)
+	}
+
 	if req.Input != "" {
 		subReq := pipeline.SubtitleRequest{
 			Input:         req.Input,
@@ -918,6 +923,19 @@ func defaultGeminiDubWorkdir() string {
 	return filepath.Join("tasks", "gemini-dub-"+time.Now().Format("20060102-150405"))
 }
 
+func cleanOldSubtitleFiles(workdir string) {
+	patterns := []string{"*.srt", "*.vtt"}
+	for _, p := range patterns {
+		matches, err := filepath.Glob(filepath.Join(workdir, p))
+		if err != nil {
+			continue
+		}
+		for _, f := range matches {
+			os.Remove(f)
+		}
+	}
+}
+
 func resolveGeminiDubSRT(req GeminiDubRequest) (string, error) {
 	if fileExists(filepath.Join(req.Workdir, req.SRT)) {
 		return req.SRT, nil
@@ -951,11 +969,18 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 	// timestamps, but merging would hide/drop auditability of translated cues.
 	preserveCoverage := needsGeminiDubTimingFix(entries, videoDur)
 
-	// Fix timing using origin_language_srt.srt when input SRT has suspicious timestamps
-	fixedEntries, fixErr := fixGeminiDubSRTTiming(req.Workdir, inputPath, entries, inputSRT, videoDur)
-	if fixErr != nil {
-		return "", fmt.Errorf("timing fix failed: %w", fixErr)
+	var (
+		fixedEntries []geminiDubSRTEntry
+		fixErr       error
+	)
+	// Skip timing fix when preserving cues
+	if !req.PreserveCues {
+		fixedEntries, fixErr = fixGeminiDubSRTTiming(req.Workdir, inputPath, entries, inputSRT, videoDur)
+		if fixErr != nil {
+			return "", fmt.Errorf("timing fix failed: %w", fixErr)
+		}
 	}
+
 	timingFixed := false
 	if fixedEntries != nil {
 		fmt.Printf("Fixed %d entries using origin SRT timing\n", len(fixedEntries))

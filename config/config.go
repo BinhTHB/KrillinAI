@@ -133,7 +133,7 @@ var Conf = Config{
 		MaxSentenceLength:     70,
 		EnableBlockVttBatch:   false,
 		VttBatchSize:          10,
-		EnableOcr:             true,
+		EnableOcr:             false,
 	},
 	Server: Server{
 		Host: "127.0.0.1",

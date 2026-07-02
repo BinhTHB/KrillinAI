@@ -71,23 +71,32 @@ func tryOcrSubtitle(ctx context.Context, videoPath, outputPath string, useGpu bo
 
 	// Find Python executable (use absolute path to avoid Windows App Execution Alias interception)
 	pythonExe := "python"
-	// Priority: python3 > conda python > python (skip WindowsApps)
-	if path, err := exec.LookPath("python3"); err == nil && !strings.Contains(strings.ToLower(path), "windowsapps") {
-		pythonExe = path
-	} else if path, err := exec.LookPath("python"); err == nil && !strings.Contains(strings.ToLower(path), "windowsapps") {
-		pythonExe = path
-	} else {
-		// Fallback: try common Python paths
-		candidates := []string{
-			"E:\\Miniconda\\python.exe",
-			"C:\\Users\\ADMIN\\Miniconda\\python.exe",
-			"C:\\Python311\\python.exe",
-			"C:\\Python310\\python.exe",
+	// Priority: project WhisperX venv (has CUDA+EasyOCR) > python3 > python > fallback paths
+	whisperxPython := filepath.Join("bin", "whisperx", ".venv", "Scripts", "python.exe")
+	absPython, absErr := filepath.Abs(whisperxPython)
+	if absErr == nil {
+		if _, err := os.Stat(absPython); err == nil {
+			pythonExe = absPython
 		}
-		for _, cand := range candidates {
-			if _, err := os.Stat(cand); err == nil {
-				pythonExe = cand
-				break
+	}
+	if pythonExe == "python" {
+		if path, err := exec.LookPath("python3"); err == nil && !strings.Contains(strings.ToLower(path), "windowsapps") {
+			pythonExe = path
+		} else if path, err := exec.LookPath("python"); err == nil && !strings.Contains(strings.ToLower(path), "windowsapps") {
+			pythonExe = path
+		} else {
+			// Fallback: try common Python paths
+			candidates := []string{
+				"E:\\Miniconda\\python.exe",
+				"C:\\Users\\ADMIN\\Miniconda\\python.exe",
+				"C:\\Python311\\python.exe",
+				"C:\\Python310\\python.exe",
+			}
+			for _, cand := range candidates {
+				if _, err := os.Stat(cand); err == nil {
+					pythonExe = cand
+					break
+				}
 			}
 		}
 	}

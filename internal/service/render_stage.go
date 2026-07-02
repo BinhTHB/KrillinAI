@@ -33,6 +33,10 @@ func renderAssPath(req RenderVideoRequest) string {
 }
 
 func escapeAssFilterPath(path string) string {
+	abs, err := filepath.Abs(path)
+	if err == nil {
+		path = abs
+	}
 	p := strings.ReplaceAll(path, "\\", "/")
 	p = strings.ReplaceAll(p, ":", `\:`)
 	return p
