@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"strings"
-	"unicode"
 
 	"krillin-ai/internal/types"
 	"krillin-ai/log"
@@ -34,14 +33,18 @@ func NewTimestampGenerator() *TimestampGenerator {
 	}
 
 	// Register Base matcher
-	BaseMatcher := &BaseLanguageMatcher{language: types.StandardLanguageCode("base")}
-	generator.RegisterMatcher(types.StandardLanguageCode("base"), BaseMatcher)
-	generator.RegisterMatcher(types.LanguageNameJapanese, BaseMatcher)
-	generator.RegisterMatcher(types.LanguageNameSimplifiedChinese, BaseMatcher)
-	generator.RegisterMatcher(types.LanguageNameTraditionalChinese, BaseMatcher)
-	generator.RegisterMatcher(types.LanguageNameThai, BaseMatcher)
-	generator.RegisterMatcher(types.LanguageNameEnglish, BaseMatcher)
-	generator.RegisterMatcher(types.LanguageNameFinnish, BaseMatcher)
+	baseMatcher := &BaseLanguageMatcher{language: types.StandardLanguageCode("base")}
+	generator.RegisterMatcher(types.StandardLanguageCode("base"), baseMatcher)
+	generator.RegisterMatcher(types.LanguageNameEnglish, baseMatcher)
+	generator.RegisterMatcher(types.LanguageNameFinnish, baseMatcher)
+	generator.RegisterMatcher(types.LanguageNameThai, baseMatcher)
+
+	// Register CJK matcher that uses word-level timestamp matching instead of proportional division
+	cjkMatcher := &CJKSentenceMatcher{}
+	generator.RegisterMatcher(types.LanguageNameSimplifiedChinese, cjkMatcher)
+	generator.RegisterMatcher(types.LanguageNameTraditionalChinese, cjkMatcher)
+	generator.RegisterMatcher(types.LanguageNameJapanese, cjkMatcher)
+	generator.RegisterMatcher(types.LanguageNameKorean, cjkMatcher)
 
 	return generator
 }
@@ -53,10 +56,6 @@ func (tg *TimestampGenerator) RegisterMatcher(language types.StandardLanguageCod
 
 // GenerateTimestamps generates timestamps for SRT blocks using the appropriate language matcher
 func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, words []types.Word, language types.StandardLanguageCode, tsOffset float64) ([]*util.SrtBlock, error) {
-	if shouldUseProportionalCJKTimestamps(language, words) {
-		return generateProportionalTimestamps(srtBlocks, words, tsOffset), nil
-	}
-
 	matcher, exists := tg.matchers[language]
 	if !exists {
 		// Fallback to English matcher for unsupported languages
@@ -64,8 +63,10 @@ func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, wor
 		if matcher == nil {
 			return nil, fmt.Errorf("no timestamp matcher available for language: %s", language)
 		}
-		log.GetLogger().Warn("Using fallback base matcher for unsupported language",
-			zap.String("language", string(language)))
+		if logger := log.GetLogger(); logger != nil {
+			logger.Warn("Using fallback base matcher for unsupported language",
+				zap.String("language", string(language)))
+		}
 	}
 
 	var lastEndTime float64
@@ -82,12 +83,30 @@ func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, wor
 
 		startTime, endTime, err := matcher.MatchSentenceTimestamp(block.OriginLanguageSentence, words, lastEndTime)
 		if err != nil {
-			log.GetLogger().Warn("Failed to match sentence timestamp",
-				zap.String("sentence", block.OriginLanguageSentence),
-				zap.Error(err))
-			// Use monotonic fallback timing when the matcher cannot place a sentence.
-			startTime = lastEndTime
-			endTime = lastEndTime + 1.0
+			if logger := log.GetLogger(); logger != nil {
+				logger.Warn("Failed to match sentence timestamp",
+					zap.String("sentence", block.OriginLanguageSentence),
+					zap.Error(err))
+			}
+			// Use proportional fallback for remaining audio span instead of fixed 1s
+			remainingBlocks := len(srtBlocks) - i
+			if remainingBlocks > 0 && len(words) > 0 {
+				remainingSpan := words[len(words)-1].End - lastEndTime
+				if remainingSpan > 0 {
+					fallbackDuration := remainingSpan / float64(remainingBlocks)
+					if fallbackDuration < 0.35 {
+						fallbackDuration = 0.35
+					}
+					startTime = lastEndTime
+					endTime = lastEndTime + fallbackDuration
+				} else {
+					startTime = lastEndTime
+					endTime = lastEndTime + 1.0
+				}
+			} else {
+				startTime = lastEndTime
+				endTime = lastEndTime + 1.0
+			}
 		} else {
 			// Ensure timestamps don't overlap with previous block
 			if startTime < lastEndTime {
@@ -102,11 +121,13 @@ func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, wor
 		updatedBlocks[i].Timestamp = util.ConvertTimes(float32(startTime+tsOffset), float32(endTime+tsOffset))
 		lastEndTime = endTime
 
-		log.GetLogger().Debug("Generated timestamp for sentence",
-			zap.Int("index", block.Index),
-			zap.String("sentence", block.OriginLanguageSentence),
-			zap.Any("startTime", startTime),
-			zap.Any("endTime", endTime))
+		if logger := log.GetLogger(); logger != nil {
+			logger.Debug("Generated timestamp for sentence",
+				zap.Int("index", block.Index),
+				zap.String("sentence", block.OriginLanguageSentence),
+				zap.Any("startTime", startTime),
+				zap.Any("endTime", endTime))
+		}
 	}
 
 	return updatedBlocks, nil
@@ -327,6 +348,24 @@ func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, wor
 // }
 
 // BaseLanguageMatcher handles timestamp matching for Base
+// CJKSentenceMatcher implements TimestampMatcher for Chinese, Japanese, and Korean
+type CJKSentenceMatcher struct {
+	language types.StandardLanguageCode
+}
+
+func (c *CJKSentenceMatcher) GetLanguageType() types.StandardLanguageCode {
+	return c.language
+}
+
+func (c *CJKSentenceMatcher) MatchSentenceTimestamp(sentence string, words []types.Word, lastTs float64) (startTime, endTime float64, err error) {
+	// Call getSentenceTimestamps from audio2subtitle.go for CJK word-level matching
+	sentenceTs, _, _, err := getSentenceTimestamps(words, sentence, lastTs, c.language)
+	if err != nil {
+		return 0, 0, err
+	}
+	return sentenceTs.Start, sentenceTs.End, nil
+}
+
 type BaseLanguageMatcher struct {
 	language types.StandardLanguageCode
 }
@@ -486,16 +525,9 @@ func (jlm *BaseLanguageMatcher) buildWhisperFullText(words []types.Word) string 
 	return fullText.String()
 }
 
-// cleanBaseText 清理文本，移除空格、标点符号和特殊符号
+// cleanBaseText 清理文本，使用与 getSentenceTimestamps 相同的 util.GetRecognizableString 规则
 func (jlm *BaseLanguageMatcher) cleanBaseText(text string) string {
-	var cleaned strings.Builder
-	for _, r := range text {
-		// 移除标点符号、空格和特殊符号，保留字母、数字和其他语言字符
-		if !unicode.IsPunct(r) && !unicode.IsSpace(r) && !unicode.IsSymbol(r) {
-			cleaned.WriteRune(r)
-		}
-	}
-	return cleaned.String()
+	return util.GetRecognizableString(text)
 }
 
 // findAllMatches 找到所有匹配位置
@@ -593,7 +625,7 @@ func (jlm *BaseLanguageMatcher) fuzzyMatchSentence(sentence string, words []type
 
 		// 检查词是否包含句子中的字符
 		wordRunes := []rune(jlm.cleanBaseText(word.Text))
-		if jlm.containsBaseChars(wordRunes, sentenceRunes) {
+		if jlm.sentenceCharOverlap(wordRunes, sentenceRunes) >= 0.3 {
 			matchedWords = append(matchedWords, word)
 		}
 	}
@@ -602,7 +634,7 @@ func (jlm *BaseLanguageMatcher) fuzzyMatchSentence(sentence string, words []type
 		// 如果在 lastTs 之后没找到，从头开始搜索
 		for _, word := range words {
 			wordRunes := []rune(jlm.cleanBaseText(word.Text))
-			if jlm.containsBaseChars(wordRunes, sentenceRunes) {
+			if jlm.sentenceCharOverlap(wordRunes, sentenceRunes) >= 0.3 {
 				matchedWords = append(matchedWords, word)
 			}
 		}
@@ -616,8 +648,8 @@ func (jlm *BaseLanguageMatcher) fuzzyMatchSentence(sentence string, words []type
 	resultStartTime := matchedWords[0].Start
 
 	// If the fuzzy match spans too long, it's likely matching common repeated words across the audio.
-	// Only keep matched words that fall within a reasonable window (e.g. 15s) from the start of the first match.
-	const maxFuzzyDuration = 15.0
+	// Only keep matched words that fall within a reasonable window (e.g. 5s) from the start of the first match.
+	const maxFuzzyDuration = 5.0
 	var filteredMatched []types.Word
 	for _, w := range matchedWords {
 		if w.Start >= resultStartTime && w.End <= resultStartTime+maxFuzzyDuration {
@@ -640,19 +672,19 @@ func (jlm *BaseLanguageMatcher) fuzzyMatchSentence(sentence string, words []type
 	return resultStartTime, resultEndTime, nil
 }
 
-// containsBaseChars 检查词中是否包含句子中的字符
-func (jlm *BaseLanguageMatcher) containsBaseChars(wordRunes, sentenceRunes []rune) bool {
-	for _, sentenceChar := range sentenceRunes {
-		found := false
-		for _, wordChar := range wordRunes {
-			if wordChar == sentenceChar {
-				found = true
+// sentenceCharOverlap returns the fraction of word characters found in the sentence.
+func (jlm *BaseLanguageMatcher) sentenceCharOverlap(wordRunes, sentenceRunes []rune) float64 {
+	if len(wordRunes) == 0 {
+		return 0
+	}
+	found := 0
+	for _, wc := range wordRunes {
+		for _, sc := range sentenceRunes {
+			if sc == wc {
+				found++
 				break
 			}
 		}
-		if found {
-			return true
-		}
 	}
-	return false
+	return float64(found) / float64(len(wordRunes))
 }

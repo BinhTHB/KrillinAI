@@ -1539,25 +1539,7 @@ func generateSrtWithTimestamps(srtBlocks []*util.SrtBlock, tsOffset float64, wor
 		var sentenceWords []types.Word
 		var ts float64
 
-		if shouldUseProportionalCJKTimestamps(stepParam.OriginLanguage, words) {
-			// Parse the generated proportional timestamp directly
-			var sh, sm, ss, sms, eh, em, es, ems int
-			_, err = fmt.Sscanf(srtBlock.Timestamp, "%d:%d:%d,%d --> %d:%d:%d,%d", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems)
-			if err == nil {
-				sentenceTs.Start = float64(sh)*3600 + float64(sm)*60 + float64(ss) + float64(sms)/1000.0 - tsOffset
-				sentenceTs.End = float64(eh)*3600 + float64(em)*60 + float64(es) + float64(ems)/1000.0 - tsOffset
-				ts = sentenceTs.End
-				// Build short-origin sub-blocks with proportional timing directly.
-				// Dummy words (Start=0,End=0) would cause zero-valued timestamps below.
-				generateCJKProportionalShortBlocks(srtBlock, shortOriginSrtMap, sentenceTs, tsOffset, stepParam.MaxWordOneLine)
-				lastTs = ts
-				continue
-			} else {
-				sentenceTs, sentenceWords, ts, err = getSentenceTimestamps(words, srtBlock.OriginLanguageSentence, lastTs, stepParam.OriginLanguage)
-			}
-		} else {
-			sentenceTs, sentenceWords, ts, err = getSentenceTimestamps(words, srtBlock.OriginLanguageSentence, lastTs, stepParam.OriginLanguage)
-		}
+		sentenceTs, sentenceWords, ts, err = getSentenceTimestamps(words, srtBlock.OriginLanguageSentence, lastTs, stepParam.OriginLanguage)
 
 		if err != nil || ts < lastTs {
 			continue
@@ -1783,21 +1765,21 @@ func parseAndCheckContent(splitContent, originalText string) ([]*TranslatedItem,
 		i += 2 // 跳过翻译行和原文行
 	}
 
-	// 合并原文并比较字数
-	combinedLength := 0
+	// 合并原文并比较字数（使用文字数而非字节数）
+	combinedRuneCount := 0
 	for _, translatedItem := range result {
-		combinedLength += len(strings.TrimSpace(translatedItem.OriginText))
+		combinedRuneCount += len([]rune(strings.TrimSpace(translatedItem.OriginText)))
 	}
-	originalTextLength := len(strings.TrimSpace(originalText))
+	originalRuneCount := len([]rune(strings.TrimSpace(originalText)))
 
-	lenError := originalTextLength - combinedLength
-	if lenError < 0 {
-		lenError = -lenError
+	runeError := originalRuneCount - combinedRuneCount
+	if runeError < 0 {
+		runeError = -runeError
 	}
 
-	if lenError > len(originalText)/10 {
-		// return nil, fmt.Errorf("audioToSubtitle invaild Format, originalText and splitContent length not match", zap.Any("splitContent", splitContent), zap.Any("originalText", originalText))
-		log.GetLogger().Warn("audioToSubtitle invaild Format, originalText and splitContent length not match", zap.Any("splitContent", splitContent), zap.Any("originalText", originalText))
+	if runeError > originalRuneCount/10 {
+		// 原文被 LLM 修改太多，拒绝分割结果，保留原文会导致后续时间戳错位
+		return nil, fmt.Errorf("split content integrity violation: origin text modified by LLM, original runes=%d combined=%d", originalRuneCount, combinedRuneCount)
 	}
 	return result, nil
 }
@@ -1877,7 +1859,22 @@ func (s Service) splitLongSentence(item *TranslatedItem) ([]*TranslatedItem, err
 		})
 	}
 
+	if !validateSplitIntegrity(splitItems, item.OriginText) {
+		log.GetLogger().Warn("splitLongSentence integrity check failed, keeping original sentence",
+			zap.String("original", item.OriginText))
+		return []*TranslatedItem{item}, nil
+	}
+
 	return splitItems, nil
+}
+
+func validateSplitIntegrity(parts []*TranslatedItem, original string) bool {
+	origClean := util.GetRecognizableString(original)
+	var combinedClean string
+	for _, p := range parts {
+		combinedClean += util.GetRecognizableString(p.OriginText)
+	}
+	return origClean == combinedClean
 }
 
 func (s Service) splitOriginLongSentence(sentence string) ([]string, error) {
@@ -1944,6 +1941,17 @@ func (s Service) splitSentenceRecursively(sentence string, depth int, maxDepth i
 
 	// 如果没有拆分出多个部分，返回原句子
 	if len(splitItems) <= 1 {
+		return []string{sentence}, nil
+	}
+
+	// 验证分割完整性：拼接后的文本应与原文匹配
+	var combined string
+	for _, item := range splitItems {
+		combined += item
+	}
+	if util.GetRecognizableString(sentence) != util.GetRecognizableString(combined) {
+		log.GetLogger().Warn("splitSentenceRecursively integrity check failed, keeping original sentence",
+			zap.String("sentence", sentence))
 		return []string{sentence}, nil
 	}
 
