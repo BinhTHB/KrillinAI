@@ -1436,6 +1436,82 @@ func jumpFindMaxIncreasingSubArray(words []types.Word) (int, int, []types.Word) 
 	return startIdx, endIdx, result
 }
 
+// generateCJKProportionalShortBlocks splits a long CJK sentence into sub-blocks
+// with proportional timestamps based on display width, avoiding zero-valued dummy words.
+func generateCJKProportionalShortBlocks(srtBlock *util.SrtBlock, shortOriginSrtMap map[int][]util.SrtBlock, sentenceTs types.SrtSentence, tsOffset float64, maxWordOneLine int) {
+	sentenceRunes := []rune(srtBlock.OriginLanguageSentence)
+	if len(sentenceRunes) <= maxWordOneLine {
+		shortOriginSrtMap[srtBlock.Index] = append(shortOriginSrtMap[srtBlock.Index], util.SrtBlock{
+			Index:                  srtBlock.Index,
+			Timestamp:              fmt.Sprintf("%s --> %s", util.FormatTime(float32(sentenceTs.Start+tsOffset)), util.FormatTime(float32(sentenceTs.End+tsOffset))),
+			OriginLanguageSentence: srtBlock.OriginLanguageSentence,
+		})
+		return
+	}
+	span := sentenceTs.End - sentenceTs.Start
+	if span <= 0 {
+		span = 1.0
+	}
+	numSubs := (len(sentenceRunes) + maxWordOneLine - 1) / maxWordOneLine
+	if numSubs < 1 {
+		numSubs = 1
+	}
+	// Calculate display width: CJK=1, Latin/digit=0.5
+	totalDisp := 0.0
+	dispLens := make([]float64, len(sentenceRunes))
+	for i, r := range sentenceRunes {
+		dl := 1.0
+		if r >= 0x4E00 && r <= 0x9FFF { // CJK Unified
+		} else if r >= 0x3040 && r <= 0x30FF { // Japanese kana
+		} else if r >= 0xAC00 && r <= 0xD7A3 { // Korean
+		} else if r >= 0xFF01 && r <= 0xFF5E { // Fullwidth forms
+		} else {
+			dl = 0.5 // Latin, digits
+		}
+		dispLens[i] = dl
+		totalDisp += dl
+	}
+	if totalDisp <= 0 {
+		totalDisp = float64(len(sentenceRunes))
+	}
+	targetPerSub := totalDisp / float64(numSubs)
+	cursor := sentenceTs.Start
+	subStart := 0
+	for subNum := 0; subNum < numSubs; subNum++ {
+		accDisp := 0.0
+		subEnd := subStart
+		for subEnd < len(sentenceRunes) && (accDisp < targetPerSub || subEnd == subStart) {
+			accDisp += dispLens[subEnd]
+			subEnd++
+		}
+		if subEnd >= len(sentenceRunes) {
+			subEnd = len(sentenceRunes)
+		}
+		chunk := string(sentenceRunes[subStart:subEnd])
+		chunkDisp := 0.0
+		for _, dl := range dispLens[subStart:subEnd] {
+			chunkDisp += dl
+		}
+		duration := span * chunkDisp / totalDisp
+		if duration < 0.35 {
+			duration = 0.35
+		}
+		next := cursor + duration
+		if subNum == numSubs-1 || next > sentenceTs.End {
+			next = sentenceTs.End
+		}
+		if next <= cursor {
+			next = cursor + 0.35
+		}
+		shortOriginSrtMap[srtBlock.Index] = append(shortOriginSrtMap[srtBlock.Index], util.SrtBlock{
+			Index:                  srtBlock.Index,
+			Timestamp:              fmt.Sprintf("%s --> %s", util.FormatTime(float32(cursor+tsOffset)), util.FormatTime(float32(next+tsOffset))),
+			OriginLanguageSentence: chunk,
+		})
+		cursor = next
+		subStart = subEnd
+	}
+}
 func generateSrtWithTimestamps(srtBlocks []*util.SrtBlock, tsOffset float64, words []types.Word, segmentIdx int, stepParam *types.SubtitleTaskStepParam) error {
 	if len(srtBlocks) == 0 || len(words) == 0 {
 		return nil
@@ -1471,8 +1547,11 @@ func generateSrtWithTimestamps(srtBlocks []*util.SrtBlock, tsOffset float64, wor
 				sentenceTs.Start = float64(sh)*3600 + float64(sm)*60 + float64(ss) + float64(sms)/1000.0 - tsOffset
 				sentenceTs.End = float64(eh)*3600 + float64(em)*60 + float64(es) + float64(ems)/1000.0 - tsOffset
 				ts = sentenceTs.End
-				// Mock sentence words to satisfy length check for short map split
-				sentenceWords = make([]types.Word, len([]rune(srtBlock.OriginLanguageSentence)))
+				// Build short-origin sub-blocks with proportional timing directly.
+				// Dummy words (Start=0,End=0) would cause zero-valued timestamps below.
+				generateCJKProportionalShortBlocks(srtBlock, shortOriginSrtMap, sentenceTs, tsOffset, stepParam.MaxWordOneLine)
+				lastTs = ts
+				continue
 			} else {
 				sentenceTs, sentenceWords, ts, err = getSentenceTimestamps(words, srtBlock.OriginLanguageSentence, lastTs, stepParam.OriginLanguage)
 			}
