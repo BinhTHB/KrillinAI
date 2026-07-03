@@ -9,8 +9,11 @@ import (
 	"krillin-ai/config"
 	"krillin-ai/internal/types"
 	"krillin-ai/log"
+	"krillin-ai/pkg/deepl"
 	"krillin-ai/pkg/util"
+	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
@@ -47,6 +50,240 @@ type AudioSegment struct {
 	AudioFile         string
 	TranscriptionData *types.TranscriptionData
 	SrtNoTsFile       string
+}
+
+// OcrCue represents a single subtitle cue from OCR
+type OcrCue struct {
+	Start float64
+	End   float64
+	Text  string
+}
+
+// tryOcrSubtitle attempts to extract hardcoded subtitles using OCR
+// Returns the OCR SRT file path and cues if successful, empty string and nil if failed
+func tryOcrSubtitle(ctx context.Context, videoPath, outputPath string, useGpu bool) ([]OcrCue, error) {
+	if videoPath == "" {
+		return nil, nil
+	}
+	if _, err := os.Stat(videoPath); os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	// Find Python executable (use absolute path to avoid Windows App Execution Alias interception)
+	pythonExe := "python"
+	// Priority: project WhisperX venv (has CUDA+EasyOCR) > python3 > python > fallback paths
+	whisperxPython := filepath.Join("bin", "whisperx", ".venv", "Scripts", "python.exe")
+	absPython, absErr := filepath.Abs(whisperxPython)
+	if absErr == nil {
+		if _, err := os.Stat(absPython); err == nil {
+			pythonExe = absPython
+		}
+	}
+	if pythonExe == "python" {
+		if path, err := exec.LookPath("python3"); err == nil && !strings.Contains(strings.ToLower(path), "windowsapps") {
+			pythonExe = path
+		} else if path, err := exec.LookPath("python"); err == nil && !strings.Contains(strings.ToLower(path), "windowsapps") {
+			pythonExe = path
+		} else {
+			// Fallback: try common Python paths
+			candidates := []string{
+				"E:\\Miniconda\\python.exe",
+				"C:\\Users\\ADMIN\\Miniconda\\python.exe",
+				"C:\\Python311\\python.exe",
+				"C:\\Python310\\python.exe",
+			}
+			for _, cand := range candidates {
+				if _, err := os.Stat(cand); err == nil {
+					pythonExe = cand
+					break
+				}
+			}
+		}
+	}
+
+	// Build OCR command args
+	args := []string{
+		"-u",
+		"scripts/ocr_subtitle_timeline.py",
+		"--video", videoPath,
+		"--output-srt", outputPath,
+		"--sample-fps", "12.0",
+	}
+	if useGpu {
+		args = append(args, "--gpu")
+	}
+
+	log.GetLogger().Info("OCR subtitle extraction started",
+		zap.String("video", videoPath),
+		zap.String("output", outputPath))
+
+	cmd := exec.CommandContext(ctx, pythonExe, args...)
+	// Run from project root so scripts/ path works
+	// The working directory is typically the project root when running the CLI
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.GetLogger().Warn("OCR subtitle extraction failed",
+			zap.Error(err),
+			zap.String("output", string(output)))
+		return nil, fmt.Errorf("OCR failed: %w", err)
+	}
+
+	// Check if output file exists and has content
+	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	// Parse the OCR SRT file
+	cues, err := parseOcrSrtFile(outputPath)
+	if err != nil {
+		log.GetLogger().Warn("Failed to parse OCR SRT", zap.Error(err))
+		return nil, nil
+	}
+
+	if len(cues) == 0 {
+		log.GetLogger().Info("OCR found no subtitles")
+		return nil, nil
+	}
+
+	log.GetLogger().Info("OCR subtitle extraction succeeded",
+		zap.Int("cues", len(cues)))
+	return cues, nil
+}
+
+// parseOcrSrtFile parses an SRT file and returns OCR cues
+func parseOcrSrtFile(srtPath string) ([]OcrCue, error) {
+	file, err := os.Open(srtPath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var cues []OcrCue
+	scanner := bufio.NewScanner(file)
+	var currentBlock []string
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "" {
+			if len(currentBlock) >= 3 {
+				cue, err := parseOcrBlock(currentBlock)
+				if err == nil {
+					cues = append(cues, *cue)
+				}
+			}
+			currentBlock = nil
+		} else {
+			currentBlock = append(currentBlock, line)
+		}
+	}
+	// Handle last block
+	if len(currentBlock) >= 3 {
+		cue, err := parseOcrBlock(currentBlock)
+		if err == nil {
+			cues = append(cues, *cue)
+		}
+	}
+
+	return cues, scanner.Err()
+}
+
+// parseOcrBlock parses a single SRT block into an OcrCue
+func parseOcrBlock(block []string) (*OcrCue, error) {
+	if len(block) < 3 {
+		return nil, fmt.Errorf("invalid block")
+	}
+
+	// First line is index (ignore)
+	// Second line is timestamp: "00:00:01,234 --> 00:00:05,678"
+	timestamp := block[1]
+	parts := strings.Split(timestamp, " --> ")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid timestamp: %s", timestamp)
+	}
+
+	start, err := parseSrtTimestamp(parts[0])
+	if err != nil {
+		return nil, err
+	}
+	end, err := parseSrtTimestamp(parts[1])
+	if err != nil {
+		return nil, err
+	}
+
+	// Remaining lines are text
+	text := strings.Join(block[2:], " ")
+
+	return &OcrCue{
+		Start: start,
+		End:   end,
+		Text:  text,
+	}, nil
+}
+
+// parseSrtTimestamp parses "00:00:01,234" format to seconds
+func parseSrtTimestamp(ts string) (float64, error) {
+	// Format: HH:MM:SS,mmm
+	ts = strings.TrimSpace(ts)
+	parts := strings.Split(ts, ",")
+	if len(parts) != 2 {
+		return 0, fmt.Errorf("invalid timestamp format: %s", ts)
+	}
+
+	timeParts := strings.Split(parts[0], ":")
+	if len(timeParts) != 3 {
+		return 0, fmt.Errorf("invalid time format: %s", parts[0])
+	}
+
+	hours, _ := strconv.Atoi(timeParts[0])
+	minutes, _ := strconv.Atoi(timeParts[1])
+	seconds, _ := strconv.Atoi(timeParts[2])
+	millis, _ := strconv.Atoi(parts[1])
+
+	return float64(hours*3600+minutes*60+seconds) + float64(millis)/1000.0, nil
+}
+
+// groupOcrCuesBySegment groups OCR cues into segments based on time points
+func groupOcrCuesBySegment(cues []OcrCue, timePoints []float64) [][]OcrCue {
+	segmentNum := len(timePoints) - 1
+	segments := make([][]OcrCue, segmentNum)
+
+	for _, cue := range cues {
+		// Find which segment this cue belongs to
+		for i := 0; i < segmentNum; i++ {
+			if cue.Start >= timePoints[i] && cue.Start < timePoints[i+1] {
+				segments[i] = append(segments[i], cue)
+				break
+			}
+		}
+	}
+
+	return segments
+}
+
+// ocrCuesToTranscriptionData converts OCR cues to TranscriptionData
+func ocrCuesToTranscriptionData(cues []OcrCue) *types.TranscriptionData {
+	if len(cues) == 0 {
+		return nil
+	}
+
+	var textParts []string
+	var words []types.Word
+
+	for _, cue := range cues {
+		textParts = append(textParts, cue.Text)
+		// Create a word entry for each cue (use cue as a "word" unit)
+		words = append(words, types.Word{
+			Text:  cue.Text,
+			Start: cue.Start,
+			End:   cue.End,
+		})
+	}
+
+	return &types.TranscriptionData{
+		Text:  strings.Join(textParts, " "),
+		Words: words,
+	}
 }
 
 func (s Service) audioToSubtitle(ctx context.Context, stepParam *types.SubtitleTaskStepParam) error {
@@ -143,7 +380,7 @@ func IsSplitUseSpace(language types.StandardLanguageCode) bool {
 	return false
 }
 
-func (s Service) splitTextAndTranslateV2(basePath, inputText string, originLang, targetLang types.StandardLanguageCode, enableModalFilter bool, id int) ([]*TranslatedItem, error) {
+func (s Service) splitTextAndTranslateV2(basePath, inputText string, originLang, targetLang types.StandardLanguageCode, enableModalFilter bool, id int, duration float64) ([]*TranslatedItem, error) {
 	sentences := util.SplitTextSentences(inputText, config.Conf.App.MaxSentenceLength)
 	if len(sentences) == 0 {
 		return []*TranslatedItem{}, nil
@@ -180,6 +417,14 @@ func (s Service) splitTextAndTranslateV2(basePath, inputText string, originLang,
 	}
 
 	sentences = shortSentences
+
+	// Try batch translation first for better context
+	translator := NewTranslatorWithCompleter(s.ChatCompleter)
+	batchResult, err := translator.translateBatchWithFullContext(sentences, originLang, targetLang, duration)
+	if err == nil && batchResult != nil {
+		return batchResult, nil
+	}
+	log.GetLogger().Warn("Batch translation failed, falling back to per-sentence translation", zap.Error(err))
 
 	var (
 		signal  = make(chan struct{}, config.Conf.App.TranslateParallelNum) // 控制最大并发数
@@ -226,11 +471,52 @@ func (s Service) splitTextAndTranslateV2(basePath, inputText string, originLang,
 				}
 			}
 
-			prompt := fmt.Sprintf(types.SplitTextWithContextPrompt, types.GetStandardLanguageName(targetLang), previousSentences, originText, nextSentences)
+			// Calculate proportional duration for this sentence
+			sentenceDuration := duration / float64(len(sentences))
+			if sentenceDuration <= 0 {
+				sentenceDuration = 1.0 // fallback
+			}
+			maxSyllables := int(math.Max(5, sentenceDuration*5))
+
+			prompt := fmt.Sprintf(types.SplitTextWithContextPrompt, types.GetStandardLanguageName(targetLang), sentenceDuration, maxSyllables, previousSentences, originText, nextSentences)
 
 			translatedText, err := s.ChatCompleter.ChatCompletion(prompt)
-			if err != nil {
-				log.GetLogger().Error("splitTextAndTranslateV2 llm translate error", zap.Error(err), zap.Any("original text", originText))
+
+			// Check if LLM output is valid Vietnamese (if target is vi) and not still Chinese
+			isChinese := func(str string) bool {
+				zhCharCount := 0
+				for _, r := range str {
+					if r >= 0x4e00 && r <= 0x9fff {
+						zhCharCount++
+					}
+				}
+				return zhCharCount > 0 && float64(zhCharCount)/float64(len([]rune(str))) > 0.3
+			}
+
+			shouldFallback := err != nil || isChinese(translatedText)
+
+			if shouldFallback {
+				if err != nil {
+					log.GetLogger().Warn("splitTextAndTranslateV2 llm translate failed, falling back to DeepL", zap.Error(err), zap.Any("original text", originText))
+				} else {
+					log.GetLogger().Warn("splitTextAndTranslateV2 llm output is still Chinese, falling back to DeepL", zap.Any("original text", originText), zap.Any("translated", translatedText))
+				}
+
+				// Fallback to DeepL
+				if config.Conf.Deepl.ApiKey != "" {
+					deeplClient := deepl.NewClient(config.Conf.Deepl.ApiKey)
+					if dText, dErr := deeplClient.Translate(originText, string(targetLang)); dErr == nil {
+						translatedText = dText
+						err = nil
+					} else {
+						log.GetLogger().Error("deepl fallback translation error", zap.Error(dErr))
+						err = dErr
+					}
+				}
+			}
+
+			if err != nil || (string(targetLang) == "vi" && isChinese(translatedText)) {
+				log.GetLogger().Error("splitTextAndTranslateV2 translation completely failed", zap.Any("original text", originText))
 				results[index] = &TranslatedItem{
 					OriginText:     originText,
 					TranslatedText: originText,
@@ -307,7 +593,7 @@ func (s Service) processAudioSegments(ctx context.Context, stepParam *types.Subt
 	splitResultQueue := make(chan DataWithId[string], segmentNum)
 	pendingTranscriptionQueue := make(chan DataWithId[string], segmentNum)
 	transcribedQueue := make(chan DataWithId[*types.TranscriptionData], segmentNum)
-	pendingTranslationQueue := make(chan DataWithId[string], segmentNum)
+	pendingTranslationQueue := make(chan DataWithId[*types.TranscriptionData], segmentNum)
 	translatedQueue := make(chan DataWithId[[]*TranslatedItem], segmentNum)
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -315,27 +601,81 @@ func (s Service) processAudioSegments(ctx context.Context, stepParam *types.Subt
 	// 构造音频片段切片
 	audioSegments := make([]AudioSegment, segmentNum)
 
-	// 输入音频文件到分割队列
-	for i := range segmentNum {
-		pendingSplitQueue <- DataWithId[[2]float64]{
-			Data: [2]float64{timePoints[i], timePoints[i+1]},
-			Id:   i,
+	// Try OCR first if enabled
+	ocrMode := false
+	if config.Conf.App.EnableOcr && stepParam.InputVideoPath != "" {
+		ocrSrtPath := filepath.Join(stepParam.TaskBasePath, "ocr_origin.srt")
+		useGpu := config.Conf.Transcribe.EnableGpuAcceleration
+		ocrCues, err := tryOcrSubtitle(ctx, stepParam.InputVideoPath, ocrSrtPath, useGpu)
+		if err != nil {
+			log.GetLogger().Warn("OCR failed, falling back to ASR", zap.Error(err))
+		} else if len(ocrCues) > 0 {
+			ocrMode = true
+			log.GetLogger().Info("Using OCR mode for subtitle extraction",
+				zap.Int("cues", len(ocrCues)),
+				zap.String("taskId", stepParam.TaskId))
+
+			// Group OCR cues by segment
+			ocrSegments := groupOcrCuesBySegment(ocrCues, timePoints)
+
+			// Populate audioSegments and send to transcribedQueue
+			for i, segCues := range ocrSegments {
+				td := ocrCuesToTranscriptionData(segCues)
+				if td != nil {
+					audioSegments[i].TranscriptionData = td
+					// Save transcription data to disk
+					_ = util.SaveToDisk(td, filepath.Join(stepParam.TaskBasePath, fmt.Sprintf(types.SubtitleTaskAudioTranscriptionDataPersistenceFileNamePattern, i)))
+				}
+			}
 		}
 	}
 
-	// 启动分割协程
-	s.startSplitWorkers(ctx, eg, stepParam, pendingSplitQueue, splitResultQueue)
+	if ocrMode {
+		// OCR mode: close unused channels and send data directly to transcribedQueue
+		close(pendingSplitQueue)
+		close(splitResultQueue)
+		close(pendingTranscriptionQueue)
 
-	// 启动转录协程
-	s.startTranscribeWorkers(ctx, eg, stepParam, pendingTranscriptionQueue, transcribedQueue)
+		// Send OCR transcription data to transcribedQueue
+		go func() {
+			for i := range segmentNum {
+				if audioSegments[i].TranscriptionData != nil {
+					transcribedQueue <- DataWithId[*types.TranscriptionData]{
+						Data: audioSegments[i].TranscriptionData,
+						Id:   i,
+					}
+				}
+			}
+		}()
 
-	// 启动翻译协程
-	s.startTranslateWorker(ctx, eg, stepParam, pendingTranslationQueue, translatedQueue)
+		// Start only translation worker and result handler
+		s.startTranslateWorker(ctx, eg, stepParam, pendingTranslationQueue, translatedQueue)
+		s.startResultHandlerOcrMode(ctx, eg, stepParam, segmentNum, timePoints, audioSegments,
+			transcribedQueue, pendingTranslationQueue, translatedQueue)
+	} else {
+		// Normal ASR mode: run full pipeline
+		// 输入音频文件到分割队列
+		for i := range segmentNum {
+			pendingSplitQueue <- DataWithId[[2]float64]{
+				Data: [2]float64{timePoints[i], timePoints[i+1]},
+				Id:   i,
+			}
+		}
 
-	// 处理结果协程
-	s.startResultHandler(ctx, eg, stepParam, segmentNum, timePoints, audioSegments,
-		splitResultQueue, pendingTranscriptionQueue, transcribedQueue,
-		pendingTranslationQueue, translatedQueue, pendingSplitQueue)
+		// 启动分割协程
+		s.startSplitWorkers(ctx, eg, stepParam, pendingSplitQueue, splitResultQueue)
+
+		// 启动转录协程
+		s.startTranscribeWorkers(ctx, eg, stepParam, pendingTranscriptionQueue, transcribedQueue)
+
+		// 启动翻译协程
+		s.startTranslateWorker(ctx, eg, stepParam, pendingTranslationQueue, translatedQueue)
+
+		// 处理结果协程
+		s.startResultHandler(ctx, eg, stepParam, segmentNum, timePoints, audioSegments,
+			splitResultQueue, pendingTranscriptionQueue, transcribedQueue,
+			pendingTranslationQueue, translatedQueue, pendingSplitQueue)
+	}
 
 	if err := eg.Wait(); err != nil {
 		log.GetLogger().Error("audioToSubtitle processAudioSegments errgroup wait err", zap.Any("taskId", stepParam.TaskId), zap.Error(err))
@@ -423,7 +763,7 @@ func (s Service) startTranscribeWorkers(ctx context.Context, eg *errgroup.Group,
 
 // 启动翻译工作协程
 func (s Service) startTranslateWorker(ctx context.Context, eg *errgroup.Group, stepParam *types.SubtitleTaskStepParam,
-	pendingTranslationQueue chan DataWithId[string], translatedQueue chan DataWithId[[]*TranslatedItem]) {
+	pendingTranslationQueue chan DataWithId[*types.TranscriptionData], translatedQueue chan DataWithId[[]*TranslatedItem]) {
 
 	eg.Go(func() error {
 		for {
@@ -438,8 +778,16 @@ func (s Service) startTranslateWorker(ctx context.Context, eg *errgroup.Group, s
 				var err error
 				// 翻译文本
 				log.GetLogger().Info("Begin to translate", zap.Any("taskId", stepParam.TaskId), zap.Any("splitId", translateItem.Id))
+
+				duration := 0.0
+				if translateItem.Data != nil && len(translateItem.Data.Words) > 0 {
+					duration = translateItem.Data.Words[len(translateItem.Data.Words)-1].End - translateItem.Data.Words[0].Start
+				}
+				if duration <= 0 {
+					duration = 2.0 // fallback
+				}
 				for range config.Conf.App.TranslateMaxAttempts {
-					translatedResults, err = s.splitTextAndTranslateV2(stepParam.TaskBasePath, translateItem.Data, stepParam.OriginLanguage, stepParam.TargetLanguage, stepParam.EnableModalFilter, translateItem.Id)
+					translatedResults, err = s.splitTextAndTranslateV2(stepParam.TaskBasePath, translateItem.Data.Text, stepParam.OriginLanguage, stepParam.TargetLanguage, stepParam.EnableModalFilter, translateItem.Id, duration)
 					if err == nil {
 						break
 					}
@@ -473,7 +821,7 @@ func (s Service) startTranslateWorker(ctx context.Context, eg *errgroup.Group, s
 func (s Service) startResultHandler(ctx context.Context, eg *errgroup.Group, stepParam *types.SubtitleTaskStepParam,
 	segmentNum int, timePoints []float64, audioSegments []AudioSegment,
 	splitResultQueue chan DataWithId[string], pendingTranscriptionQueue chan DataWithId[string],
-	transcribedQueue chan DataWithId[*types.TranscriptionData], pendingTranslationQueue chan DataWithId[string],
+	transcribedQueue chan DataWithId[*types.TranscriptionData], pendingTranslationQueue chan DataWithId[*types.TranscriptionData],
 	translatedQueue chan DataWithId[[]*TranslatedItem], pendingSplitQueue chan DataWithId[[2]float64]) {
 
 	eg.Go(func() error {
@@ -510,8 +858,8 @@ func (s Service) startResultHandler(ctx context.Context, eg *errgroup.Group, ste
 				// 处理转录结果
 				audioSegments[transcribedItem.Id].TranscriptionData = transcribedItem.Data
 				// 发送翻译任务
-				pendingTranslationQueue <- DataWithId[string]{
-					Data: transcribedItem.Data.Text,
+				pendingTranslationQueue <- DataWithId[*types.TranscriptionData]{
+					Data: transcribedItem.Data,
 					Id:   transcribedItem.Id,
 				}
 			case translatedItems := <-translatedQueue:
@@ -564,6 +912,87 @@ func (s Service) startResultHandler(ctx context.Context, eg *errgroup.Group, ste
 					close(pendingSplitQueue)
 					close(splitResultQueue)
 					close(pendingTranscriptionQueue)
+					close(transcribedQueue)
+					close(pendingTranslationQueue)
+					close(translatedQueue)
+					return nil
+				}
+			}
+		}
+	})
+}
+
+// startResultHandlerOcrMode handles results in OCR mode (no split/transcribe steps)
+func (s Service) startResultHandlerOcrMode(ctx context.Context, eg *errgroup.Group, stepParam *types.SubtitleTaskStepParam,
+	segmentNum int, timePoints []float64, audioSegments []AudioSegment,
+	transcribedQueue chan DataWithId[*types.TranscriptionData], pendingTranslationQueue chan DataWithId[*types.TranscriptionData],
+	translatedQueue chan DataWithId[[]*TranslatedItem]) {
+
+	eg.Go(func() error {
+		const TRANSLATE_WEIGHT = 1.0 // In OCR mode, only translation contributes to progress
+		taskWeight := (90 - 15) / float64(segmentNum)
+		processPct := 15.0
+		completedTasks := 0
+
+		for {
+			select {
+			case <-ctx.Done():
+				return nil
+			case transcribedItem, ok := <-transcribedQueue:
+				if !ok {
+					return nil
+				}
+				// Update progress
+				processPct += taskWeight * 0.1 // Small progress for receiving transcription
+				stepParam.TaskPtr.ProcessPct = uint8(processPct)
+
+				// Send to translation queue
+				pendingTranslationQueue <- DataWithId[*types.TranscriptionData]{
+					Data: transcribedItem.Data,
+					Id:   transcribedItem.Id,
+				}
+			case translatedItems, ok := <-translatedQueue:
+				if !ok {
+					return nil
+				}
+				// Update progress
+				processPct += taskWeight * TRANSLATE_WEIGHT * 0.9
+				stepParam.TaskPtr.ProcessPct = uint8(processPct)
+
+				// Save translation results
+				originNoTsSrtFileName := filepath.Join(stepParam.TaskBasePath, fmt.Sprintf(types.SubtitleTaskSplitSrtNoTimestampFileNamePattern, translatedItems.Id))
+				originNoTsSrtFile, err := os.Create(originNoTsSrtFileName)
+				if err != nil {
+					return fmt.Errorf("audioToSubtitle audioToSrt create srt file err: %w", err)
+				}
+				for i, translatedItem := range translatedItems.Data {
+					_, _ = originNoTsSrtFile.WriteString(fmt.Sprintf("%d\n", i+1))
+					_, _ = originNoTsSrtFile.WriteString(fmt.Sprintf("%s\n", translatedItem.TranslatedText))
+					_, _ = originNoTsSrtFile.WriteString(fmt.Sprintf("%s\n\n", translatedItem.OriginText))
+				}
+				originNoTsSrtFile.Sync()
+				originNoTsSrtFile.Close()
+				audioSegments[translatedItems.Id].SrtNoTsFile = originNoTsSrtFileName
+
+				// Generate timestamps
+				var srtBlocks []*util.SrtBlock
+				for i, translatedItem := range translatedItems.Data {
+					srtBlocks = append(srtBlocks, &util.SrtBlock{
+						Index:                  i + 1,
+						Timestamp:              "",
+						OriginLanguageSentence: translatedItem.OriginText,
+						TargetLanguageSentence: translatedItem.TranslatedText,
+					})
+				}
+
+				segmentIdx := translatedItems.Id
+				err = generateSrtWithTimestamps(srtBlocks, timePoints[segmentIdx], audioSegments[segmentIdx].TranscriptionData.Words, segmentIdx, stepParam)
+				if err != nil {
+					return fmt.Errorf("audioToSubtitle audioToSrt generateTimestamps err: %w", err)
+				}
+
+				completedTasks++
+				if completedTasks >= segmentNum {
 					close(transcribedQueue)
 					close(pendingTranslationQueue)
 					close(translatedQueue)
@@ -1007,6 +1436,82 @@ func jumpFindMaxIncreasingSubArray(words []types.Word) (int, int, []types.Word) 
 	return startIdx, endIdx, result
 }
 
+// generateCJKProportionalShortBlocks splits a long CJK sentence into sub-blocks
+// with proportional timestamps based on display width, avoiding zero-valued dummy words.
+func generateCJKProportionalShortBlocks(srtBlock *util.SrtBlock, shortOriginSrtMap map[int][]util.SrtBlock, sentenceTs types.SrtSentence, tsOffset float64, maxWordOneLine int) {
+	sentenceRunes := []rune(srtBlock.OriginLanguageSentence)
+	if len(sentenceRunes) <= maxWordOneLine {
+		shortOriginSrtMap[srtBlock.Index] = append(shortOriginSrtMap[srtBlock.Index], util.SrtBlock{
+			Index:                  srtBlock.Index,
+			Timestamp:              fmt.Sprintf("%s --> %s", util.FormatTime(float32(sentenceTs.Start+tsOffset)), util.FormatTime(float32(sentenceTs.End+tsOffset))),
+			OriginLanguageSentence: srtBlock.OriginLanguageSentence,
+		})
+		return
+	}
+	span := sentenceTs.End - sentenceTs.Start
+	if span <= 0 {
+		span = 1.0
+	}
+	numSubs := (len(sentenceRunes) + maxWordOneLine - 1) / maxWordOneLine
+	if numSubs < 1 {
+		numSubs = 1
+	}
+	// Calculate display width: CJK=1, Latin/digit=0.5
+	totalDisp := 0.0
+	dispLens := make([]float64, len(sentenceRunes))
+	for i, r := range sentenceRunes {
+		dl := 1.0
+		if r >= 0x4E00 && r <= 0x9FFF { // CJK Unified
+		} else if r >= 0x3040 && r <= 0x30FF { // Japanese kana
+		} else if r >= 0xAC00 && r <= 0xD7A3 { // Korean
+		} else if r >= 0xFF01 && r <= 0xFF5E { // Fullwidth forms
+		} else {
+			dl = 0.5 // Latin, digits
+		}
+		dispLens[i] = dl
+		totalDisp += dl
+	}
+	if totalDisp <= 0 {
+		totalDisp = float64(len(sentenceRunes))
+	}
+	targetPerSub := totalDisp / float64(numSubs)
+	cursor := sentenceTs.Start
+	subStart := 0
+	for subNum := 0; subNum < numSubs; subNum++ {
+		accDisp := 0.0
+		subEnd := subStart
+		for subEnd < len(sentenceRunes) && (accDisp < targetPerSub || subEnd == subStart) {
+			accDisp += dispLens[subEnd]
+			subEnd++
+		}
+		if subEnd >= len(sentenceRunes) {
+			subEnd = len(sentenceRunes)
+		}
+		chunk := string(sentenceRunes[subStart:subEnd])
+		chunkDisp := 0.0
+		for _, dl := range dispLens[subStart:subEnd] {
+			chunkDisp += dl
+		}
+		duration := span * chunkDisp / totalDisp
+		if duration < 0.35 {
+			duration = 0.35
+		}
+		next := cursor + duration
+		if subNum == numSubs-1 || next > sentenceTs.End {
+			next = sentenceTs.End
+		}
+		if next <= cursor {
+			next = cursor + 0.35
+		}
+		shortOriginSrtMap[srtBlock.Index] = append(shortOriginSrtMap[srtBlock.Index], util.SrtBlock{
+			Index:                  srtBlock.Index,
+			Timestamp:              fmt.Sprintf("%s --> %s", util.FormatTime(float32(cursor+tsOffset)), util.FormatTime(float32(next+tsOffset))),
+			OriginLanguageSentence: chunk,
+		})
+		cursor = next
+		subStart = subEnd
+	}
+}
 func generateSrtWithTimestamps(srtBlocks []*util.SrtBlock, tsOffset float64, words []types.Word, segmentIdx int, stepParam *types.SubtitleTaskStepParam) error {
 	if len(srtBlocks) == 0 || len(words) == 0 {
 		return nil
@@ -1021,11 +1526,39 @@ func generateSrtWithTimestamps(srtBlocks []*util.SrtBlock, tsOffset float64, wor
 		return fmt.Errorf("audioToSubtitle generateTimestamps GenerateTimestamps error: %w", err)
 	}
 
+	// Update original srtBlocks with correct timestamps from matcher to prevent getSentenceTimestamps drift
+	for i, newBlock := range newSrtBlocks {
+		srtBlocks[i].Timestamp = newBlock.Timestamp
+	}
+
 	for _, srtBlock := range srtBlocks {
 		if srtBlock.OriginLanguageSentence == "" {
 			continue
 		}
-		sentenceTs, sentenceWords, ts, err := getSentenceTimestamps(words, srtBlock.OriginLanguageSentence, lastTs, stepParam.OriginLanguage)
+		var sentenceTs types.SrtSentence
+		var sentenceWords []types.Word
+		var ts float64
+
+		if shouldUseProportionalCJKTimestamps(stepParam.OriginLanguage, words) {
+			// Parse the generated proportional timestamp directly
+			var sh, sm, ss, sms, eh, em, es, ems int
+			_, err = fmt.Sscanf(srtBlock.Timestamp, "%d:%d:%d,%d --> %d:%d:%d,%d", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems)
+			if err == nil {
+				sentenceTs.Start = float64(sh)*3600 + float64(sm)*60 + float64(ss) + float64(sms)/1000.0 - tsOffset
+				sentenceTs.End = float64(eh)*3600 + float64(em)*60 + float64(es) + float64(ems)/1000.0 - tsOffset
+				ts = sentenceTs.End
+				// Build short-origin sub-blocks with proportional timing directly.
+				// Dummy words (Start=0,End=0) would cause zero-valued timestamps below.
+				generateCJKProportionalShortBlocks(srtBlock, shortOriginSrtMap, sentenceTs, tsOffset, stepParam.MaxWordOneLine)
+				lastTs = ts
+				continue
+			} else {
+				sentenceTs, sentenceWords, ts, err = getSentenceTimestamps(words, srtBlock.OriginLanguageSentence, lastTs, stepParam.OriginLanguage)
+			}
+		} else {
+			sentenceTs, sentenceWords, ts, err = getSentenceTimestamps(words, srtBlock.OriginLanguageSentence, lastTs, stepParam.OriginLanguage)
+		}
+
 		if err != nil || ts < lastTs {
 			continue
 		}
