@@ -1394,7 +1394,7 @@ func jumpFindMaxIncreasingSubArray(words []types.Word) (int, int, []types.Word) 
 	for i := 1; i < len(words); i++ {
 		// 对比每个元素与之前的元素，检查是否可以构成递增子数组
 		for j := 0; j < i; j++ {
-			if words[i].Num == words[j].Num+1 {
+			if words[i].Num > words[j].Num {
 				if dp[i] < dp[j]+1 {
 					dp[i] = dp[j] + 1
 					prev[i] = j
