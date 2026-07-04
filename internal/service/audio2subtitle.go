@@ -1542,9 +1542,29 @@ func generateSrtWithTimestamps(srtBlocks []*util.SrtBlock, tsOffset float64, wor
 		sentenceTs, sentenceWords, ts, err = getSentenceTimestamps(words, srtBlock.OriginLanguageSentence, lastTs, stepParam.OriginLanguage)
 
 		if err != nil || ts < lastTs {
+			// Fallback: use matcher timestamp so short_origin still has entries
+			// and lastTs advances, preventing cascade failure on subsequent blocks.
+			for _, nb := range newSrtBlocks {
+				if nb.Index == srtBlock.Index {
+					var sh, sm, ss, sms, eh, em, es, ems int
+					if _, pe := fmt.Sscanf(nb.Timestamp, "%d:%d:%d,%d --> %d:%d:%d,%d",
+						&sh, &sm, &ss, &sms, &eh, &em, &es, &ems); pe == nil {
+						sentenceTs.Start = float64(sh)*3600 + float64(sm)*60 + float64(ss) + float64(sms)/1000.0 - tsOffset
+						sentenceTs.End = float64(eh)*3600 + float64(em)*60 + float64(es) + float64(ems)/1000.0 - tsOffset
+						ts = sentenceTs.End
+						if ts <= lastTs {
+							ts = lastTs + 0.5
+						}
+						generateCJKProportionalShortBlocks(srtBlock, shortOriginSrtMap, sentenceTs, tsOffset, stepParam.MaxWordOneLine)
+					}
+					break
+				}
+			}
+			lastTs = ts
 			continue
 		}
-		srtBlock.Timestamp = fmt.Sprintf("%s --> %s", util.FormatTime(float32(sentenceTs.Start+tsOffset)), util.FormatTime(float32(sentenceTs.End+tsOffset)))
+		// Keep srtBlock.Timestamp from the matcher (newSrtBlocks) so bilingual
+		// and mixed SRT main blocks share identical timestamps.
 
 		// 生成短句子的英文字幕
 		var (
