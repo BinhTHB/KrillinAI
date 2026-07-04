@@ -96,20 +96,32 @@ func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, wor
 
 		spanStart := lastEndTime
 		spanEnd := lastEndTime + float64(len(failedBuffer))
-		if len(words) > 0 {
-			spanEnd = words[len(words)-1].End
-		}
 		if mergedStart, mergedEnd, err := matcher.MatchSentenceTimestamp(merged.String(), words, lastEndTime); err == nil && mergedEnd > mergedStart {
 			spanStart = mergedStart
 			if spanStart < lastEndTime {
 				spanStart = lastEndTime
 			}
 			spanEnd = mergedEnd
-		} else if logger := log.GetLogger(); logger != nil {
-			logger.Warn("Failed to greedily match merged timestamp block",
-				zap.Int("blocks", len(failedBuffer)),
-				zap.String("sentence", merged.String()),
-				zap.Error(err))
+		} else {
+			if len(failedBuffer) == 1 {
+				chars := len([]rune(util.GetRecognizableString(updatedBlocks[failedBuffer[0].idx].OriginLanguageSentence)))
+				if chars < 1 {
+					chars = 1
+				}
+				duration := 0.35 + float64(chars)*0.08
+				if duration > 2.5 {
+					duration = 2.5
+				}
+				spanEnd = spanStart + duration
+			} else if len(words) > 0 {
+				spanEnd = words[len(words)-1].End
+			}
+			if logger := log.GetLogger(); logger != nil {
+				logger.Warn("Failed to greedily match merged timestamp block, using fallback",
+					zap.Int("blocks", len(failedBuffer)),
+					zap.String("sentence", merged.String()),
+					zap.Error(err))
+			}
 		}
 		if spanEnd <= spanStart {
 			spanEnd = spanStart + float64(len(failedBuffer))
