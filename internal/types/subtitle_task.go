@@ -287,7 +287,7 @@ const (
 	SubtitleTaskAudioFileName                                    = "origin_audio.mp3"
 	SubtitleTaskVideoFileName                                    = "origin_video.mp4"
 	SubtitleTaskSplitAudioFileNamePrefix                         = "split_audio"
-	SubtitleTaskSplitAudioFileNamePattern                        = SubtitleTaskSplitAudioFileNamePrefix + "_%03d.mp3"
+	SubtitleTaskSplitAudioFileNamePattern                        = SubtitleTaskSplitAudioFileNamePrefix + "_%03d.wav"
 	SubtitleTaskSplitAudioTxtFileNamePattern                     = "split_audio_txt_%d.txt"
 	SubtitleTaskSplitAudioWordsFileNamePattern                   = "split_audio_words_%d.txt"
 	SubtitleTaskSplitSrtNoTimestampFileNamePattern               = "srt_no_ts_%d.srt"
@@ -318,7 +318,7 @@ const (
 )
 
 const (
-	AsrMono16kAudioFileName = "mono_16k_audio.mp3"
+	AsrMono16kAudioFileName = "mono_16k_audio.wav"
 )
 
 type SubtitleFileInfo struct {

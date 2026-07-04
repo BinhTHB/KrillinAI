@@ -153,6 +153,9 @@ func ClipAudio(input, output string, start, end float64) error {
 		"-ss", fmt.Sprintf("%.3f", start), // 起始时间
 		"-to", fmt.Sprintf("%.3f", end), // 结束时间
 		"-i", input,
+		"-acodec", "pcm_s16le",
+		"-ar", "16000",
+		"-ac", "1",
 		output,
 	)
 	if err := cmd.Run(); err != nil {
