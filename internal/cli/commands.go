@@ -1378,6 +1378,7 @@ func fixByTextMatch(fullOriginPath, shortOriginPath string, targets []geminiDubS
 	if err != nil {
 		return nil, err
 	}
+	shortEntries = filterGeminiDubCorruptAnchors(shortEntries, videoDur)
 	if len(fullEntries) != len(targets) {
 		return nil, fmt.Errorf("full origin length %d does not match targets %d", len(fullEntries), len(targets))
 	}
@@ -1748,6 +1749,31 @@ func geminiDubAnchorSpan(fullClean string, cleanAnchors []string, minOverlap int
 		}
 	}
 	return start, end
+}
+
+func filterGeminiDubCorruptAnchors(entries []geminiDubSRTEntry, videoDur float64) []geminiDubSRTEntry {
+	if videoDur <= 0 || len(entries) == 0 {
+		return entries
+	}
+	filtered := make([]geminiDubSRTEntry, 0, len(entries))
+	for _, entry := range entries {
+		duration := entry.End - entry.Start
+		if entry.Start >= videoDur+0.5 || entry.End > videoDur+0.5 {
+			continue
+		}
+		if duration > 12.0 {
+			cleanText := cleanChineseText(entry.Text)
+			cleanChars := len([]rune(cleanText))
+			if cleanChars == 0 || float64(cleanChars)/duration < 1.0 {
+				continue
+			}
+		}
+		filtered = append(filtered, entry)
+	}
+	if len(filtered) == 0 || len(filtered) < len(entries)/2 {
+		return entries
+	}
+	return filtered
 }
 
 // cleanChineseText returns only CJK unified ideograph characters
