@@ -2251,7 +2251,12 @@ func downloadDouyinVideoForGeminiDub(inputURL string, videoPath string) error {
 	if err := os.MkdirAll(tmpDir, 0755); err != nil {
 		return fmt.Errorf("create f2 temp dir failed: %w", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	cleanupTmpDir := true
+	defer func() {
+		if cleanupTmpDir {
+			os.RemoveAll(tmpDir)
+		}
+	}()
 
 	// Read cookie if available
 	cookiePath := filepath.Join(".", "cookie_string.txt")
@@ -2270,8 +2275,13 @@ func downloadDouyinVideoForGeminiDub(inputURL string, videoPath string) error {
 	cmd.Env = append(os.Environ(), "PYTHONUTF8=1", "PYTHONIOENCODING=utf-8")
 	fmt.Fprintf(os.Stderr, "[f2] downloading Douyin video...\n")
 	output, err := cmd.CombinedOutput()
+	if len(output) > 0 {
+		fmt.Fprintln(os.Stderr, "[f2] output:")
+		fmt.Fprintln(os.Stderr, string(output))
+	}
 	if err != nil {
-		return fmt.Errorf("f2 download failed: %w\n%s", err, string(output))
+		cleanupTmpDir = false
+		return fmt.Errorf("f2 download failed: %w; kept f2 output dir: %s; if Douyin returned empty responses, refresh cookie_string.txt", err, tmpDir)
 	}
 
 	// Walk tmpDir to find mp4
@@ -2287,7 +2297,8 @@ func downloadDouyinVideoForGeminiDub(inputURL string, videoPath string) error {
 		return nil
 	})
 	if mp4File == "" {
-		return fmt.Errorf("no mp4 file found in f2 output directory")
+		cleanupTmpDir = false
+		return fmt.Errorf("no mp4 file found in f2 output directory: %s; kept directory for inspection; refresh cookie_string.txt if f2 logs show empty Douyin responses", tmpDir)
 	}
 
 	// Move to target
