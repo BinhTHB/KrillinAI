@@ -71,6 +71,79 @@ func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, wor
 
 	var lastEndTime float64
 	updatedBlocks := make([]*util.SrtBlock, len(srtBlocks))
+	type failedBlock struct {
+		idx int
+	}
+	var failedBuffer []failedBlock
+
+	flushFailedBuffer := func() {
+		if len(failedBuffer) == 0 {
+			return
+		}
+
+		var merged strings.Builder
+		totalChars := 0
+		charLens := make([]int, len(failedBuffer))
+		for j, failed := range failedBuffer {
+			sentence := updatedBlocks[failed.idx].OriginLanguageSentence
+			merged.WriteString(sentence)
+			charLens[j] = len([]rune(sentence))
+			if charLens[j] < 1 {
+				charLens[j] = 1
+			}
+			totalChars += charLens[j]
+		}
+
+		spanStart := lastEndTime
+		spanEnd := lastEndTime + float64(len(failedBuffer))
+		if len(words) > 0 {
+			spanEnd = words[len(words)-1].End
+		}
+		if mergedStart, mergedEnd, err := matcher.MatchSentenceTimestamp(merged.String(), words, lastEndTime); err == nil && mergedEnd > mergedStart {
+			spanStart = mergedStart
+			if spanStart < lastEndTime {
+				spanStart = lastEndTime
+			}
+			spanEnd = mergedEnd
+		} else if logger := log.GetLogger(); logger != nil {
+			logger.Warn("Failed to greedily match merged timestamp block",
+				zap.Int("blocks", len(failedBuffer)),
+				zap.String("sentence", merged.String()),
+				zap.Error(err))
+		}
+		if spanEnd <= spanStart {
+			spanEnd = spanStart + float64(len(failedBuffer))
+		}
+
+		span := spanEnd - spanStart
+		minSpan := float64(len(failedBuffer)) * 0.35
+		if span < minSpan {
+			span = minSpan
+			spanEnd = spanStart + span
+		}
+
+		cursor := spanStart
+		for j, failed := range failedBuffer {
+			duration := span / float64(len(failedBuffer))
+			if totalChars > 0 {
+				duration = span * float64(charLens[j]) / float64(totalChars)
+			}
+			if duration < 0.35 {
+				duration = 0.35
+			}
+			endTime := cursor + duration
+			if j == len(failedBuffer)-1 || endTime > spanEnd {
+				endTime = spanEnd
+			}
+			if endTime <= cursor {
+				endTime = cursor + 0.35
+			}
+			updatedBlocks[failed.idx].Timestamp = util.ConvertTimes(float32(cursor+tsOffset), float32(endTime+tsOffset))
+			cursor = endTime
+		}
+		lastEndTime = cursor
+		failedBuffer = nil
+	}
 
 	for i, block := range srtBlocks {
 		blockCopy := *block
@@ -88,44 +161,18 @@ func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, wor
 					zap.String("sentence", block.OriginLanguageSentence),
 					zap.Error(err))
 			}
-			// Use proportional fallback for remaining audio span instead of fixed 1s
-			remainingBlocks := len(srtBlocks) - i
-			if remainingBlocks > 0 && len(words) > 0 {
-				remainingSpan := words[len(words)-1].End - lastEndTime
-				if remainingSpan > 0 {
-					// Calculate total remaining character length for proportional distribution
-					totalRemainingChars := 0
-					for j := i; j < len(srtBlocks); j++ {
-						totalRemainingChars += len([]rune(srtBlocks[j].OriginLanguageSentence))
-					}
-					currentChars := len([]rune(block.OriginLanguageSentence))
-					var fallbackDuration float64
-					if totalRemainingChars > 0 {
-						fallbackDuration = remainingSpan * float64(currentChars) / float64(totalRemainingChars)
-					} else {
-						fallbackDuration = remainingSpan / float64(remainingBlocks)
-					}
-					if fallbackDuration < 0.35 {
-						fallbackDuration = 0.35
-					}
-					startTime = lastEndTime
-					endTime = lastEndTime + fallbackDuration
-				} else {
-					startTime = lastEndTime
-					endTime = lastEndTime + 1.0
-				}
-			} else {
-				startTime = lastEndTime
-				endTime = lastEndTime + 1.0
-			}
-		} else {
-			// Ensure timestamps don't overlap with previous block
-			if startTime < lastEndTime {
-				startTime = lastEndTime
-			}
-			if endTime <= startTime {
-				endTime = startTime + 1.0 // Minimum 1 second duration
-			}
+			failedBuffer = append(failedBuffer, failedBlock{idx: i})
+			continue
+		}
+
+		flushFailedBuffer()
+
+		// Ensure timestamps don't overlap with previous block
+		if startTime < lastEndTime {
+			startTime = lastEndTime
+		}
+		if endTime <= startTime {
+			endTime = startTime + 1.0 // Minimum 1 second duration
 		}
 
 		// Generate timestamp string
@@ -140,6 +187,8 @@ func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, wor
 				zap.Any("endTime", endTime))
 		}
 	}
+
+	flushFailedBuffer()
 
 	return updatedBlocks, nil
 }

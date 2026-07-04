@@ -49,6 +49,53 @@ func TestGenerateTimestampsUsesProportionalFallbackForCorruptedCJKWords(t *testi
 	}
 }
 
+func TestGenerateTimestampsGreedyMergesConsecutiveFailures(t *testing.T) {
+	words := []types.Word{{Text: "end", Start: 0, End: 4}}
+	blocks := []*util.SrtBlock{
+		{Index: 1, OriginLanguageSentence: "a"},
+		{Index: 2, OriginLanguageSentence: "bbb"},
+		{Index: 3, OriginLanguageSentence: "c"},
+	}
+
+	gen := NewTimestampGenerator()
+	lang := types.StandardLanguageCode("test-greedy")
+	gen.RegisterMatcher(lang, greedyMergeTestMatcher{})
+	result, err := gen.GenerateTimestamps(blocks, words, lang, 0)
+	if err != nil {
+		t.Fatalf("GenerateTimestamps returned error: %v", err)
+	}
+
+	start1, end1 := parseTestTimestamp(t, result[0].Timestamp)
+	start2, end2 := parseTestTimestamp(t, result[1].Timestamp)
+	start3, end3 := parseTestTimestamp(t, result[2].Timestamp)
+	if start1 != 1.0 || end2 != 3.0 {
+		t.Fatalf("expected failed blocks to use merged hard anchors 1.0-3.0, got %.3f-%.3f", start1, end2)
+	}
+	if end1 >= end2 || start2 < end1-0.01 {
+		t.Fatalf("expected merged blocks to be monotonic, got %s then %s", result[0].Timestamp, result[1].Timestamp)
+	}
+	if start3 < end2-0.01 || end3 <= start3 {
+		t.Fatalf("expected following matched block after merged failures, got %s", result[2].Timestamp)
+	}
+}
+
+type greedyMergeTestMatcher struct{}
+
+func (greedyMergeTestMatcher) MatchSentenceTimestamp(sentence string, _ []types.Word, _ float64) (float64, float64, error) {
+	switch sentence {
+	case "abbb":
+		return 1.0, 3.0, nil
+	case "c":
+		return 3.0, 4.0, nil
+	default:
+		return 0, 0, fmt.Errorf("forced mismatch")
+	}
+}
+
+func (greedyMergeTestMatcher) GetLanguageType() types.StandardLanguageCode {
+	return types.StandardLanguageCode("test-greedy")
+}
+
 func parseTestTimestamp(t *testing.T, timestamp string) (float64, float64) {
 	t.Helper()
 	parts := strings.Split(timestamp, " --> ")
