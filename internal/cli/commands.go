@@ -1621,31 +1621,109 @@ func expandGeminiDubTextMatchedEntries(entries, fullEntries, sortedAnchors []gem
 		spanStart, spanEnd := geminiDubAnchorSpan(cleanFull[i], cleanAnchor, minOverlap)
 		parts := splitGeminiDubSentences(entry.Text)
 		spanCount := spanEnd - spanStart + 1
-		if spanCount <= 1 || len(parts) <= 1 || len(parts) > spanCount {
+		if spanCount <= 1 || len(parts) <= 1 {
 			expanded = append(expanded, entry)
 			continue
 		}
-		for partIdx, part := range parts {
-			aj := spanStart + partIdx
-			start := sortedAnchors[aj].Start
-			var end float64
+		anchorStarts := make([]float64, spanCount)
+		anchorEnds := make([]float64, spanCount)
+		for anchorIdx := 0; anchorIdx < spanCount; anchorIdx++ {
+			aj := spanStart + anchorIdx
+			anchorStarts[anchorIdx] = sortedAnchors[aj].Start
 			if aj+1 < len(sortedAnchors) {
-				end = sortedAnchors[aj+1].Start
+				anchorEnds[anchorIdx] = sortedAnchors[aj+1].Start
 			} else {
-				end = sortedAnchors[aj].End
-				if videoDur > 0 && videoDur > start {
-					end = videoDur
+				anchorEnds[anchorIdx] = sortedAnchors[aj].End
+				if videoDur > 0 && videoDur > anchorStarts[anchorIdx] {
+					anchorEnds[anchorIdx] = videoDur
 				}
 			}
-			if end <= start {
-				end = start + 0.3
+			if anchorEnds[anchorIdx] <= anchorStarts[anchorIdx] {
+				anchorEnds[anchorIdx] = anchorStarts[anchorIdx] + 0.3
+			}
+		}
+		partChars := make([]int, len(parts))
+		totalPartChars := 0
+		for partIdx, part := range parts {
+			partChars[partIdx] = len([]rune(part))
+			if partChars[partIdx] < 1 {
+				partChars[partIdx] = 1
+			}
+			totalPartChars += partChars[partIdx]
+		}
+		if len(parts) <= spanCount {
+			anchorIdx := 0
+			for partIdx, part := range parts {
+				anchorSlots := 1
+				if totalPartChars > 0 {
+					anchorSlots = int(float64(partChars[partIdx])/float64(totalPartChars)*float64(spanCount) + 0.5)
+				}
+				if anchorSlots < 1 {
+					anchorSlots = 1
+				}
+				remainingAnchors := spanCount - anchorIdx
+				remainingParts := len(parts) - partIdx
+				if anchorSlots > remainingAnchors-remainingParts+1 {
+					anchorSlots = remainingAnchors - remainingParts + 1
+				}
+				if partIdx == len(parts)-1 {
+					anchorSlots = remainingAnchors
+				}
+				if anchorSlots < 1 {
+					anchorSlots = 1
+				}
+				start := anchorStarts[anchorIdx]
+				endAnchorIdx := anchorIdx + anchorSlots - 1
+				if endAnchorIdx >= spanCount {
+					endAnchorIdx = spanCount - 1
+				}
+				end := anchorEnds[endAnchorIdx]
+				if end <= start {
+					end = start + 0.3
+				}
+				expanded = append(expanded, geminiDubSRTEntry{
+					Index: len(expanded) + 1,
+					Text:  part,
+					Start: start,
+					End:   end,
+				})
+				anchorIdx += anchorSlots
+				if anchorIdx >= spanCount {
+					anchorIdx = spanCount - 1
+				}
+			}
+			continue
+		}
+
+		spanStartTime := anchorStarts[0]
+		spanEndTime := anchorEnds[len(anchorEnds)-1]
+		spanDuration := spanEndTime - spanStartTime
+		if spanDuration <= 0 {
+			spanDuration = float64(len(parts)) * 0.35
+		}
+		cursor := spanStartTime
+		for partIdx, part := range parts {
+			duration := spanDuration / float64(len(parts))
+			if totalPartChars > 0 {
+				duration = spanDuration * float64(partChars[partIdx]) / float64(totalPartChars)
+			}
+			if duration < 0.35 {
+				duration = 0.35
+			}
+			end := cursor + duration
+			if partIdx == len(parts)-1 || end > spanEndTime {
+				end = spanEndTime
+			}
+			if end <= cursor {
+				end = cursor + 0.3
 			}
 			expanded = append(expanded, geminiDubSRTEntry{
 				Index: len(expanded) + 1,
 				Text:  part,
-				Start: start,
+				Start: cursor,
 				End:   end,
 			})
+			cursor = end
 		}
 	}
 	for i := range expanded {
