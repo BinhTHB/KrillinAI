@@ -16,7 +16,7 @@ export GOOGLE_API_KEY="AIzaSy..."
 ## 2. Cách chạy mặc định (Rút gọn tối đa)
 Sử dụng lệnh `pipeline` để chạy nhanh từ URL video đầu vào ra video lồng tiếng Việt cuối cùng. Mặc định pipeline sẽ dùng:
 
-- Phụ đề dịch đích בלבד (`target-only`)
+- Chỉ phụ đề dịch đích (`target-only`)
 - TTS bằng Gemini Live (`--provider gemini`)
 - Làm mờ phụ đề gốc và chèn phụ đề dịch (`blur`)
 
