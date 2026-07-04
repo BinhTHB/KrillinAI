@@ -93,7 +93,18 @@ func (tg *TimestampGenerator) GenerateTimestamps(srtBlocks []*util.SrtBlock, wor
 			if remainingBlocks > 0 && len(words) > 0 {
 				remainingSpan := words[len(words)-1].End - lastEndTime
 				if remainingSpan > 0 {
-					fallbackDuration := remainingSpan / float64(remainingBlocks)
+					// Calculate total remaining character length for proportional distribution
+					totalRemainingChars := 0
+					for j := i; j < len(srtBlocks); j++ {
+						totalRemainingChars += len([]rune(srtBlocks[j].OriginLanguageSentence))
+					}
+					currentChars := len([]rune(block.OriginLanguageSentence))
+					var fallbackDuration float64
+					if totalRemainingChars > 0 {
+						fallbackDuration = remainingSpan * float64(currentChars) / float64(totalRemainingChars)
+					} else {
+						fallbackDuration = remainingSpan / float64(remainingBlocks)
+					}
 					if fallbackDuration < 0.35 {
 						fallbackDuration = 0.35
 					}
