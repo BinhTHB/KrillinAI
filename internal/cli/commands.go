@@ -188,13 +188,23 @@ Flags:
 `
 	case "pipeline":
 		return `Usage:
-  krillinai-cli pipeline --outputs <list> [flags]
+  krillinai-cli pipeline <input-url-or-path> [flags]
+
+Defaults: target-only translated subtitles, TTS, and blurred original hardsubs.
 
 Flags:
-  --outputs <list>  Comma-separated outputs, such as subtitle,tts,vertical-bilingual
-  --async           Run asynchronously when supported
-  --dry-run         Validate requested outputs
-  -h, --help        Show this help
+  --workdir <dir>        Task working directory
+  --task-id <id>         Optional task id
+  --origin-lang <lang>   Source language (default zh)
+  --target-lang <lang>   Target language (default vi)
+  --user-lang <lang>     UI language (default vi)
+  --provider <provider>  TTS provider: edge, gemini, or hybrid (default gemini)
+  --outputs <list>       Comma-separated outputs (default target-only,tts,blur)
+  --python <path>        Python executable (default python)
+  --keep-cache           Keep existing output/cache directory
+  --async                Run asynchronously when supported
+  --dry-run              Validate requested outputs
+  -h, --help             Show this help
 `
 	case "cover":
 		return `Usage:
@@ -293,6 +303,8 @@ func Execute(ctx context.Context, svc pipeline.StageService, cmd Command) pipeli
 		resp, err := pipeline.GenerateCover(ctx, svc, cmd.Cover)
 		return responseWithError(resp, err)
 	case "gemini-dub":
+		return executeGeminiDub(ctx, svc, cmd.GeminiDub)
+	case "pipeline":
 		return executeGeminiDub(ctx, svc, cmd.GeminiDub)
 	default:
 		return pipeline.Response{
@@ -542,14 +554,54 @@ func parsePipeline(name string, args []string) (Command, error) {
 		return Command{Name: name, Help: true}, nil
 	}
 	fs := newFlagSet(name)
-	outputs := fs.String("outputs", "subtitle", "outputs")
+	outputs := fs.String("outputs", "target-only,tts,blur", "outputs")
 	async := fs.Bool("async", false, "run async")
-	dryRun := fs.Bool("dry-run", false, "validate command without running external services")
-	if err := fs.Parse(args); err != nil {
+	workdir := fs.String("workdir", "", "workdir")
+	taskID := fs.String("task-id", "", "task id")
+	originLang := fs.String("origin-lang", "zh", "origin language")
+	targetLang := fs.String("target-lang", "vi", "target language")
+	userLang := fs.String("user-lang", "vi", "user interface language")
+	captionSource := fs.String("caption-source", string(pipeline.CaptionSourceWhisper), "caption source")
+	srt := fs.String("srt", "target_language_srt.srt", "input translated srt")
+	video := fs.String("video", "origin_video.mp4", "input video")
+	outputDir := fs.String("output-dir", "controlled_gemini_live", "output directory under workdir")
+	provider := fs.String("provider", "gemini", "tts provider")
+	model := fs.String("model", "gemini-3.1-flash-live-preview", "gemini live model")
+	voice := fs.String("voice", "Aoede", "gemini voice")
+	speed := fs.String("speed", "2.1", "local speed-up factor")
+	gap := fs.String("gap", "0.02", "gap after each chunk")
+	voiceVolume := fs.String("voice-volume", "1.6", "voice volume multiplier")
+	bgVolume := fs.String("bg-volume", "0.15", "background original audio volume multiplier")
+	timelineMode := fs.String("timeline-mode", "overlay", "timeline mode")
+	asrTimestampOffset := fs.String("asr-timestamp-offset", "0", "seconds added to ASR/origin subtitle timestamps")
+	python := fs.String("python", "python", "python executable")
+	script := fs.String("script", filepath.Join("scripts", "controlled_tts_segment_dub.py"), "dubbing script")
+	maxChunks := fs.String("max-chunks", "", "optional preview limit")
+	preserveCues := fs.Bool("preserve-cues", true, "render one TTS chunk per SRT cue")
+	timestampOnly := fs.Bool("match-timestamps-only", false, "stop after writing a timestamp-matched clean SRT")
+	keepCache := fs.Bool("keep-cache", false, "keep existing output/cache directory")
+	dryRun := fs.Bool("dry-run", false, "validate command without running the script")
+	input := ""
+	parseArgs := args
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		input = args[0]
+		parseArgs = args[1:]
+	}
+	if err := fs.Parse(parseArgs); err != nil {
 		return Command{}, err
 	}
-	if _, err := pipeline.PlanOutputs(*outputs); err != nil {
-		return Command{}, err
+	if input == "" && fs.NArg() == 1 {
+		input = fs.Arg(0)
+	}
+	if fs.NArg() > 1 {
+		return Command{}, errors.New("pipeline accepts at most one input URL/path")
+	}
+	resolvedWorkdir := strings.TrimSpace(*workdir)
+	if resolvedWorkdir == "" {
+		if strings.TrimSpace(input) == "" {
+			return Command{}, errors.New("pipeline requires --workdir when no input URL/path is provided")
+		}
+		resolvedWorkdir = defaultGeminiDubWorkdir()
 	}
 	return Command{
 		Name:   name,
@@ -557,6 +609,33 @@ func parsePipeline(name string, args []string) (Command, error) {
 		Pipeline: pipeline.PipelineRequest{
 			Outputs: *outputs,
 			Async:   *async,
+		},
+		GeminiDub: GeminiDubRequest{
+			Input:              input,
+			Workdir:            resolvedWorkdir,
+			TaskID:             *taskID,
+			OriginLang:         *originLang,
+			TargetLang:         *targetLang,
+			UserLang:           *userLang,
+			CaptionSrc:         *captionSource,
+			SRT:                *srt,
+			Video:              *video,
+			OutputDir:          *outputDir,
+			Provider:           *provider,
+			Model:              *model,
+			Voice:              *voice,
+			Speed:              *speed,
+			Gap:                *gap,
+			VoiceVolume:        *voiceVolume,
+			BgVolume:           *bgVolume,
+			TimelineMode:       *timelineMode,
+			ASRTimestampOffset: *asrTimestampOffset,
+			Python:             *python,
+			Script:             *script,
+			MaxChunks:          *maxChunks,
+			KeepCache:          *keepCache,
+			PreserveCues:       *preserveCues,
+			TimestampOnly:      *timestampOnly,
 		},
 	}, nil
 }
@@ -863,6 +942,7 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 	}
 
 	cmd := exec.Command(req.Python, args...)
+	cmd.Env = pythonUTF8Env()
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -894,6 +974,7 @@ func executeGeminiDub(ctx context.Context, svc pipeline.StageService, req Gemini
 		"--crop-top", "0.82", "--crop-bottom", "0.98", "--blur-power", "10",
 	}
 	blurCmd := exec.Command(req.Python, blurArgs...)
+	blurCmd.Env = pythonUTF8Env()
 	blurCmd.Stdout = os.Stderr
 	blurCmd.Stderr = os.Stderr
 
@@ -1011,6 +1092,7 @@ func prepareGeminiDubCleanSRT(req GeminiDubRequest, inputSRT string) (string, er
 				cmd := exec.Command("python", "-u", "scripts/translate_gemini.py",
 					"--workdir", req.Workdir,
 				)
+				cmd.Env = pythonUTF8Env()
 				cmd.Stdout = os.Stderr
 				cmd.Stderr = os.Stderr
 				if err := cmd.Run(); err != nil {
@@ -2185,6 +2267,7 @@ func downloadDouyinVideoForGeminiDub(inputURL string, videoPath string) error {
 	}
 
 	cmd := exec.Command(f2Path, args...)
+	cmd.Env = append(os.Environ(), "PYTHONUTF8=1", "PYTHONIOENCODING=utf-8")
 	fmt.Fprintf(os.Stderr, "[f2] downloading Douyin video...\n")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -2214,6 +2297,10 @@ func downloadDouyinVideoForGeminiDub(inputURL string, videoPath string) error {
 
 	fmt.Fprintf(os.Stderr, "[f2] video saved to %s\n", videoPath)
 	return nil
+}
+
+func pythonUTF8Env() []string {
+	return append(os.Environ(), "PYTHONUTF8=1", "PYTHONIOENCODING=utf-8")
 }
 
 func fileExists(path string) bool {
