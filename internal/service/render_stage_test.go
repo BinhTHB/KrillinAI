@@ -44,9 +44,9 @@ func TestRenderAssPathDerivesFromOutputFile(t *testing.T) {
 	}
 }
 
-func TestEscapeAssFilterPathEscapesWindowsDriveAndSeparators(t *testing.T) {
+func TestEscapeAssFilterPathEscapesWindowsSeparators(t *testing.T) {
 	got := escapeAssFilterPath(`C:\tasks\demo\formatted_horizontal_dubbed.ass`)
-	want := `C\:/tasks/demo/formatted_horizontal_dubbed.ass`
+	want := `C:/tasks/demo/formatted_horizontal_dubbed.ass`
 	if got != want {
 		t.Fatalf("escapeAssFilterPath() = %q, want %q", got, want)
 	}
