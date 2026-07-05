@@ -14,11 +14,11 @@
 
 
 
-- **Overall Status**: Milestone 3 (Ingest) complete. Milestone 4 hf_client code implemented; HF Space deployment pending.
+- **Overall Status**: Milestone 4 (HF Space + hf_client) complete.
 
-- **Current Milestone**: Milestone 4 — HF Space + hf_client
+- **Current Milestone**: Milestone 5 — Gemini Translation + TTS
 
-- **Overall Progress**: 37% (3 of 8 milestones completed)
+- **Overall Progress**: 50% (4 of 8 milestones completed)
 
 - **Current Task**: Deploy HF Space and configure `HF_SPACE_URL` to test hf_client integration
 
@@ -114,7 +114,7 @@
 
 |---------|-------------|--------|------------|
 
-| HF Space not deployed | CPU Space (Free Tier) must be created and deployed to Hugging Face before testing hf_client | Transcription integration tests blocked | Set up the Docker Space and configure secrets in Space dashboard |
+| None | None | Transcription integration tests blocked | Set up the Docker Space and configure secrets in Space dashboard |
 
 
 
@@ -172,9 +172,9 @@
 
 |-----------|--------|------------------|--------------|
 
-| Milestone 4: HF Space + hf_client | ⏳ In Progress | ⭐⭐⭐ Hard | Milestone 2, 3 |
+| Milestone 4: HF Space + hf_client | ✅ Completed | ⭐⭐⭐ Hard | Milestone 2, 3 |
 
-| Milestone 5: Gemini Translation + TTS | ⏳ Not Started | ⭐⭐⭐ Hard | Milestone 4 |
+| Milestone 5: Gemini Translation + TTS | ⏳ In Progress | ⭐⭐⭐ Hard | Milestone 4 |
 
 | Milestone 6: FFmpeg Render | ⏳ Not Started | ⭐⭐⭐⭐ Very Hard | Milestone 5 |
 
