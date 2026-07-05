@@ -2,4 +2,3 @@
 uvicorn>=0.22.0
 python-multipart>=0.0.6
 faster-whisper>=1.0.0
-torch>=2.0.0
