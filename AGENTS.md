@@ -20,41 +20,42 @@ git status
 git push origin master
 ```
 
-Khi có conflict, dùng `-X ours` để ưu tiên thay đổi từ fork hiện tại. Cờ này chỉ tự xử lý conflict theo vùng code; sau merge vẫn phải kiểm tra lại bằng `git status` và review các file liên quan.
-
-# KrillinAI v2 - Agent Instructions
-
-This repository follows an AI Project Operating System.
-
-Before making ANY code changes, every AI agent MUST follow this order.
-
-## Mandatory Startup Procedure
-
-1. Read docs/PROJECT_STATE.md
-2. Read docs/DECISIONS.md
-3. Read docs/AGENT_ONBOARDING.md
-4. Read docs/ARCHITECTURE.md
-5. Read TODOList.md
-
-Only after understanding the current project state may you modify code.
+Khi có conflict, dùng `-X ours` để ưu tiên thay đổi từ fork hiện tại. Sau merge luôn kiểm tra lại bằng `git status` và review các file liên quan.
 
 ---
 
-## Current Workflow
+# KrillinAI v2 - Agent Instructions
 
-PROJECT_STATE.md
+This repository follows an AI Project Operating System (AI-POS).
 
-↓
+Every AI agent MUST follow this document.
 
-DECISIONS.md
+Failure to follow this workflow means the task is **NOT COMPLETE**.
 
-↓
+---
 
-ARCHITECTURE.md
+# Mandatory Startup Procedure
 
-↓
+Before making ANY code changes:
 
-TODOList.md
+1. Read `docs/PROJECT_STATE.md`
+2. Read `docs/DECISIONS.md`
+3. Read `docs/AGENT_ONBOARDING.md`
+4. Read `docs/ARCHITECTURE.md`
+5. Read `TODOList.md`
+
+Only after understanding the current project state may implementation begin.
+
+Never skip these documents.
+
+---
+
+# Standard Workflow
+
+Every implementation MUST follow this sequence.
+
+```
+Read Project State
 
 ↓
 
@@ -66,77 +67,253 @@ Testing
 
 ↓
 
-Update documentation
+POS Synchronization
 
 ↓
 
-Commit
+POS Validation
+
+↓
+
+Commit (if requested)
+
+↓
+
+Final Report
+```
+
+Do not skip any stage.
 
 ---
 
-## Rules
+# Project Work Modes
+
+## Mode: Quick Fix
+
+Use for:
+
+- Bug fix
+- Typo
+- Small refactor
+- Test fix
+
+Required:
+
+- CHANGELOG.md
+
+Optional:
+
+- PROJECT_STATE.md
+
+Do NOT modify unless necessary:
+
+- TODOList.md
+- DECISIONS.md
+- ARCHITECTURE.md
+
+---
+
+## Mode: Feature
+
+Use for:
+
+- Implementing a milestone
+- New module
+- Replacing placeholder implementation
+- New workflow
+
+Required:
+
+- TODOList.md
+- PROJECT_STATE.md
+- CHANGELOG.md
+
+Update only if applicable:
+
+- DECISIONS.md
+- DEPLOYMENT.md
+- ENVIRONMENT.md
+- VERSIONS.md
+- ARCHITECTURE.md
+
+---
+
+## Mode: Architecture
+
+Use for:
+
+- Architecture changes
+- Deployment changes
+- Workflow changes
+- Infrastructure changes
+- Branch strategy changes
+
+Required:
+
+- DECISIONS.md
+- ARCHITECTURE.md
+- PROJECT_STATE.md
+- TODOList.md
+- CHANGELOG.md
+- DEPLOYMENT.md
+- ENVIRONMENT.md
+- VERSIONS.md
+
+---
+
+# Mandatory POS Synchronization
+
+After every completed task, the agent MUST synchronize the AI-POS.
+
+Always update:
+
+- PROJECT_STATE.md
+- TODOList.md
+
+Update when applicable:
+
+- DECISIONS.md
+- CHANGELOG.md
+- ARCHITECTURE.md
+- DEPLOYMENT.md
+- ENVIRONMENT.md
+- VERSIONS.md
+
+Do not silently skip document updates.
+
+If a document is not updated, explain why.
+
+---
+
+# POS Validation Checklist
+
+Before reporting completion, verify:
+
+□ PROJECT_STATE.md reflects current implementation.
+
+□ TODOList.md reflects completed work.
+
+□ CHANGELOG.md records user-visible changes.
+
+□ DECISIONS.md updated if any technical decision changed.
+
+□ ARCHITECTURE.md updated if architecture changed.
+
+□ DEPLOYMENT.md updated if deployment changed.
+
+□ ENVIRONMENT.md updated if environment variables, secrets or infrastructure changed.
+
+□ VERSIONS.md updated if dependency/runtime/model versions changed.
+
+---
+
+# Definition of Done
+
+A task is NOT COMPLETE until ALL applicable conditions are satisfied.
+
+Required:
+
+□ Implementation finished.
+
+□ Code builds successfully (when applicable).
+
+□ Tests executed OR explicitly state why tests were not executed.
+
+□ PROJECT_STATE.md synchronized.
+
+□ TODOList.md synchronized.
+
+□ Relevant documentation synchronized.
+
+□ Remaining work documented.
+
+---
+
+# Final Report Template
+
+Every implementation MUST end with the following report.
+
+```
+Implementation Summary
+- ...
+
+Files Changed
+- ...
+
+Tests
+- Executed:
+- Result:
+
+POS Synchronization
+
+PROJECT_STATE.md
+- Updated / Not applicable (reason)
+
+TODOList.md
+- Updated / Not applicable (reason)
+
+CHANGELOG.md
+- Updated / Not applicable (reason)
+
+DECISIONS.md
+- Updated / Not applicable (reason)
+
+ARCHITECTURE.md
+- Updated / Not applicable (reason)
+
+DEPLOYMENT.md
+- Updated / Not applicable (reason)
+
+ENVIRONMENT.md
+- Updated / Not applicable (reason)
+
+VERSIONS.md
+- Updated / Not applicable (reason)
+
+Remaining Risks
+- ...
+
+Next Recommended Task
+- ...
+```
+
+No section may be omitted.
+
+---
+
+# Project Closeout Procedure
+
+Before declaring the task complete, execute:
+
+1. Run tests (or explain why not).
+2. Synchronize all applicable POS documents.
+3. Validate POS consistency.
+4. Produce the mandatory Final Report.
+5. Wait for user review.
+
+Only after completing all five steps is the task considered complete.
+
+---
+
+# General Rules
 
 - Never skip PROJECT_STATE.md.
 - Never skip TODOList.md.
-- Never change architecture without adding a Decision.
 - Never hardcode secrets.
-- Update PROJECT_STATE.md and TODOList.md after completing work.
+- Never change architecture without recording a Decision.
+- Never modify deployment without updating DEPLOYMENT.md.
+- Never modify environment configuration without updating ENVIRONMENT.md.
+- Never change dependency or runtime versions without updating VERSIONS.md.
+- If user asks for project progress, answer using PROJECT_STATE.md instead of relying on Git status.
+- Documentation is part of the implementation, not an optional follow-up.
 
-If the user asks for project progress, report the information from PROJECT_STATE.md instead of relying only on git status.
+# Agent Self-Review
 
-## Work Modes
+Before responding to the user, ask yourself:
 
-### Mode: Quick Fix
+- Did I update every affected POS document?
+- Is PROJECT_STATE consistent with TODOList?
+- Does DECISIONS reflect any new technical choices?
+- Can another AI continue the project tomorrow without reading chat history?
 
-Use when:
-- bug fix
-- typo
-- small refactor
-- test fix
-
-Required updates:
-✓ CHANGELOG.md
-✓ Local commit
-
-Optional:
-PROJECT_STATE.md
-
-Do NOT update:
-- DECISIONS.md
-- TODOList.md
-- ARCHITECTURE.md
-
---------------------------------
-
-### Mode: Feature
-
-Use when:
-- implementing a TODO milestone
-- adding a new module
-- replacing a placeholder
-
-Required updates:
-✓ TODOList.md
-✓ PROJECT_STATE.md
-✓ CHANGELOG.md
-✓ Local commit
-
-Update DECISIONS.md only if an architectural decision changes.
-
---------------------------------
-
-### Mode: Architecture
-
-Use when:
-- changing architecture
-- changing workflow
-- changing deployment strategy
-- changing branch strategy
-
-Required updates:
-✓ DECISIONS.md
-✓ ARCHITECTURE.md
-✓ TODOList.md
-✓ PROJECT_STATE.md
-✓ CHANGELOG.md
-✓ Local commit
+If any answer is "No", continue working before responding.

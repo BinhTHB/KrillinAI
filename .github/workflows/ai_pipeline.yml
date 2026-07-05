@@ -37,6 +37,7 @@ jobs:
       WHISPER_MODEL: ${{ vars.WHISPER_MODEL || "base" }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_MODEL: ${{ vars.GEMINI_MODEL || "gemini-3.1-flash-lite" }}
+      GEMINI_TTS_MODEL: ${{ vars.GEMINI_TTS_MODEL || "gemini-3.1-flash-live-preview" }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
     steps:
       - name: Checkout code
@@ -48,7 +49,7 @@ jobs:
           python-version: "3.10"
 
       - name: Install dependencies
-        run: pip install requests boto3
+        run: pip install requests boto3 google-genai
 
       - name: Parse trigger context
         id: ctx
