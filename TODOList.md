@@ -30,7 +30,7 @@
 
 
 
-- **Overall Progress**: 50% (4 of 8 milestones completed)
+- **Overall Progress**: 62.5% (5 of 8 milestones completed)
 
 
 

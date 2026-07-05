@@ -14,11 +14,11 @@
 
 
 
-- **Overall Status**: Milestone 4 (HF Space + hf_client) complete.
+- **Overall Status**: Milestone 5 (Gemini Translation + TTS) complete.
 
-- **Current Milestone**: Milestone 5 — Gemini Translation + TTS
+- **Current Milestone**: Milestone 6 — FFmpeg Render
 
-- **Overall Progress**: 50% (4 of 8 milestones completed)
+- **Overall Progress**: 62.5% (5 of 8 milestones completed)
 
 - **Current Task**: Deploy HF Space and configure `HF_SPACE_URL` to test hf_client integration
 
@@ -174,9 +174,9 @@
 
 | Milestone 4: HF Space + hf_client | ✅ Completed | ⭐⭐⭐ Hard | Milestone 2, 3 |
 
-| Milestone 5: Gemini Translation + TTS | ⏳ In Progress | ⭐⭐⭐ Hard | Milestone 4 |
+| Milestone 5: Gemini Translation + TTS | ✅ Completed | ⭐⭐⭐ Hard | Milestone 4 |
 
-| Milestone 6: FFmpeg Render | ⏳ Not Started | ⭐⭐⭐⭐ Very Hard | Milestone 5 |
+| Milestone 6: FFmpeg Render | ⏳ In Progress | ⭐⭐⭐⭐ Very Hard | Milestone 5 |
 
 | Milestone 7: Telegram + Google Drive Upload | ⏳ Not Started | ⭐⭐ Medium | Milestone 6 |
 
