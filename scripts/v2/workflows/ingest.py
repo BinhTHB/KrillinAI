@@ -6,6 +6,8 @@ save metadata, notify Telegram, and output job_id for next workflow.
 """
 
 import argparse
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -65,8 +67,44 @@ def run(job_id: str, video_url: str, chat_id: int, message_id: int) -> int:
         audio_path.write_bytes(b"KRILLINAI_DRY_RUN_AUDIO")
         logger.info(f"[DRY RUN] Created placeholder video/audio in {workdir}")
     else:
-        # TODO: Implement real video download (yt-dlp) and audio extraction (ffmpeg)
-        raise NotImplementedError("Real video download + audio extraction not implemented")
+        if not shutil.which("yt-dlp"):
+            raise RuntimeError("yt-dlp is required but not installed or not on PATH")
+        if not shutil.which("ffmpeg"):
+            raise RuntimeError("ffmpeg is required but not installed or not on PATH")
+
+        logger.info(f"Downloading video from {video_url} with yt-dlp")
+        subprocess.run(
+            [
+                "yt-dlp",
+                "-f",
+                "mp4/best",
+                "-o",
+                str(video_path),
+                video_url,
+            ],
+            check=True,
+        )
+
+        logger.info("Extracting FLAC audio with ffmpeg")
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                str(video_path),
+                "-vn",
+                "-ac",
+                "1",
+                "-ar",
+                "16000",
+                "-c:a",
+                "flac",
+                "-compression_level",
+                "12",
+                str(audio_path),
+            ],
+            check=True,
+        )
 
     # Upload to R2
     r2.upload_file(str(video_path), video_key)
