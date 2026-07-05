@@ -1,6 +1,5 @@
 .idea
 .claude/
-.github/
 docs/plans/
 docs/superpowers/
 tasks/
@@ -13,6 +12,14 @@ uploads/
 app.log
 build/
 dist/
+
+# Cloudflare Worker local development
+worker/.wrangler/
+worker/node_modules/
+worker/dist/
+
+# Workdir for workflow testing
+workdir/
 
 # Superpowers Skills Framework (local junction to ~/.superpowers)
 .superpowers

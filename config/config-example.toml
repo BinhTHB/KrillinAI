@@ -84,3 +84,34 @@
         base_url = "" # 生图接口base url，留空使用OpenAI官方接口；自定义转发站通常填写以/v1结尾的地址
         api_key = "" # 生图API密钥
         model = "gpt-image-1" # 生图模型，例如gpt-image-1，或转发站支持的兼容模型
+
+[serverless_v2]
+    dry_run = true # keep true until all GitHub variables and secrets are configured
+
+    [serverless_v2.r2]
+        bucket = ""
+        endpoint = ""
+        access_key_id = ""
+        secret_access_key = ""
+
+    [serverless_v2.github]
+        owner = ""
+        repo = ""
+        dispatch_event = "telegram_video_ingest"
+
+    [serverless_v2.telegram]
+        api_url = "https://api.telegram.org/bot"
+        bot_token = ""
+
+    [serverless_v2.huggingface]
+        space_url = ""
+        whisper_model = "distil-large-v3"
+
+    [serverless_v2.gemini]
+        api_key = ""
+        model = "gemini-1.5-flash"
+
+    [serverless_v2.google_drive]
+        credentials = ""
+        folder_id = ""
+
