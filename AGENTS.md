@@ -21,3 +21,66 @@ git push origin master
 ```
 
 Khi có conflict, dùng `-X ours` để ưu tiên thay đổi từ fork hiện tại. Cờ này chỉ tự xử lý conflict theo vùng code; sau merge vẫn phải kiểm tra lại bằng `git status` và review các file liên quan.
+
+# KrillinAI v2 - Agent Instructions
+
+This repository follows an AI Project Operating System.
+
+Before making ANY code changes, every AI agent MUST follow this order.
+
+## Mandatory Startup Procedure
+
+1. Read docs/PROJECT_STATE.md
+2. Read docs/DECISIONS.md
+3. Read docs/AGENT_ONBOARDING.md
+4. Read docs/ARCHITECTURE.md
+5. Read TODOList.md
+
+Only after understanding the current project state may you modify code.
+
+---
+
+## Current Workflow
+
+PROJECT_STATE.md
+
+↓
+
+DECISIONS.md
+
+↓
+
+ARCHITECTURE.md
+
+↓
+
+TODOList.md
+
+↓
+
+Implementation
+
+↓
+
+Testing
+
+↓
+
+Update documentation
+
+↓
+
+Commit
+
+---
+
+## Rules
+
+- Never skip PROJECT_STATE.md.
+- Never skip TODOList.md.
+- Never change architecture without adding a Decision.
+- Never hardcode secrets.
+- Never use .env.
+- Update PROJECT_STATE.md and TODOList.md after completing work.
+
+If the user asks for project progress, report the information from PROJECT_STATE.md instead of relying only on git status.
