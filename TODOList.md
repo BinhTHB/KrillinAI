@@ -26,7 +26,7 @@
 
 
 
-- **Current Milestone**: Milestone 5 — Gemini Translation + TTS
+- **Current Milestone**: Milestone 6 — FFmpeg Render
 
 
 

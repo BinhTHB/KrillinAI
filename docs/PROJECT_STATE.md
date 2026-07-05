@@ -1,18 +1,10 @@
 ﻿# KrillinAI v2 — Project State
 
-
-
 > This file reflects the **current state of the project** and should be updated after each milestone by the agent who completes it.
-
-
 
 ---
 
-
-
 ## Project Status
-
-
 
 - **Overall Status**: Milestone 5 (Gemini Translation + TTS) complete.
 
@@ -20,27 +12,21 @@
 
 - **Overall Progress**: 62.5% (5 of 8 milestones completed)
 
-- **Current Task**: Deploy HF Space and configure `HF_SPACE_URL` to test hf_client integration
+- **Current Task**: Implement FFmpeg subtitle blur, overlay, and audio mux rendering
 
 - **Current Branch**: `master` (development / sync upstream)
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: `b460195` — feat: implement Hugging Face Space client and tests for Milestone 4
+- **Last Local Commit**: `5355b66` — feat: integrate Gemini Live API TTS (gemini-3.1-flash-live-preview) via google-genai SDK
 
 - **Last Reviewed Date**: 2026-07-05
 
 - **Last Updated By**: AI Agent (factory-droid)
 
-
-
 ---
 
-
-
 ## Current Environment
-
-
 
 ### Development Environment
 
@@ -54,8 +40,6 @@
 
 - **Target R2 Bucket**: dev bucket configured via variable `CF_R2_BUCKET`.
 
-
-
 ### Production Environment
 
 - **Branch**: `working-branch`
@@ -68,63 +52,39 @@
 
 - **Target R2 Bucket**: prod bucket configured via variable `CF_R2_BUCKET`.
 
-
-
 ---
 
-
-
 ## Deployment Status
-
-
 
 - **Development Deployment**: 🚧 In Progress (Skeleton deployed; API integrations pending)
 
 - **Production Deployment**: ⏳ Not Started (Waiting for dev validation)
 
-
-
 ---
-
-
 
 ## Next Planned Task
 
+- [ ] Start Milestone 6: Implement FFmpeg render pipeline
 
+  - Blur original subtitle area
 
-- [ ] Start Milestone 4: Deploy Hugging Face Space
+  - Overlay translated subtitles
 
-  - Deploy FastAPI + faster-whisper Space
-
-  - Set space secrets in HF dashboard
-
-  - Set HF_SPACE_URL variables in GitHub
-
-
+  - Replace or mux TTS audio into final video
 
 ---
 
-
-
 ## Blockers
-
-
 
 | Blocker | Description | Impact | Mitigation |
 
 |---------|-------------|--------|------------|
 
-| None | None | Transcription integration tests blocked | Set up the Docker Space and configure secrets in Space dashboard |
-
-
+| None | None | None | None |
 
 ---
 
-
-
 ## Known Issues
-
-
 
 | Issue | Severity | Description |
 
@@ -132,21 +92,15 @@
 
 | No real R2 credentials in CI | Medium | `KRILLINAI_DRY_RUN=true` by default; integration tests blocked until credentials added |
 
-| No HF Space deployed | Medium | `HF_SPACE_URL` variable must point to a deployed Space for Milestone 4 |
 
-| No Gemini API key | Medium | `GEMINI_API_KEY` secret required for Milestone 5 |
+
+
 
 | No Google Drive credentials | Low | Only needed for Milestone 7 (>50 MB videos) |
 
-
-
 ---
 
-
-
 ## Completed Milestones
-
-
 
 | Milestone | Status | Completion Date |
 
@@ -158,23 +112,13 @@
 
 | Milestone 3: Ingest | ✅ Completed | 2026-07-05 |
 
-
-
 ---
 
-
-
 ## Remaining Milestones
-
-
 
 | Milestone | Status | Estimated Effort | Dependencies |
 
 |-----------|--------|------------------|--------------|
-
-| Milestone 4: HF Space + hf_client | ✅ Completed | ⭐⭐⭐ Hard | Milestone 2, 3 |
-
-| Milestone 5: Gemini Translation + TTS | ✅ Completed | ⭐⭐⭐ Hard | Milestone 4 |
 
 | Milestone 6: FFmpeg Render | ⏳ In Progress | ⭐⭐⭐⭐ Very Hard | Milestone 5 |
 
@@ -184,19 +128,13 @@
 
 | Future: Cloudflare Queue | ⏳ Not Started | ⭐⭐ Medium | Milestone 8 |
 
-
-
 ---
-
-
 
 ## Notes for Next Agent
 
-
-
 1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `AGENT_ONBOARDING.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md` → `CHANGELOG.md`
 
-2. **Current focus**: Milestone 4 (HF Space + hf_client). Deploy HF Space and configure hf_client integration.
+2. **Current focus**: Milestone 6 (FFmpeg Render). Implement subtitle blur, translated subtitle overlay, and TTS audio muxing.
 
 3. **Do not** change architecture, workflow triggers, or branch strategy without a new entry in `DECISIONS.md`.
 
@@ -216,15 +154,7 @@
 
    - Report summary to user.
 
-
-
 ---
 
-
-
 _Last updated: 2026-07-05_
-
-
-
-
 
