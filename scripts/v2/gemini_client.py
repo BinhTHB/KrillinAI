@@ -63,7 +63,7 @@ class GeminiClient:
         if not self.cfg.gemini_api_key:
             raise ValueError('GEMINI_API_KEY is not configured')
 
-        tts_model = os.getenv('GEMINI_TTS_MODEL', 'gemini-3.1-flash-tts-preview')
+        tts_model = os.getenv('GEMINI_TTS_MODEL', 'gemini-3.1-flash-live-preview')
         url = f'https://generativelanguage.googleapis.com/v1beta/models/{tts_model}:generateContent?key={self.cfg.gemini_api_key}'
         selected_voice = voice or 'Kore'
         payload = {
