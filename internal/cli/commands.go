@@ -6,8 +6,11 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"krillin-ai/config"
 	"krillin-ai/internal/pipeline"
 	subtitlestyle "krillin-ai/internal/subtitle_style"
+	"krillin-ai/internal/updater"
+	"krillin-ai/internal/voices"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -315,6 +318,128 @@ func Execute(ctx context.Context, svc pipeline.StageService, cmd Command) pipeli
 				Message: fmt.Sprintf("unsupported command: %s", cmd.Name),
 			},
 		}
+	}
+}
+
+func parseVoices(name string, args []string) (Command, error) {
+	if hasHelpArg(args) {
+		return Command{Name: name, Help: true}, nil
+	}
+	fs := newFlagSet(name)
+	provider := fs.String("provider", "", "tts provider")
+	dryRun := fs.Bool("dry-run", false, "return local voice list without external calls")
+	if err := fs.Parse(args); err != nil {
+		return Command{}, err
+	}
+	if fs.NArg() != 0 {
+		return Command{}, errors.New("voices does not accept positional arguments")
+	}
+	return Command{
+		Name:   name,
+		DryRun: *dryRun,
+		Voices: VoicesRequest{
+			Provider: *provider,
+		},
+	}, nil
+}
+
+func executeVoices(req VoicesRequest) pipeline.Response {
+	provider := strings.TrimSpace(req.Provider)
+	if provider == "" {
+		provider = currentTTSProvider()
+	}
+	list, err := voices.List(provider)
+	if err != nil {
+		return pipeline.Response{
+			OK:    false,
+			Stage: pipeline.StageVoices,
+			Inputs: map[string]string{
+				"provider": provider,
+			},
+			Error: &pipeline.Error{
+				Kind:    pipeline.ErrorKindUsage,
+				Code:    "list_voices_failed",
+				Message: err.Error(),
+			},
+		}
+	}
+	return pipeline.Response{
+		OK:    true,
+		Stage: pipeline.StageVoices,
+		Inputs: map[string]string{
+			"provider": provider,
+		},
+		Voices: list,
+	}
+}
+
+func parseUpdate(name string, args []string) (Command, error) {
+	if hasHelpArg(args) {
+		return Command{Name: name, Help: true}, nil
+	}
+	fs := newFlagSet(name)
+	repo := fs.String("repo", updater.DefaultRepo, "GitHub repository")
+	version := fs.String("version", "", "release tag")
+	target := fs.String("target", "", "target executable")
+	force := fs.Bool("force", false, "force reinstall")
+	dryRun := fs.Bool("dry-run", false, "validate command without running update")
+	if err := fs.Parse(args); err != nil {
+		return Command{}, err
+	}
+	if fs.NArg() != 0 {
+		return Command{}, errors.New("update does not accept positional arguments")
+	}
+	return Command{
+		Name:   name,
+		DryRun: *dryRun,
+		Update: UpdateRequest{
+			Repo:    *repo,
+			Version: *version,
+			Target:  *target,
+			Force:   *force,
+		},
+	}, nil
+}
+
+func executeUpdate(ctx context.Context, req UpdateRequest) pipeline.Response {
+	result, err := updater.Run(ctx, updater.Request{
+		Repo:           req.Repo,
+		Version:        req.Version,
+		Target:         req.Target,
+		Force:          req.Force,
+		CurrentVersion: Version,
+	}, updater.HTTPRunner{})
+	if err != nil {
+		return pipeline.Response{
+			OK:    false,
+			Stage: pipeline.StageUpdate,
+			Error: &pipeline.Error{
+				Kind:      pipeline.ErrorKindRetryable,
+				Code:      "update_failed",
+				Message:   err.Error(),
+				Retryable: true,
+			},
+		}
+	}
+	inputs := map[string]string{
+		"repo": req.Repo,
+	}
+	if req.Version != "" {
+		inputs["version"] = req.Version
+	}
+	if req.Target != "" {
+		inputs["target"] = req.Target
+	}
+	if result.Asset != "" {
+		inputs["asset"] = result.Asset
+	}
+	return pipeline.Response{
+		OK:     true,
+		Stage:  pipeline.StageUpdate,
+		Inputs: inputs,
+		Warnings: []string{
+			result.Message,
+		},
 	}
 }
 
@@ -690,6 +815,10 @@ func dryRun(cmd Command) pipeline.Response {
 			},
 		}
 	}
+}
+
+var currentTTSProvider = func() string {
+	return config.Conf.Tts.Provider
 }
 
 func dryRunResponse(stage pipeline.Stage, workdir, taskID string) pipeline.Response {
