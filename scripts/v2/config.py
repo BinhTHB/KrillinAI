@@ -20,6 +20,7 @@ class Config:
     r2_secret_access_key: Optional[str]
     r2_endpoint: Optional[str]
     r2_bucket: Optional[str]
+    r2_region: str
 
     # Hugging Face Space Settings
     hf_space_url: Optional[str]
@@ -45,10 +46,11 @@ def load_config() -> Config:
         dry_run=dry_run,
         
         # Cloudflare R2
-        r2_access_key_id=os.getenv("CF_R2_ACCESS_KEY_ID"),
-        r2_secret_access_key=os.getenv("CF_R2_SECRET_ACCESS_KEY"),
-        r2_endpoint=os.getenv("CF_R2_ENDPOINT"),
-        r2_bucket=os.getenv("CF_R2_BUCKET"),
+        r2_access_key_id=os.getenv("CF_R2_ACCESS_KEY_ID") or os.getenv("R2_ACCESS_KEY_ID"),
+        r2_secret_access_key=os.getenv("CF_R2_SECRET_ACCESS_KEY") or os.getenv("R2_SECRET_ACCESS_KEY"),
+        r2_endpoint=os.getenv("CF_R2_ENDPOINT") or os.getenv("R2_ENDPOINT"),
+        r2_bucket=os.getenv("CF_R2_BUCKET") or os.getenv("R2_BUCKET"),
+        r2_region=os.getenv("CF_R2_REGION") or os.getenv("R2_REGION", "auto"),
         
         # Hugging Face
         hf_space_url=os.getenv("HF_SPACE_URL"),

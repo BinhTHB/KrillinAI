@@ -17,7 +17,7 @@ No workflow uses `workflow_run`. Workflow chaining is explicit via `repository_d
 
 ## Shared modules
 
-- `scripts/v2/r2_client.py`: Cloudflare R2 placeholder client with idempotency checks.
+- `scripts/v2/r2_client.py`: Cloudflare R2 boto3 client with idempotency checks.
 - `scripts/v2/telegram_client.py`: Telegram placeholder client.
 - `scripts/v2/github_client.py`: GitHub dispatch placeholder client.
 - `scripts/v2/hf_client.py`: Hugging Face ASR placeholder client.
@@ -72,7 +72,6 @@ The code does not hardcode environment names; resource names are selected throug
 
 ## TODO
 
-- Implement real R2 upload/download and `head_object` exists checks.
 - Implement HF Space `/transcribe` multipart call.
 - Implement Gemini translation and TTS.
 - Implement FFmpeg render pipeline.

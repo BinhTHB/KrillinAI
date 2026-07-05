@@ -12,7 +12,7 @@ uploads/
 app.log
 build/
 dist/
-
+.env
 # Cloudflare Worker local development
 worker/.wrangler/
 worker/node_modules/

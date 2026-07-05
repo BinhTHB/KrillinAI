@@ -6,13 +6,13 @@
 
 ## Project Status
 
-- **Overall Status**: Skeleton v2 complete. Ready for Milestone 2 (R2 Client).
-- **Current Milestone**: Milestone 2 — R2 Client (boto3 integration)
-- **Overall Progress**: 12% (1 of 8 milestones completed)
-- **Current Task**: Implement real boto3 R2 client in `scripts/v2/r2_client.py`
+- **Overall Status**: Milestone 2 (R2 Client) complete. Ready for Milestone 3 (Ingest).
+- **Current Milestone**: Milestone 3 — Ingest (yt-dlp + FFmpeg)
+- **Overall Progress**: 25% (2 of 8 milestones completed)
+- **Current Task**: Implement real video download and audio extraction in `scripts/v2/workflows/ingest.py`
 - **Current Branch**: `master` (development / sync upstream)
 - **Production Branch**: `working-branch`
-- **Last Local Commit**: `0ed22aa` — docs: update PROJECT_STATE last local commit
+- **Last Local Commit**: `3487e39` — feat: implement boto3 R2 client and add dry-run tests for Milestone 2
 - **Last Reviewed Date**: 2026-07-05
 - **Last Updated By**: AI Agent (factory-droid)
 
@@ -45,9 +45,10 @@
 
 ## Next Planned Task
 
-- [ ] Start Milestone 2: Implement boto3 R2 client (`scripts/v2/r2_client.py`)
-  - Add `_s3_client()` lazy initialization
-  - Implement `exists()`, `upload_file()`, `download_file()`
+- [ ] Start Milestone 3: Implement ingest (`scripts/v2/workflows/ingest.py`)
+  - Download video with `yt-dlp`
+  - Extract FLAC audio with `FFmpeg`
+  - Upload raw video and audio to R2
   - Keep `dry_run` guard for testing
 
 ---
@@ -56,7 +57,7 @@
 
 | Blocker | Description | Impact | Mitigation |
 |---------|-------------|--------|------------|
-| R2 credentials not configured | GitHub Secrets `CF_R2_ACCESS_KEY_ID`, `CF_R2_SECRET_ACCESS_KEY` must be set; GitHub Variables `CF_R2_ENDPOINT`, `CF_R2_BUCKET` must be set | Cannot test real R2 upload/download | Use `KRILLINAI_DRY_RUN=true` for unit tests; set up dev bucket later |
+| Manual R2 integration not verified | R2 credentials are configured in GitHub, but real workflow upload/download still needs validation | Cannot confirm real R2 round-trip in CI yet | Run ingest workflow after Milestone 3 implementation |
 
 ---
 
@@ -76,6 +77,7 @@
 | Milestone | Status | Completion Date |
 |-----------|--------|-----------------|
 | Milestone 1: Skeleton v2 | ✅ Completed | 2026-07-05 |
+| Milestone 2: R2 Client | ✅ Completed | 2026-07-05 |
 
 ---
 
@@ -83,7 +85,6 @@
 
 | Milestone | Status | Estimated Effort | Dependencies |
 |-----------|--------|------------------|--------------|
-| Milestone 2: R2 Client | ⏳ Not Started | ⭐⭐ Medium | Milestone 1 |
 | Milestone 3: Ingest | ⏳ Not Started | ⭐⭐ Medium | Milestone 2 |
 | Milestone 4: HF Space + hf_client | ⏳ Not Started | ⭐⭐⭐ Hard | Milestone 2, 3 |
 | Milestone 5: Gemini Translation + TTS | ⏳ Not Started | ⭐⭐⭐ Hard | Milestone 4 |
@@ -97,7 +98,7 @@
 ## Notes for Next Agent
 
 1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `AGENT_ONBOARDING.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md` → `CHANGELOG.md`
-2. **Current focus**: Milestone 2 (R2 Client). Implement boto3 client in `scripts/v2/r2_client.py`.
+2. **Current focus**: Milestone 3 (Ingest). Implement `yt-dlp` download and `FFmpeg` audio extraction in `scripts/v2/workflows/ingest.py`.
 3. **Do not** change architecture, workflow triggers, or branch strategy without a new entry in `DECISIONS.md`.
 4. **Secrets/Variables**: Never hardcode. Use `config.py` → environment variables → GitHub Secrets/Variables.
 5. **After finishing a task**:

@@ -5,10 +5,10 @@
 
 ## Project Progress
 
-- **Current Milestone**: Milestone 2 — R2 Client (boto3 integration)
-- **Overall Progress**: 12% (1 of 8 milestones completed)
+- **Current Milestone**: Milestone 3 — Ingest (yt-dlp + FFmpeg)
+- **Overall Progress**: 25% (2 of 8 milestones completed)
 - **Last Updated**: 2026-07-05
-- **Next Recommended Task**: Implement `_s3_client()`, `exists()`, `upload_file()`, and `download_file()` in `scripts/v2/r2_client.py`.
+- **Next Recommended Task**: Replace placeholder video download/audio extraction in `scripts/v2/workflows/ingest.py`.
 
 ---
 
@@ -90,7 +90,7 @@
 
 ## Milestone 2 — R2 Client (boto3 integration)
 
-**Status**: ⏳ Not Started
+**Status**: ✅ Completed
 **Estimated Effort**: ⭐⭐ Medium
 **Dependencies**: Milestone 1
 
@@ -101,13 +101,13 @@
 - `scripts/v2/config.py` (verify `requests` is NOT needed, only `boto3`)
 
 ### Tasks
-- [ ] Install `boto3` in the development environment (it is already in workflow install steps)
-- [ ] Add `_s3_client()` method that lazily creates a `boto3.client("s3", …)` using `CF_R2_*` env vars
-- [ ] Implement `exists(key)` via `head_object` (return True/False; catch `ClientError` for 404)
-- [ ] Implement `upload_file(local_path, key)` using `s3.upload_file`
-- [ ] Implement `download_file(key, local_path)` using `s3.download_file`
-- [ ] Remove the `# TODO: integrate boto3 …` comments
-- [ ] Keep `dry_run` guard so that unit tests can run without real R2
+- [x] Install `boto3` in the development environment (it is already in workflow install steps)
+- [x] Add `_s3_client()` method that lazily creates a `boto3.client("s3", …)` using `CF_R2_*` env vars
+- [x] Implement `exists(key)` via `head_object` (return True/False; catch `ClientError` for 404)
+- [x] Implement `upload_file(local_path, key)` using `s3.upload_file`
+- [x] Implement `download_file(key, local_path)` using `s3.download_file`
+- [x] Remove the `# TODO: integrate boto3 …` comments
+- [x] Keep `dry_run` guard so that unit tests can run without real R2
 
 ### APIs / Libraries
 - **boto3** ≥ 1.28
@@ -120,18 +120,18 @@
 4. Running `python scripts/v2/workflows/ingest.py --job-id test-1 …` with `KRILLINAI_DRY_RUN=false` uploads files to R2.
 
 ### Tests
-- [ ] Unit test file: `scripts/v2/tests/test_r2_client.py`
+- [x] Unit test file: `scripts/v2/tests/test_r2_client.py`
   - `test_exists_returns_false_for_missing_key`
   - `test_upload_and_download_roundtrip`
   - `test_metadata_save_and_load`
 - [ ] Manual workflow_dispatch on ingest → verify R2 bucket content via Cloudflare Dashboard.
 
 ### Review Checklist
-- [ ] Code review completed
-- [ ] Tests passed
-- [ ] Documentation updated
-- [ ] TODOList updated
-- [ ] Local commit created
+- [x] Code review completed
+- [x] Tests passed
+- [x] Documentation updated
+- [x] TODOList updated
+- [x] Local commit created
 
 ---
 
@@ -450,6 +450,7 @@
 | Milestone | Completion Date | Commit Hash | Summary |
 |-----------|-----------------|-------------|---------|
 | Milestone 1 — Skeleton v2 | 2026-07-05 | `697aeb9`, `094dcd4`, `de567cf`, `c2460d2`, `186b164`, `4e4bfca`, `a0e2420` | Built the complete v2 skeleton: Worker, HF Space skeleton, workflows, shared modules, placeholder clients, orchestration scripts, docs, version matrix, and roadmap. |
+| Milestone 2 — R2 Client | 2026-07-05 | pending | Implemented boto3 Cloudflare R2 client with dry-run tests, upload/download, metadata round-trip, and idempotency checks. |
 
 ---
 

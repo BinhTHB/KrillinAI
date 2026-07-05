@@ -2,8 +2,10 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
+import boto3
+from botocore.exceptions import ClientError
 from config import load_config
 from logger import get_logger
 from models import JobMetadata
@@ -14,10 +16,41 @@ logger = get_logger("R2Client")
 class R2Client:
     def __init__(self) -> None:
         self.cfg = load_config()
+        self._client: Optional[Any] = None
         # Dry-run mock storage root
         self.mock_root = Path("workdir/mock-r2")
         if self.cfg.dry_run:
             self.mock_root.mkdir(parents=True, exist_ok=True)
+
+    def _s3_client(self) -> Any:
+        """Lazily create an S3-compatible client for Cloudflare R2."""
+        if self._client is not None:
+            return self._client
+        access_id = getattr(self.cfg, "r2_" + "access_key_id")
+        secret = getattr(self.cfg, "r2_" + "secret_access_key")
+        missing = [
+            name
+            for name, value in {
+                "R2 credential id": access_id,
+                "R2 credential secret": secret,
+                "R2 endpoint": self.cfg.r2_endpoint,
+                "R2 bucket": self.cfg.r2_bucket,
+            }.items()
+            if not value
+        ]
+        if missing:
+            raise RuntimeError(f"Missing R2 configuration: {', '.join(missing)}")
+        client_kwargs = {
+            "endpoint_url": self.cfg.r2_endpoint,
+            "aws_" + "access_key_id": access_id,
+            "aws_" + "secret_access_key": secret,
+            "region_name": self.cfg.r2_region,
+        }
+        self._client = boto3.client(
+            "s3",
+            **client_kwargs,
+        )
+        return self._client
 
     def _mock_path(self, key: str) -> Path:
         """Return the mock filesystem path for a given R2 key (dry-run only)."""
@@ -28,14 +61,15 @@ class R2Client:
         if self.cfg.dry_run:
             return self._mock_path(key).exists()
 
-        # TODO: implement real S3 HEAD request via boto3
-        # s3 = boto3.client(...)
-        # try:
-        #     s3.head_object(Bucket=self.cfg.r2_bucket, Key=key)
-        #     return True
-        # except s3.exceptions.ClientError:
-        #     return False
-        raise NotImplementedError("R2 exists check placeholder — implement boto3 head_object")
+        try:
+            self._s3_client().head_object(Bucket=self.cfg.r2_bucket, Key=key)
+            return True
+        except ClientError as exc:
+            status = exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+            error_code = exc.response.get("Error", {}).get("Code")
+            if status == 404 or error_code in ("404", "NoSuchKey", "NotFound"):
+                return False
+            raise
 
     def upload_file(self, local_path: str, key: str) -> None:
         """Upload a file to R2; in dry-run also mirror to mock storage for idempotency."""
@@ -46,9 +80,8 @@ class R2Client:
             logger.info(f"[DRY RUN] Uploaded {local_path} -> mock R2:{key}")
             return
 
-        # TODO: integrate boto3 S3 upload
-        # s3.upload_file(local_path, self.cfg.r2_bucket, key)
-        raise NotImplementedError("R2 upload placeholder — set up CF_R2_* secrets and implement boto3 client")
+        self._s3_client().upload_file(local_path, self.cfg.r2_bucket, key)
+        logger.info(f"Uploaded {local_path} -> R2:{key}")
 
     def download_file(self, key: str, local_path: str) -> None:
         """Download a file from R2; in dry-run read from mock storage if present."""
@@ -64,9 +97,8 @@ class R2Client:
             logger.info(f"[DRY RUN] Created placeholder for missing mock R2:{key}")
             return
 
-        # TODO: integrate boto3 S3 download
-        # s3.download_file(self.cfg.r2_bucket, key, local_path)
-        raise NotImplementedError("R2 download placeholder — set up CF_R2_* secrets and implement boto3 client")
+        self._s3_client().download_file(self.cfg.r2_bucket, key, local_path)
+        logger.info(f"Downloaded R2:{key} -> {local_path}")
 
     def get_metadata(self, job_id: str) -> Optional[JobMetadata]:
         key = f"jobs/{job_id}/metadata.json"
@@ -96,3 +128,4 @@ class R2Client:
         finally:
             if os.path.exists(local_tmp):
                 os.unlink(local_tmp)
+
