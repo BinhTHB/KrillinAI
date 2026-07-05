@@ -79,3 +79,18 @@ The code does not hardcode environment names; resource names are selected throug
 - Implement Telegram video upload.
 - Implement Google Drive upload.
 - Future enhancement: add Cloudflare Queue for load control and retries.
+
+## Project Documents
+
+New AI agents should read the following documents in order:
+
+1. **`docs/PROJECT_STATE.md`** — Current project state, blockers, and next task.
+2. **`docs/DECISIONS.md`** — Architectural decisions log. Read this before making any structural changes.
+3. **`docs/AGENT_ONBOARDING.md`** — Standard handoff procedure for AI agents.
+4. **`TODOList.md`** — Development roadmap with milestones, tasks, and progress.
+5. **`docs/ARCHITECTURE.md`** — This file. Architecture overview, R2 layout, idempotency.
+6. **`docs/ENVIRONMENT.md`** — Environment variables reference (Secrets vs Variables classification).
+7. **`docs/DEPLOYMENT.md`** — Deployment instructions and version pinning.
+8. **`docs/VERSIONS.md`** — Version matrix for all dependencies.
+
+All documents are kept at the repository root (`TODOList.md`) or under `docs/`.

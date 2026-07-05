@@ -1,7 +1,14 @@
-﻿# KrillinAI v2 — Development Roadmap
+# KrillinAI v2 — Development Roadmap
 
 > **Status**: Skeleton v2 is complete. The checklist below covers real implementations.
 > **Progress marker**: `- [ ]` = pending, `- [x]` = completed.
+
+## Project Progress
+
+- **Current Milestone**: Milestone 2 — R2 Client (boto3 integration)
+- **Overall Progress**: 12% (1 of 8 milestones completed)
+- **Last Updated**: 2026-07-05
+- **Next Recommended Task**: Implement `_s3_client()`, `exists()`, `upload_file()`, and `download_file()` in `scripts/v2/r2_client.py`.
 
 ---
 
