@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Development roadmap via `TODOList.md` (standardized milestone template).
 - Milestone 2 R2 client implementation with boto3 lazy initialization, `head_object` existence checks, upload/download methods, and dry-run tests.
 - `scripts/v2/tests/test_r2_client.py` for R2 mock round-trip and metadata persistence checks.
+- Milestone 4 HF client implementation with `/health` polling and multipart `/transcribe` upload.
+- `scripts/v2/tests/test_hf_client.py` for Hugging Face client dry-run health and transcription checks.
 
 ### Changed
 
@@ -24,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Standardized Secrets vs Variables classification across documentation.
 - Documented dev/production mapping in `ARCHITECTURE.md` and `ENVIRONMENT.md`.
 - `scripts/v2/config.py` now supports both `CF_R2_*` and `R2_*` environment variable prefixes, plus R2 region configuration.
+- `scripts/v2/hf_client.py` now calls the HF Space API instead of raising `NotImplementedError`.
 
 ---
 

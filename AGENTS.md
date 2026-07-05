@@ -80,7 +80,6 @@ Commit
 - Never skip TODOList.md.
 - Never change architecture without adding a Decision.
 - Never hardcode secrets.
-- Never use .env.
 - Update PROJECT_STATE.md and TODOList.md after completing work.
 
 If the user asks for project progress, report the information from PROJECT_STATE.md instead of relying only on git status.

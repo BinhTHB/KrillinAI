@@ -6,13 +6,13 @@
 
 ## Project Status
 
-- **Overall Status**: Milestone 2 (R2 Client) complete. Ready for Milestone 3 (Ingest).
-- **Current Milestone**: Milestone 3 — Ingest (yt-dlp + FFmpeg)
-- **Overall Progress**: 25% (2 of 8 milestones completed)
-- **Current Task**: Implement real video download and audio extraction in `scripts/v2/workflows/ingest.py`
+- **Overall Status**: Milestone 3 (Ingest) complete. Milestone 4 hf_client code implemented; HF Space deployment pending.
+- **Current Milestone**: Milestone 4 — HF Space + hf_client
+- **Overall Progress**: 37% (3 of 8 milestones completed)
+- **Current Task**: Deploy HF Space and configure `HF_SPACE_URL` to test hf_client integration
 - **Current Branch**: `master` (development / sync upstream)
 - **Production Branch**: `working-branch`
-- **Last Local Commit**: `3487e39` — feat: implement boto3 R2 client and add dry-run tests for Milestone 2
+- **Last Local Commit**: `b460195` — feat: implement Hugging Face Space client and tests for Milestone 4
 - **Last Reviewed Date**: 2026-07-05
 - **Last Updated By**: AI Agent (factory-droid)
 
@@ -45,11 +45,10 @@
 
 ## Next Planned Task
 
-- [ ] Start Milestone 4: Implement HF Space connection (`scripts/v2/hf_client.py`)
+- [ ] Start Milestone 4: Deploy Hugging Face Space
   - Deploy FastAPI + faster-whisper Space
-  - Implement `/health` poll in `check_health()`
-  - Implement POST `/transcribe` in `transcribe()`
-  - Keep `dry_run` guard for testing
+  - Set space secrets in HF dashboard
+  - Set HF_SPACE_URL variables in GitHub
 
 ---
 
@@ -86,7 +85,7 @@
 
 | Milestone | Status | Estimated Effort | Dependencies |
 |-----------|--------|------------------|--------------|
-| Milestone 4: HF Space + hf_client | ⏳ Not Started | ⭐⭐⭐ Hard | Milestone 2, 3 |
+| Milestone 4: HF Space + hf_client | ⏳ In Progress | ⭐⭐⭐ Hard | Milestone 2, 3 |
 | Milestone 5: Gemini Translation + TTS | ⏳ Not Started | ⭐⭐⭐ Hard | Milestone 4 |
 | Milestone 6: FFmpeg Render | ⏳ Not Started | ⭐⭐⭐⭐ Very Hard | Milestone 5 |
 | Milestone 7: Telegram + Google Drive Upload | ⏳ Not Started | ⭐⭐ Medium | Milestone 6 |
@@ -98,7 +97,7 @@
 ## Notes for Next Agent
 
 1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `AGENT_ONBOARDING.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md` → `CHANGELOG.md`
-2. **Current focus**: Milestone 4 (HF Space + hf_client). Deploy HF Space and implement `hf_client.py` connection.
+2. **Current focus**: Milestone 4 (HF Space + hf_client). Deploy HF Space and configure hf_client integration.
 3. **Do not** change architecture, workflow triggers, or branch strategy without a new entry in `DECISIONS.md`.
 4. **Secrets/Variables**: Never hardcode. Use `config.py` → environment variables → GitHub Secrets/Variables.
 5. **After finishing a task**:
@@ -112,4 +111,5 @@
 ---
 
 _Last updated: 2026-07-05_
+
 
