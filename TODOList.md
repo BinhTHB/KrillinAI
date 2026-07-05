@@ -726,7 +726,7 @@
 
 
 
-**Status**: ⏳ Not Started
+**Status**: ✅ Completed
 
 
 
@@ -854,11 +854,11 @@
 
 
 
-- [ ] Health‑check loop test (can be simulated with placeholder).
+- [x] Health‑check loop test (can be simulated with placeholder).
 
 
 
-- [ ] Transcribe integration test with a known audio file:
+- [x] Transcribe integration test with a known audio file:
 
 
 
@@ -926,7 +926,7 @@
 
 
 
-**Status**: ⏳ Not Started
+**Status**: ✅ Completed
 
 
 
@@ -966,7 +966,7 @@
 
 
 
-- [ ] Set up a Google Cloud project & enable Gemini API.
+- [x] Set up a Google Cloud project & enable Gemini API.
 
 
 
@@ -1310,23 +1310,23 @@
 
 
 
-- [x] Code review completed
+- [ ] Code review completed
 
 
 
-- [x] Tests passed
+- [ ] Tests passed
 
 
 
-- [x] Documentation updated
+- [ ] Documentation updated
 
 
 
-- [x] TODOList updated
+- [ ] TODOList updated
 
 
 
-- [x] Local commit created
+- [ ] Local commit created
 
 
 
@@ -1494,23 +1494,23 @@
 
 
 
-- [x] Code review completed
+- [ ] Code review completed
 
 
 
-- [x] Tests passed
+- [ ] Tests passed
 
 
 
-- [x] Documentation updated
+- [ ] Documentation updated
 
 
 
-- [x] TODOList updated
+- [ ] TODOList updated
 
 
 
-- [x] Local commit created
+- [ ] Local commit created
 
 
 
@@ -1678,23 +1678,23 @@
 
 
 
-- [x] Code review completed
+- [ ] Code review completed
 
 
 
-- [x] Tests passed
+- [ ] Tests passed
 
 
 
-- [x] Documentation updated
+- [ ] Documentation updated
 
 
 
-- [x] TODOList updated
+- [ ] TODOList updated
 
 
 
-- [x] Local commit created
+- [ ] Local commit created
 
 
 
@@ -1754,23 +1754,23 @@
 
 
 
-- [x] Code review completed
+- [ ] Code review completed
 
 
 
-- [x] Tests passed
+- [ ] Tests passed
 
 
 
-- [x] Documentation updated
+- [ ] Documentation updated
 
 
 
-- [x] TODOList updated
+- [ ] TODOList updated
 
 
 
-- [x] Local commit created
+- [ ] Local commit created
 
 
 
@@ -1811,6 +1811,8 @@
 
 
 | Milestone 3 — Ingest | 2026-07-05 | 18bc7e1 | Implemented video download with yt-dlp, audio extraction & conversion to FLAC with FFmpeg, and automated unit tests. |
+| Milestone 4 — HF Space + hf_client | 2026-07-05 | 5355b66 | Deployed CPU Free Tier HF Space and integrated hf_client health/transcribe calls. |
+| Milestone 5 — Gemini Translation + TTS | 2026-07-05 | 5355b66 | Implemented Gemini REST SRT translation and Gemini Live API TTS using google-genai. |
 
 
 
