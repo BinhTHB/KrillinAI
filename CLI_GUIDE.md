@@ -119,3 +119,17 @@ go run ./cmd/cli render-horizontal \
   --video origin_video.mp4 \
   --subtitle target_language_srt.srt
 ```
+
+---
+
+## 6. Troubleshooting
+
+### Douyin: `https://api.day.app/` trả `405 Method Not Allowed`
+
+Khi tải video Douyin, công cụ `f2` có thể log lỗi gửi thông báo tới `https://api.day.app/`:
+
+```text
+Client error '405 Method Not Allowed' for url 'https://api.day.app/'
+```
+
+Đây chỉ là lỗi notification của `f2`, không phải lỗi pipeline. Nếu các file như `origin_video.mp4`, `origin_audio.mp3` và `controlled_gemini_live/final.mp4` vẫn được tạo trong `--workdir`, pipeline đã chạy thành công.
