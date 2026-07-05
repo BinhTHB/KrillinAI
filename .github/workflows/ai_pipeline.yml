@@ -1,0 +1,121 @@
+﻿name: "Workflow #2: AI Pipeline"
+
+on:
+  workflow_dispatch:
+    inputs:
+      r2_prefix:
+        description: "Cloudflare R2 object prefix from Workflow #1"
+        required: true
+        type: string
+      chat_id:
+        description: "Telegram Chat ID to notify"
+        required: false
+        default: "0"
+        type: string
+      message_id:
+        description: "Telegram Message ID"
+        required: false
+        default: "0"
+        type: string
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  ai:
+    runs-on: ubuntu-latest
+    env:
+      KRILLINAI_DRY_RUN: ${{ secrets.KRILLINAI_DRY_RUN || 'true' }}
+      CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
+      CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
+      CF_R2_ENDPOINT: ${{ secrets.CF_R2_ENDPOINT }}
+      CF_R2_BUCKET: ${{ secrets.CF_R2_BUCKET }}
+      HF_SPACE_URL: ${{ vars.HF_SPACE_URL }}
+      WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'distil-large-v3' }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-1.5-flash' }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_API_URL: ${{ vars.TELEGRAM_API_URL || 'https://api.telegram.org/bot' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests boto3
+
+      - name: Download Audio and Metadata from R2
+        run: |
+          python scripts/v2/pipeline_step.py download-r2 \
+            --key "${{ inputs.r2_prefix }}/audio.flac" \
+            --path "workdir/audio.flac"
+          python scripts/v2/pipeline_step.py download-r2 \
+            --key "${{ inputs.r2_prefix }}/metadata.json" \
+            --path "workdir/metadata.json"
+
+      - name: Notify Telegram (Start AI)
+        run: |
+          python scripts/v2/pipeline_step.py notify \
+            --chat-id "${{ inputs.chat_id }}" \
+            --message "⏳ <b>[Workflow #2]</b> Đang nhận dạng giọng nói bằng Faster-Whisper..."
+
+      - name: Transcribe Audio (Faster-Whisper via HF Space)
+        run: |
+          python scripts/v2/pipeline_step.py transcribe \
+            --audio "workdir/audio.flac" \
+            --srt "workdir/raw_word_timestamp.srt"
+
+      - name: Anchor Alignment
+        run: |
+          python scripts/v2/pipeline_step.py align \
+            --input "workdir/raw_word_timestamp.srt" \
+            --output "workdir/aligned.srt"
+
+      - name: Translate SRT (Gemini)
+        run: |
+          python scripts/v2/pipeline_step.py translate \
+            --input "workdir/aligned.srt" \
+            --output "workdir/translated_vi.srt"
+
+      - name: Generate TTS (Gemini Voice / Edge-TTS)
+        run: |
+          python scripts/v2/pipeline_step.py tts \
+            --input "workdir/translated_vi.srt" \
+            --audio "workdir/tts.wav"
+
+      - name: Upload AI Assets to R2
+        run: |
+          python scripts/v2/pipeline_step.py upload-r2 \
+            --path "workdir/raw_word_timestamp.srt" \
+            --key "${{ inputs.r2_prefix }}/raw_word_timestamp.srt"
+          python scripts/v2/pipeline_step.py upload-r2 \
+            --path "workdir/aligned.srt" \
+            --key "${{ inputs.r2_prefix }}/aligned.srt"
+          python scripts/v2/pipeline_step.py upload-r2 \
+            --path "workdir/translated_vi.srt" \
+            --key "${{ inputs.r2_prefix }}/translated_vi.srt"
+          python scripts/v2/pipeline_step.py upload-r2 \
+            --path "workdir/tts.wav" \
+            --key "${{ inputs.r2_prefix }}/tts.wav"
+
+      - name: Notify Telegram (Finish AI)
+        run: |
+          python scripts/v2/pipeline_step.py notify \
+            --chat-id "${{ inputs.chat_id }}" \
+            --message "✅ <b>[Workflow #2]</b> AI Pipeline hoàn tất. Đang chuyển sang Workflow #3 (Render)..."
+
+      - name: Trigger Workflow #3
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run "Workflow #3: Render" \
+            -f r2_prefix="${{ inputs.r2_prefix }}" \
+            -f chat_id="${{ inputs.chat_id }}" \
+            -f message_id="${{ inputs.message_id }}"

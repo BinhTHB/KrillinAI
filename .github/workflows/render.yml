@@ -1,0 +1,92 @@
+﻿name: "Workflow #3: Render"
+
+on:
+  workflow_dispatch:
+    inputs:
+      r2_prefix:
+        description: "Cloudflare R2 object prefix from previous workflows"
+        required: true
+        type: string
+      chat_id:
+        description: "Telegram Chat ID to notify"
+        required: false
+        default: "0"
+        type: string
+      message_id:
+        description: "Telegram Message ID"
+        required: false
+        default: "0"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    env:
+      KRILLINAI_DRY_RUN: ${{ secrets.KRILLINAI_DRY_RUN || 'true' }}
+      CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
+      CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
+      CF_R2_ENDPOINT: ${{ secrets.CF_R2_ENDPOINT }}
+      CF_R2_BUCKET: ${{ secrets.CF_R2_BUCKET }}
+      GOOGLE_DRIVE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
+      GOOGLE_DRIVE_FOLDER_ID: ${{ vars.GOOGLE_DRIVE_FOLDER_ID }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_API_URL: ${{ vars.TELEGRAM_API_URL || 'https://api.telegram.org/bot' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests boto3
+
+      - name: Download Assets from R2
+        run: |
+          python scripts/v2/pipeline_step.py download-r2 \
+            --key "${{ inputs.r2_prefix }}/video.mp4" \
+            --path "workdir/video.mp4"
+          python scripts/v2/pipeline_step.py download-r2 \
+            --key "${{ inputs.r2_prefix }}/translated_vi.srt" \
+            --path "workdir/subtitle.srt"
+          python scripts/v2/pipeline_step.py download-r2 \
+            --key "${{ inputs.r2_prefix }}/tts.wav" \
+            --path "workdir/tts.wav"
+
+      - name: Notify Telegram (Start Render)
+        run: |
+          python scripts/v2/pipeline_step.py notify \
+            --chat-id "${{ inputs.chat_id }}" \
+            --message "⏳ <b>[Workflow #3]</b> Đang làm mờ phụ đề cũ và render video mới..."
+
+      - name: Render Final Video (FFmpeg)
+        run: |
+          python scripts/v2/pipeline_step.py render \
+            --video "workdir/video.mp4" \
+            --subtitle "workdir/subtitle.srt" \
+            --audio "workdir/tts.wav" \
+            --output "workdir/final.mp4"
+
+      - name: Notify Telegram (Uploading)
+        run: |
+          python scripts/v2/pipeline_step.py notify \
+            --chat-id "${{ inputs.chat_id }}" \
+            --message "📤 <b>[Workflow #3]</b> Đang tải video kết quả..."
+
+      - name: Upload Final Result
+        run: |
+          python scripts/v2/pipeline_step.py upload-result \
+            --path "workdir/final.mp4"
+
+      - name: Notify Telegram (Complete)
+        run: |
+          python scripts/v2/pipeline_step.py notify \
+            --chat-id "${{ inputs.chat_id }}" \
+            --message "🎉 <b>Hoàn tất!</b> Video của bạn đã được xử lý và tải lên thành công."

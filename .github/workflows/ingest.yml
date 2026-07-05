@@ -1,0 +1,109 @@
+﻿name: "Workflow #1: Ingest Video"
+
+on:
+  repository_dispatch:
+    types: [telegram_video_ingest]
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: "Direct Video URL to download"
+        required: true
+        type: string
+      chat_id:
+        description: "Telegram Chat ID to notify"
+        required: false
+        default: "0"
+        type: string
+      message_id:
+        description: "Telegram Message ID to reply to"
+        required: false
+        default: "0"
+        type: string
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    env:
+      KRILLINAI_DRY_RUN: ${{ secrets.KRILLINAI_DRY_RUN || 'true' }}
+      CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
+      CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
+      CF_R2_ENDPOINT: ${{ secrets.CF_R2_ENDPOINT }}
+      CF_R2_BUCKET: ${{ secrets.CF_R2_BUCKET }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_API_URL: ${{ secrets.TELEGRAM_API_URL || 'https://api.telegram.org/bot' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install yt-dlp requests boto3
+
+      - name: Parse Trigger Context
+        id: context
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "video_url=${{ github.event.client_payload.videoUrl }}" >> $GITHUB_OUTPUT
+            echo "chat_id=${{ github.event.client_payload.chatId }}" >> $GITHUB_OUTPUT
+            echo "message_id=${{ github.event.client_payload.messageId }}" >> $GITHUB_OUTPUT
+          else
+            echo "video_url=${{ inputs.video_url }}" >> $GITHUB_OUTPUT
+            echo "chat_id=${{ inputs.chat_id }}" >> $GITHUB_OUTPUT
+            echo "message_id=${{ inputs.message_id }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notify Telegram (Start Ingest)
+        run: |
+          python scripts/v2/pipeline_step.py notify \
+            --chat-id "${{ steps.context.outputs.chat_id }}" \
+            --message "⏳ <b>[Workflow #1]</b> Đang tải video và chuẩn bị dữ liệu âm thanh..."
+
+      - name: Download Video
+        run: |
+          python scripts/v2/pipeline_step.py download-video \
+            --url "${{ steps.context.outputs.video_url }}" \
+            --out "workdir/video.mp4" \
+            --metadata "workdir/metadata.json"
+
+      - name: Extract Audio (FLAC)
+        run: |
+          python scripts/v2/pipeline_step.py extract-audio \
+            --video "workdir/video.mp4" \
+            --audio "workdir/audio.flac"
+
+      - name: Upload Video and Audio to Cloudflare R2
+        run: |
+          python scripts/v2/pipeline_step.py upload-r2 \
+            --path "workdir/video.mp4" \
+            --key "${{ github.run_id }}/video.mp4"
+          python scripts/v2/pipeline_step.py upload-r2 \
+            --path "workdir/audio.flac" \
+            --key "${{ github.run_id }}/audio.flac"
+          python scripts/v2/pipeline_step.py upload-r2 \
+            --path "workdir/metadata.json" \
+            --key "${{ github.run_id }}/metadata.json"
+
+      - name: Notify Telegram (Finish Ingest)
+        run: |
+          python scripts/v2/pipeline_step.py notify \
+            --chat-id "${{ steps.context.outputs.chat_id }}" \
+            --message "✅ <b>[Workflow #1]</b> Ingest hoàn tất. Đang chuyển giao sang Workflow #2 (AI Pipeline)..."
+
+      - name: Trigger Workflow #2
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run "Workflow #2: AI Pipeline" \
+            -f r2_prefix="${{ github.run_id }}" \
+            -f chat_id="${{ steps.context.outputs.chat_id }}" \
+            -f message_id="${{ steps.context.outputs.message_id }}"
