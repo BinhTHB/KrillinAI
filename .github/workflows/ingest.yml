@@ -1,4 +1,4 @@
-﻿name: "Workflow #1: Ingest Video"
+﻿name: "Workflow #1: Ingest"
 
 on:
   repository_dispatch:
@@ -6,16 +6,16 @@ on:
   workflow_dispatch:
     inputs:
       video_url:
-        description: "Direct Video URL to download"
+        description: "Direct video URL to download"
         required: true
         type: string
       chat_id:
-        description: "Telegram Chat ID to notify"
+        description: "Telegram chat ID"
         required: false
         default: "0"
         type: string
       message_id:
-        description: "Telegram Message ID to reply to"
+        description: "Telegram message ID"
         required: false
         default: "0"
         type: string
@@ -34,9 +34,8 @@ jobs:
       CF_R2_ENDPOINT: ${{ secrets.CF_R2_ENDPOINT }}
       CF_R2_BUCKET: ${{ secrets.CF_R2_BUCKET }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_API_URL: ${{ secrets.TELEGRAM_API_URL || 'https://api.telegram.org/bot' }}
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -45,12 +44,10 @@ jobs:
           python-version: "3.10"
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install yt-dlp requests boto3
+        run: pip install yt-dlp requests boto3
 
-      - name: Parse Trigger Context
-        id: context
+      - name: Parse trigger context
+        id: ctx
         run: |
           if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
             echo "video_url=${{ github.event.client_payload.videoUrl }}" >> $GITHUB_OUTPUT
@@ -62,42 +59,19 @@ jobs:
             echo "message_id=${{ inputs.message_id }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Notify Telegram (Start Ingest)
+      - name: Set env variables
         run: |
-          python scripts/v2/pipeline_step.py notify \
-            --chat-id "${{ steps.context.outputs.chat_id }}" \
-            --message "⏳ <b>[Workflow #1]</b> Đang tải video và chuẩn bị dữ liệu âm thanh..."
+          echo "GITHUB_OWNER=${{ github.repository_owner }}" >> $GITHUB_ENV
+          echo "GITHUB_REPO=$(echo '${{ github.repository }}' | cut -d'/' -f2)" >> $GITHUB_ENV
 
-      - name: Download Video
+      - name: Run Ingest orchestrator
+        id: ingest
         run: |
-          python scripts/v2/pipeline_step.py download-video \
-            --url "${{ steps.context.outputs.video_url }}" \
-            --out "workdir/video.mp4" \
-            --metadata "workdir/metadata.json"
-
-      - name: Extract Audio (FLAC)
-        run: |
-          python scripts/v2/pipeline_step.py extract-audio \
-            --video "workdir/video.mp4" \
-            --audio "workdir/audio.flac"
-
-      - name: Upload Video and Audio to Cloudflare R2
-        run: |
-          python scripts/v2/pipeline_step.py upload-r2 \
-            --path "workdir/video.mp4" \
-            --key "${{ github.run_id }}/video.mp4"
-          python scripts/v2/pipeline_step.py upload-r2 \
-            --path "workdir/audio.flac" \
-            --key "${{ github.run_id }}/audio.flac"
-          python scripts/v2/pipeline_step.py upload-r2 \
-            --path "workdir/metadata.json" \
-            --key "${{ github.run_id }}/metadata.json"
-
-      - name: Notify Telegram (Finish Ingest)
-        run: |
-          python scripts/v2/pipeline_step.py notify \
-            --chat-id "${{ steps.context.outputs.chat_id }}" \
-            --message "✅ <b>[Workflow #1]</b> Ingest hoàn tất. Đang chuyển giao sang Workflow #2 (AI Pipeline)..."
+          python scripts/v2/workflows/ingest.py \
+            --job-id "${{ github.run_id }}" \
+            --video-url "${{ steps.ctx.outputs.video_url }}" \
+            --chat-id "${{ steps.ctx.outputs.chat_id }}" \
+            --message-id "${{ steps.ctx.outputs.message_id }}"
 
       - name: Trigger Workflow #2
         env:
@@ -105,5 +79,5 @@ jobs:
         run: |
           gh workflow run "Workflow #2: AI Pipeline" \
             -f r2_prefix="${{ github.run_id }}" \
-            -f chat_id="${{ steps.context.outputs.chat_id }}" \
-            -f message_id="${{ steps.context.outputs.message_id }}"
+            -f chat_id="${{ steps.ctx.outputs.chat_id }}" \
+            -f message_id="${{ steps.ctx.outputs.message_id }}"
