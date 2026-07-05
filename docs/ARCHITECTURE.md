@@ -92,5 +92,6 @@ New AI agents should read the following documents in order:
 6. **`docs/ENVIRONMENT.md`** — Environment variables reference (Secrets vs Variables classification).
 7. **`docs/DEPLOYMENT.md`** — Deployment instructions and version pinning.
 8. **`docs/VERSIONS.md`** — Version matrix for all dependencies.
+9. **`docs/CHANGELOG.md`** — Project changelog following Keep a Changelog format.
 
 All documents are kept at the repository root (`TODOList.md`) or under `docs/`.

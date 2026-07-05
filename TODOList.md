@@ -445,4 +445,12 @@
 
 ---
 
+## Milestone History
+
+| Milestone | Completion Date | Commit Hash | Summary |
+|-----------|-----------------|-------------|---------|
+| Milestone 1 — Skeleton v2 | 2026-07-05 | `697aeb9`, `094dcd4`, `de567cf`, `c2460d2`, `186b164`, `4e4bfca`, `a0e2420` | Built the complete v2 skeleton: Worker, HF Space skeleton, workflows, shared modules, placeholder clients, orchestration scripts, docs, version matrix, and roadmap. |
+
+---
+
 _Last updated: 2026-07-05_

@@ -12,9 +12,34 @@
 - **Current Task**: Implement real boto3 R2 client in `scripts/v2/r2_client.py`
 - **Current Branch**: `master` (development / sync upstream)
 - **Production Branch**: `working-branch`
-- **Last Local Commit**: `1c372ab` — docs: implement PROJECT_STATE, DECISIONS, AGENT_ONBOARDING, and update ARCHITECTURE and TODOList headers
+- **Last Local Commit**: `0ed22aa` — docs: update PROJECT_STATE last local commit
 - **Last Reviewed Date**: 2026-07-05
 - **Last Updated By**: AI Agent (factory-droid)
+
+---
+
+## Current Environment
+
+### Development Environment
+- **Branch**: `master`
+- **Trigger**: `repository_dispatch` (development webhook) or manual `workflow_dispatch`.
+- **Target Cloudflare Worker**: configured on local development/dev wrangler namespace (e.g. `krillin-ai-dev`).
+- **Target Hugging Face Space**: `krillin-asr-dev` via variable `HF_SPACE_URL`.
+- **Target R2 Bucket**: dev bucket configured via variable `CF_R2_BUCKET`.
+
+### Production Environment
+- **Branch**: `working-branch`
+- **Trigger**: `repository_dispatch` (production webhook).
+- **Target Cloudflare Worker**: configured on prod wrangler namespace (e.g. `krillin-ai-prod`).
+- **Target Hugging Face Space**: `krillin-asr-prod` via variable `HF_SPACE_URL`.
+- **Target R2 Bucket**: prod bucket configured via variable `CF_R2_BUCKET`.
+
+---
+
+## Deployment Status
+
+- **Development Deployment**: 🚧 In Progress (Skeleton deployed; API integrations pending)
+- **Production Deployment**: ⏳ Not Started (Waiting for dev validation)
 
 ---
 
@@ -31,7 +56,7 @@
 
 | Blocker | Description | Impact | Mitigation |
 |---------|-------------|--------|------------|
-| R2 credentials not configured | GitHub Secrets `CF_R2_ACCESS_KEY_ID`, `CF_R2_SECRET_ACCESS_KEY`, `CF_R2_ENDPOINT`, `CF_R2_BUCKET` must be set | Cannot test real R2 upload/download | Use `KRILLINAI_DRY_RUN=true` for unit tests; set up dev bucket later |
+| R2 credentials not configured | GitHub Secrets `CF_R2_ACCESS_KEY_ID`, `CF_R2_SECRET_ACCESS_KEY` must be set; GitHub Variables `CF_R2_ENDPOINT`, `CF_R2_BUCKET` must be set | Cannot test real R2 upload/download | Use `KRILLINAI_DRY_RUN=true` for unit tests; set up dev bucket later |
 
 ---
 
@@ -71,7 +96,7 @@
 
 ## Notes for Next Agent
 
-1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `ARCHITECTURE.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md`
+1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `AGENT_ONBOARDING.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md` → `CHANGELOG.md`
 2. **Current focus**: Milestone 2 (R2 Client). Implement boto3 client in `scripts/v2/r2_client.py`.
 3. **Do not** change architecture, workflow triggers, or branch strategy without a new entry in `DECISIONS.md`.
 4. **Secrets/Variables**: Never hardcode. Use `config.py` → environment variables → GitHub Secrets/Variables.
@@ -79,6 +104,7 @@
    - Update `TODOList.md` (mark `- [x]`).
    - Update this `PROJECT_STATE.md` (Current Task, Next Planned Task, Last Local Commit).
    - If a new architectural decision was made, add to `DECISIONS.md`.
+   - Update `CHANGELOG.md` following Keep a Changelog.
    - Create a local commit with a clear message.
    - Report summary to user.
 
