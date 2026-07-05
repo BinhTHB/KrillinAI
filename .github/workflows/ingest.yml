@@ -28,11 +28,11 @@ jobs:
   ingest:
     runs-on: ubuntu-latest
     env:
-      KRILLINAI_DRY_RUN: ${{ secrets.KRILLINAI_DRY_RUN || "true" }}
+      KRILLINAI_DRY_RUN: ${{ vars.KRILLINAI_DRY_RUN || "true" }}
       CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
       CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
-      CF_R2_ENDPOINT: ${{ secrets.CF_R2_ENDPOINT }}
-      CF_R2_BUCKET: ${{ secrets.CF_R2_BUCKET }}
+      CF_R2_ENDPOINT: ${{ vars.CF_R2_ENDPOINT }}
+      CF_R2_BUCKET: ${{ vars.CF_R2_BUCKET }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
     steps:
       - name: Checkout code
