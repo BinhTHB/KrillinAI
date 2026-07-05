@@ -12,7 +12,7 @@
 - **Current Task**: Implement real boto3 R2 client in `scripts/v2/r2_client.py`
 - **Current Branch**: `master` (development / sync upstream)
 - **Production Branch**: `working-branch`
-- **Last Local Commit**: `a0e2420` — docs: restructure TODOList.md with standardized milestone template
+- **Last Local Commit**: `1c372ab` — docs: implement PROJECT_STATE, DECISIONS, AGENT_ONBOARDING, and update ARCHITECTURE and TODOList headers
 - **Last Reviewed Date**: 2026-07-05
 - **Last Updated By**: AI Agent (factory-droid)
 
@@ -85,3 +85,4 @@
 ---
 
 _Last updated: 2026-07-05_
+
