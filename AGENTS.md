@@ -84,3 +84,60 @@ Commit
 - Update PROJECT_STATE.md and TODOList.md after completing work.
 
 If the user asks for project progress, report the information from PROJECT_STATE.md instead of relying only on git status.
+
+## Work Modes
+
+### Mode: Quick Fix
+
+Use when:
+- bug fix
+- typo
+- small refactor
+- test fix
+
+Required updates:
+✓ CHANGELOG.md
+✓ Local commit
+
+Optional:
+PROJECT_STATE.md
+
+Do NOT update:
+- DECISIONS.md
+- TODOList.md
+- ARCHITECTURE.md
+
+--------------------------------
+
+### Mode: Feature
+
+Use when:
+- implementing a TODO milestone
+- adding a new module
+- replacing a placeholder
+
+Required updates:
+✓ TODOList.md
+✓ PROJECT_STATE.md
+✓ CHANGELOG.md
+✓ Local commit
+
+Update DECISIONS.md only if an architectural decision changes.
+
+--------------------------------
+
+### Mode: Architecture
+
+Use when:
+- changing architecture
+- changing workflow
+- changing deployment strategy
+- changing branch strategy
+
+Required updates:
+✓ DECISIONS.md
+✓ ARCHITECTURE.md
+✓ TODOList.md
+✓ PROJECT_STATE.md
+✓ CHANGELOG.md
+✓ Local commit
