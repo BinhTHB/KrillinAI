@@ -17,12 +17,12 @@ Version reference matrix for all components in the KrillinAI v2 serverless pipel
 
 ## Hugging Face Space (ASR Container)
 
-- **Docker Base**: `nvidia/cuda:12.1.0-runtime-ubuntu22.04` (provides CUDA 12 support for GPU transcribing).
+- **Docker Base**: `python:3.10-slim` (lightweight CPU-only image for free-tier deployment).
 - **Python**: `3.10`
 - **FastAPI**: `^0.100.0`
 - **Uvicorn**: `^0.22.0`
 - **python-multipart**: `^0.0.6` (required for file uploads).
-- **PyTorch**: `^2.0.0` (compatible with CUDA 12.1 runtime).
+- **PyTorch**: `^2.0.0` (CPU and GPU compatible).
 - **Faster-Whisper**: `^1.0.0`
 - **ctranslate2**: (Bundled automatically by Faster-Whisper, matches model quantization).
 
@@ -36,5 +36,5 @@ Version reference matrix for all components in the KrillinAI v2 serverless pipel
 ## Upgrade Guidelines
 
 1. **yt-dlp**: Should always be fetched fresh in the workflow run (using `pip install yt-dlp` without pinning) to avoid download failures due to YouTube backend changes.
-2. **PyTorch & CUDA**: If upgrading the Docker base to a newer CUDA version, verify that the PyTorch version matches the CUDA runtime to prevent whisper device loading errors.
+2. **PyTorch**: For GPU deployments, ensure the PyTorch version matches the CUDA runtime. The CPU-only Free Tier does not require CUDA.
 3. **Faster-Whisper**: Major version updates must be tested locally to verify compatibility with existing Whisper model file formats on Hugging Face.

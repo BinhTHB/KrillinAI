@@ -89,7 +89,7 @@ Mục tiêu của kiến trúc:
                 ▼
 
           Faster-Whisper
-       distil-large-v3 / large-v3
+        base CPU/int8 default
 
                 │
                 ▼
@@ -257,16 +257,16 @@ Chỉ gửi audio sau khi model load xong.
 
 Speech Recognition
 
-Khuyến nghị:
+Free-tier mặc định:
 
 ```
-distil-large-v3
+base CPU/int8
 ```
 
-Nếu cần chất lượng tối đa:
+Nếu cần chất lượng tối đa trên GPU trả phí:
 
 ```
-large-v3 int8
+base / distil-large-v3 (GPU)
 ```
 
 ---
@@ -498,8 +498,8 @@ Telegram
 ## Speech Recognition
 
 * Faster-Whisper
-* distil-large-v3 (khuyến nghị)
-* large-v3 int8 (chất lượng tối đa)
+* base CPU/int8 (mặc định Free Tier)
+* base / distil-large-v3 (GPU) (tuỳ chọn GPU trả phí)
 
 ---
 

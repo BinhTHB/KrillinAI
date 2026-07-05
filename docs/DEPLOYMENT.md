@@ -16,7 +16,7 @@
 | Python | `3.10` | Set via `actions/setup-python@v5`. |
 | Node.js | `22.x` | For Cloudflare Worker local development and Wrangler. |
 | Wrangler | `^3.0.0` | Worker deployment CLI. |
-| Docker base image | `nvidia/cuda:12.1.0-runtime-ubuntu22.04` | Used in `hf-space/Dockerfile`. |
+| Docker base image | `python:3.10-slim` | CPU Free Tier default used in `hf-space/Dockerfile`. |
 | FFmpeg | `7.x` (system package) | Installed on runner for audio extraction and render. |
 | yt-dlp | latest | Video download tool, installed on runner. |
 | Faster-Whisper | `>=1.0.0` | Runs inside HF Space, not on runner. |
@@ -50,7 +50,7 @@ Set under Settings → Secrets and variables → Actions → Variables.
 | `CF_R2_ENDPOINT` | Cloudflare R2 S3-compatible endpoint URL (non‑sensitive). |
 | `CF_R2_BUCKET` | Name of the R2 bucket (non‑sensitive). |
 | `HF_SPACE_URL` | Base URL of the Hugging Face Space, e.g. `https://your-krillin-asr-prod.hf.space`. |
-| `WHISPER_MODEL` | ASR model name, default `distil-large-v3`. |
+| `WHISPER_MODEL` | ASR model name, default `base` for CPU Free Tier. |
 | `GEMINI_MODEL` | Gemini model for translation/TTS, default `gemini-1.5-flash`. |
 | `GOOGLE_DRIVE_FOLDER_ID` | Target Google Drive folder ID. |
 
@@ -91,10 +91,11 @@ https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<worker>.<account>.wo
 
 ## Hugging Face Space
 
-1. Create a Space → Docker → GPU (T4 or better).
+1. Create a Space → Docker → CPU Basic (Free).
 2. For development: name it `krillin-asr-dev`.
 3. For production: name it `krillin-asr-prod`.
 4. The Space name is **not** hardcoded; set `HF_SPACE_URL` in GitHub Variables accordingly.
+5. GPU is optional for future scaling only; the system architecture remains unchanged.
 
 ### Space Environment Variables
 
@@ -102,10 +103,20 @@ Set in Space → Settings → Variables (not Secrets).
 
 | Name | Default | Description |
 |------|---------|-------------|
-| `WHISPER_MODEL` | `distil-large-v3` | Faster-Whisper model to load. |
-| `WHISPER_DEVICE` | `auto` | Device (`cuda`, `cpu`, `auto`). |
-| `WHISPER_COMPUTE_TYPE` | `float16` | Compute type (`float16`, `int8_float16`, `int8`). |
+| `WHISPER_MODEL` | `base` | Faster-Whisper model to load on CPU Free Tier. |
+| `WHISPER_DEVICE` | `cpu` | Device for free-tier deployment. |
+| `WHISPER_COMPUTE_TYPE` | `int8` | CPU-friendly compute type. |
 | `PORT` | `7860` | FastAPI port. |
+
+### Optional GPU production overrides
+
+Paid GPU deployments may override these variables without code changes:
+
+```text
+WHISPER_MODEL=distil-large-v3
+WHISPER_DEVICE=cuda
+WHISPER_COMPUTE_TYPE=float16
+```
 
 ## Dev/Production deployment mapping
 
@@ -114,7 +125,7 @@ Set in Space → Settings → Variables (not Secrets).
 | GitHub branch | `master` | `working-branch` |
 | GitHub Variables | `KRILLINAI_DRY_RUN=true`, dev HF/Drive URLs | `KRILLINAI_DRY_RUN=false` (or unset), prod URLs |
 | Cloudflare Worker | Separate Worker deployment for dev | Separate Worker deployment for prod |
-| Hugging Face Space | `krillin-asr-dev` | `krillin-asr-prod` |
+| Hugging Face Space | Docker CPU Basic (Free), `krillin-asr-dev` | Docker CPU Basic by default; optional paid GPU override, `krillin-asr-prod` |
 | R2 bucket | Separate bucket for dev | Separate bucket for prod |
 
 The code does **not** hardcode any of these names. All are read from environment variables at runtime.

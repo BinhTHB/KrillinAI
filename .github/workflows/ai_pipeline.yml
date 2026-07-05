@@ -34,7 +34,7 @@ jobs:
       CF_R2_ENDPOINT: ${{ vars.CF_R2_ENDPOINT }}
       CF_R2_BUCKET: ${{ vars.CF_R2_BUCKET }}
       HF_SPACE_URL: ${{ vars.HF_SPACE_URL }}
-      WHISPER_MODEL: ${{ vars.WHISPER_MODEL || "distil-large-v3" }}
+      WHISPER_MODEL: ${{ vars.WHISPER_MODEL || "base" }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_MODEL: ${{ vars.GEMINI_MODEL || "gemini-1.5-flash" }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

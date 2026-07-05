@@ -8,7 +8,7 @@ This document records the architectural and technical decisions made during the 
 
 - **Status**: Accepted
 - **Context**: KrillinAI v1 ran as a local monolith or standard VPS. This incurred high 24/7 hosting costs, and was not resilient to API limits or runner outages.
-- **Decision**: Redesign the entire backend into a serverless, event‑driven pipeline: Telegram webhook → Cloudflare Worker API Gateway → GitHub Actions runner orchestration → Cloudflare R2 storage → Hugging Face GPU Space / Gemini API → Telegram / Google Drive delivery.
+- **Decision**: Redesign the entire backend into a serverless, event‑driven pipeline: Telegram webhook → Cloudflare Worker API Gateway → GitHub Actions runner orchestration → Cloudflare R2 storage → Hugging Face Space (CPU Free Tier; GPU optional) / Gemini API → Telegram / Google Drive delivery.
 - **Reason**: Near‑zero cost at idle, highly scaleable, automatic retry isolation, and bypasses local hardware constraints.
 - **Impact**: All state and logic must be split into sequential, stateless phases.
 

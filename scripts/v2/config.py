@@ -54,7 +54,7 @@ def load_config() -> Config:
         
         # Hugging Face
         hf_space_url=os.getenv("HF_SPACE_URL"),
-        whisper_model=os.getenv("WHISPER_MODEL", "distil-large-v3"),
+        whisper_model=os.getenv("WHISPER_MODEL", "base"),
         
         # Gemini
         gemini_api_key=os.getenv("GEMINI_API_KEY"),

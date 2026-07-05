@@ -105,7 +105,7 @@
 
     [serverless_v2.huggingface]
         space_url = ""
-        whisper_model = "distil-large-v3"
+        whisper_model = "base"
 
     [serverless_v2.gemini]
         api_key = ""

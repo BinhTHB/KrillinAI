@@ -1,7 +1,7 @@
 ﻿# Hugging Face Space – Faster-Whisper Transcription Service
 # -------------------------------------------------------
 # Exposes /health and /transcribe endpoints.
-# Uses faster-whisper (distil-large-v3 by default, configurable via WHISPER_MODEL).
+# Uses faster-whisper (base CPU/int8 by default, configurable via environment variables).
 # Accepts multipart/form-data audio file, returns SRT with word-level timestamps.
 # -------------------------------------------------------
 
@@ -15,9 +15,9 @@ import time
 app = FastAPI(title="KrillinAI Whisper Transcription")
 
 # Model loaded at startup (blocking). Use /health to check readiness.
-MODEL_NAME = os.getenv("WHISPER_MODEL", "distil-large-v3")
-DEVICE = os.getenv("WHISPER_DEVICE", "auto")  # "auto", "cpu", "cuda"
-COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "float16")
+MODEL_NAME = os.getenv("WHISPER_MODEL", "base")
+DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
+COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
 
 model = None
 model_loading = False
