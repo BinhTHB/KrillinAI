@@ -27,6 +27,30 @@ def run(job_id: str, video_url: str, chat_id: int, message_id: int) -> int:
     cfg = load_config()
     logger.info(f"Starting ingest for job {job_id}")
 
+    r2 = R2Client()
+    video_key = StorageLayout.get_video_orig_key(job_id)
+    audio_key = StorageLayout.get_audio_orig_key(job_id)
+
+    # Idempotency: Skip download/extract if files already exist on R2
+    # TODO: Integrate queue state recovery check if necessary
+    try:
+        if r2.exists(video_key) and r2.exists(audio_key):
+            logger.info("Original video and audio already exist in storage, skipping ingest steps")
+            tg = TelegramClient()
+            tg.send_message(chat_id, f"🔄 <b>[Workflow #1]</b> Dữ liệu gốc đã tồn tại cho job <code>{job_id}</code>. Đang bỏ qua bước ingest...")
+            
+            # Make sure metadata is saved as ready
+            metadata = JobMetadata.new(job_id, video_url, chat_id, message_id)
+            metadata.status = JobStatus.INGESTED
+            metadata.current_stage = JobStage.AI_PIPELINE
+            r2.save_metadata(metadata)
+            
+            print(f"job_id={job_id}")
+            return 0
+    except NotImplementedError:
+        # Fallback if S3 check is not configured/implemented
+        logger.info("Idempotency exists check not available, proceeding with ingest")
+
     # Prepare local workdir
     workdir = Path("workdir") / job_id
     workdir.mkdir(parents=True, exist_ok=True)
@@ -45,9 +69,8 @@ def run(job_id: str, video_url: str, chat_id: int, message_id: int) -> int:
         raise NotImplementedError("Real video download + audio extraction not implemented")
 
     # Upload to R2
-    r2 = R2Client()
-    r2.upload_file(str(video_path), StorageLayout.get_video_orig_key(job_id))
-    r2.upload_file(str(audio_path), StorageLayout.get_audio_orig_key(job_id))
+    r2.upload_file(str(video_path), video_key)
+    r2.upload_file(str(audio_path), audio_key)
 
     # Save metadata
     metadata = JobMetadata.new(job_id, video_url, chat_id, message_id)

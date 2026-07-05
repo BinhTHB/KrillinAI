@@ -1,6 +1,8 @@
 ﻿name: "Workflow #3: Render"
 
 on:
+  repository_dispatch:
+    types: [render_start]
   workflow_dispatch:
     inputs:
       r2_prefix:
@@ -25,7 +27,7 @@ jobs:
   render:
     runs-on: ubuntu-latest
     env:
-      KRILLINAI_DRY_RUN: ${{ secrets.KRILLINAI_DRY_RUN || 'true' }}
+      KRILLINAI_DRY_RUN: ${{ secrets.KRILLINAI_DRY_RUN || "true" }}
       CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
       CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
       CF_R2_ENDPOINT: ${{ secrets.CF_R2_ENDPOINT }}
@@ -45,14 +47,27 @@ jobs:
       - name: Install dependencies
         run: pip install requests boto3
 
+      - name: Parse trigger context
+        id: ctx
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "r2_prefix=${{ github.event.client_payload.r2_prefix }}" >> $GITHUB_OUTPUT
+            echo "chat_id=${{ github.event.client_payload.chat_id }}" >> $GITHUB_OUTPUT
+            echo "message_id=${{ github.event.client_payload.message_id }}" >> $GITHUB_OUTPUT
+          else
+            echo "r2_prefix=${{ inputs.r2_prefix }}" >> $GITHUB_OUTPUT
+            echo "chat_id=${{ inputs.chat_id }}" >> $GITHUB_OUTPUT
+            echo "message_id=${{ inputs.message_id }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Set env variables
         run: |
           echo "GITHUB_OWNER=${{ github.repository_owner }}" >> $GITHUB_ENV
-          echo "GITHUB_REPO=$(echo '${{ github.repository }}' | cut -d'/' -f2)" >> $GITHUB_ENV
+          echo "GITHUB_REPO=$(echo "${{ github.repository }}" | cut -d"/" -f2)" >> $GITHUB_ENV
 
       - name: Run Render orchestrator
         run: |
           python scripts/v2/workflows/render.py \
-            --job-id "${{ inputs.r2_prefix }}" \
-            --chat-id "${{ inputs.chat_id }}" \
-            --message-id "${{ inputs.message_id }}"
+            --job-id "${{ steps.ctx.outputs.r2_prefix }}" \
+            --chat-id "${{ steps.ctx.outputs.chat_id }}" \
+            --message-id "${{ steps.ctx.outputs.message_id }}"

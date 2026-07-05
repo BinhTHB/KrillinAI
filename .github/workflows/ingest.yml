@@ -28,7 +28,7 @@ jobs:
   ingest:
     runs-on: ubuntu-latest
     env:
-      KRILLINAI_DRY_RUN: ${{ secrets.KRILLINAI_DRY_RUN || 'true' }}
+      KRILLINAI_DRY_RUN: ${{ secrets.KRILLINAI_DRY_RUN || "true" }}
       CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
       CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
       CF_R2_ENDPOINT: ${{ secrets.CF_R2_ENDPOINT }}
@@ -62,7 +62,7 @@ jobs:
       - name: Set env variables
         run: |
           echo "GITHUB_OWNER=${{ github.repository_owner }}" >> $GITHUB_ENV
-          echo "GITHUB_REPO=$(echo '${{ github.repository }}' | cut -d'/' -f2)" >> $GITHUB_ENV
+          echo "GITHUB_REPO=$(echo "${{ github.repository }}" | cut -d"/" -f2)" >> $GITHUB_ENV
 
       - name: Run Ingest orchestrator
         id: ingest
@@ -73,11 +73,15 @@ jobs:
             --chat-id "${{ steps.ctx.outputs.chat_id }}" \
             --message-id "${{ steps.ctx.outputs.message_id }}"
 
-      - name: Trigger Workflow #2
+      - name: Trigger Workflow #2 via repository_dispatch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh workflow run "Workflow #2: AI Pipeline" \
-            -f r2_prefix="${{ github.run_id }}" \
-            -f chat_id="${{ steps.ctx.outputs.chat_id }}" \
-            -f message_id="${{ steps.ctx.outputs.message_id }}"
+          gh api \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/dispatches \
+            -f event_type=ai_pipeline_start \
+            -f client_payload[r2_prefix]="${{ github.run_id }}" \
+            -f client_payload[chat_id]="${{ steps.ctx.outputs.chat_id }}" \
+            -f client_payload[message_id]="${{ steps.ctx.outputs.message_id }}"

@@ -1,5 +1,6 @@
 ﻿import json
 import os
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -13,24 +14,57 @@ logger = get_logger("R2Client")
 class R2Client:
     def __init__(self) -> None:
         self.cfg = load_config()
+        # Dry-run mock storage root
+        self.mock_root = Path("workdir/mock-r2")
+        if self.cfg.dry_run:
+            self.mock_root.mkdir(parents=True, exist_ok=True)
+
+    def _mock_path(self, key: str) -> Path:
+        """Return the mock filesystem path for a given R2 key (dry-run only)."""
+        return self.mock_root / key
+
+    def exists(self, key: str) -> bool:
+        """Check if an object exists in R2 (dry-run mock or real S3 HEAD)."""
+        if self.cfg.dry_run:
+            return self._mock_path(key).exists()
+
+        # TODO: implement real S3 HEAD request via boto3
+        # s3 = boto3.client(...)
+        # try:
+        #     s3.head_object(Bucket=self.cfg.r2_bucket, Key=key)
+        #     return True
+        # except s3.exceptions.ClientError:
+        #     return False
+        raise NotImplementedError("R2 exists check placeholder — implement boto3 head_object")
 
     def upload_file(self, local_path: str, key: str) -> None:
+        """Upload a file to R2; in dry-run also mirror to mock storage for idempotency."""
         if self.cfg.dry_run:
-            logger.info(f"[DRY RUN] Would upload {local_path} -> R2:{key}")
+            mock = self._mock_path(key)
+            mock.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(local_path, mock)
+            logger.info(f"[DRY RUN] Uploaded {local_path} -> mock R2:{key}")
             return
 
-        # TODO: integrate boto3 S3 client; credentials are loaded from CF_R2_* env vars via config.py
+        # TODO: integrate boto3 S3 upload
         # s3.upload_file(local_path, self.cfg.r2_bucket, key)
         raise NotImplementedError("R2 upload placeholder — set up CF_R2_* secrets and implement boto3 client")
 
     def download_file(self, key: str, local_path: str) -> None:
+        """Download a file from R2; in dry-run read from mock storage if present."""
         Path(local_path).parent.mkdir(parents=True, exist_ok=True)
         if self.cfg.dry_run:
-            logger.info(f"[DRY RUN] Would download R2:{key} -> {local_path}")
+            mock = self._mock_path(key)
+            if mock.exists():
+                shutil.copy2(mock, local_path)
+                logger.info(f"[DRY RUN] Downloaded mock R2:{key} -> {local_path}")
+                return
+            # If mock does not exist, create a placeholder
             Path(local_path).write_text(f"placeholder content for R2:{key}\n", encoding="utf-8")
+            logger.info(f"[DRY RUN] Created placeholder for missing mock R2:{key}")
             return
 
-        # TODO: integrate boto3 S3 client; credentials are loaded from CF_R2_* env vars via config.py
+        # TODO: integrate boto3 S3 download
         # s3.download_file(self.cfg.r2_bucket, key, local_path)
         raise NotImplementedError("R2 download placeholder — set up CF_R2_* secrets and implement boto3 client")
 
@@ -62,4 +96,3 @@ class R2Client:
         finally:
             if os.path.exists(local_tmp):
                 os.unlink(local_tmp)
-
