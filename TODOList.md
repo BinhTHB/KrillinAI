@@ -5,8 +5,44 @@
 
 ---
 
-## Milestone 1: Skeleton v2 ✅ *(Completed)*
+## Milestone 1: Skeleton v2
 
+**Status**: ✅ Completed
+**Estimated Effort**: ⭐⭐ Medium
+**Dependencies**: None
+
+**Target**: Establish the complete serverless skeleton: Cloudflare Worker, HF Space skeleton, 3 GitHub Actions workflows, shared modules, client placeholders, workflow orchestrators, idempotency checks, and documentation.
+
+### Files to edit
+- `worker/src/index.js`
+- `worker/wrangler.toml`
+- `worker/package.json`
+- `hf-space/app.py`
+- `hf-space/requirements.txt`
+- `hf-space/Dockerfile`
+- `.github/workflows/ingest.yml`
+- `.github/workflows/ai_pipeline.yml`
+- `.github/workflows/render.yml`
+- `scripts/v2/config.py`
+- `scripts/v2/logger.py`
+- `scripts/v2/retry.py`
+- `scripts/v2/models.py`
+- `scripts/v2/layout.py`
+- `scripts/v2/r2_client.py`
+- `scripts/v2/telegram_client.py`
+- `scripts/v2/github_client.py`
+- `scripts/v2/hf_client.py`
+- `scripts/v2/gemini_client.py`
+- `scripts/v2/gdrive_client.py`
+- `scripts/v2/workflows/ingest.py`
+- `scripts/v2/workflows/ai_pipeline.py`
+- `scripts/v2/workflows/render.py`
+- `docs/ARCHITECTURE.md`
+- `docs/DEPLOYMENT.md`
+- `docs/ENVIRONMENT.md`
+- `docs/VERSIONS.md`
+
+### Tasks
 - [x] Cloudflare Worker webhook + dispatch
 - [x] Hugging Face Space skeleton (FastAPI + faster-whisper stub)
 - [x] 3 GitHub Actions workflows (ingest, ai_pipeline, render)
@@ -17,9 +53,39 @@
 - [x] Docs: ARCHITECTURE, DEPLOYMENT, ENVIRONMENT, VERSIONS
 - [x] Environment classification (Secrets vs Variables)
 
+### APIs / Libraries
+- Cloudflare Workers / Wrangler
+- Hugging Face Spaces (FastAPI + faster-whisper)
+- GitHub Actions
+- Python 3.10
+
+### Definition of Done
+1. All skeleton code compiles/imports without errors.
+2. GitHub Actions YAML syntax is valid.
+3. Worker JavaScript passes Node `--check`.
+4. Documentation files created and consistent.
+5. Environment variables classified correctly (Secrets vs Variables).
+
+### Tests
+- [x] Python `py_compile` on all scripts.
+- [x] YAML parsing of all workflow files.
+- [x] Node `--check` on Worker.
+- [x] Secret scanner finds no real credentials.
+
+### Review Checklist
+- [x] Code review completed
+- [x] Tests passed
+- [x] Documentation updated
+- [x] TODOList updated
+- [x] Local commit created
+
 ---
 
 ## Milestone 2 — R2 Client (boto3 integration)
+
+**Status**: ⏳ Not Started
+**Estimated Effort**: ⭐⭐ Medium
+**Dependencies**: Milestone 1
 
 **Target**: Turn the `r2_client.py` placeholder into a working S3‑compatible client backed by Cloudflare R2.
 
@@ -37,7 +103,7 @@
 - [ ] Keep `dry_run` guard so that unit tests can run without real R2
 
 ### APIs / Libraries
-- **boto3** ≥ 1.28
+- **boto3** ≥ 1.28
 - Cloudflare R2 (S3‑compatible API)
 
 ### Definition of Done
@@ -53,9 +119,20 @@
   - `test_metadata_save_and_load`
 - [ ] Manual workflow_dispatch on ingest → verify R2 bucket content via Cloudflare Dashboard.
 
+### Review Checklist
+- [ ] Code review completed
+- [ ] Tests passed
+- [ ] Documentation updated
+- [ ] TODOList updated
+- [ ] Local commit created
+
 ---
 
 ## Milestone 3 — Ingest (yt-dlp + FFmpeg)
+
+**Status**: ⏳ Not Started
+**Estimated Effort**: ⭐⭐ Medium
+**Dependencies**: Milestone 2
 
 **Target**: Replace the placeholder video download / audio extraction with real tools.
 
@@ -85,9 +162,20 @@
 - [ ] `workflow_dispatch` trigger on GitHub (dry-run first, then real).
 - [ ] Verify `audio_orig.flac` plays correctly (16 kHz mono).
 
+### Review Checklist
+- [ ] Code review completed
+- [ ] Tests passed
+- [ ] Documentation updated
+- [ ] TODOList updated
+- [ ] Local commit created
+
 ---
 
 ## Milestone 4 — Hugging Face Space + hf_client
+
+**Status**: ⏳ Not Started
+**Estimated Effort**: ⭐⭐⭐ Hard
+**Dependencies**: Milestone 2, Milestone 3
 
 **Target**: Deploy the HF Space Docker image and make the `hf_client.py` actually call `/transcribe` to get SRT output.
 
@@ -124,9 +212,20 @@
     - `test_transcribe_returns_srt`
 - [ ] Manual: run `ai_pipeline.py` with a real job (dry-run first, then real).
 
+### Review Checklist
+- [ ] Code review completed
+- [ ] Tests passed
+- [ ] Documentation updated
+- [ ] TODOList updated
+- [ ] Local commit created
+
 ---
 
 ## Milestone 5 — Gemini Translation + TTS
+
+**Status**: ⏳ Not Started
+**Estimated Effort**: ⭐⭐⭐ Hard
+**Dependencies**: Milestone 4
 
 **Target**: Wire up real Google Gemini API calls for SRT translation and voice synthesis.
 
@@ -161,9 +260,20 @@
   - `test_synthesize_returns_audio`
 - [ ] Integration: full `ai_pipeline.py` run with `KRILLINAI_DRY_RUN=false`.
 
+### Review Checklist
+- [ ] Code review completed
+- [ ] Tests passed
+- [ ] Documentation updated
+- [ ] TODOList updated
+- [ ] Local commit created
+
 ---
 
 ## Milestone 6 — FFmpeg Render
+
+**Status**: ⏳ Not Started
+**Estimated Effort**: ⭐⭐⭐⭐ Very Hard
+**Dependencies**: Milestone 5
 
 **Target**: Replace the placeholder copy in `render.py` with a real FFmpeg blur‑subtitle + overlay + audio mux pipeline.
 
@@ -208,9 +318,20 @@
 - [ ] `workflow_dispatch` trigger on GitHub.
 - [ ] Visual inspection of the output video.
 
+### Review Checklist
+- [ ] Code review completed
+- [ ] Tests passed
+- [ ] Documentation updated
+- [ ] TODOList updated
+- [ ] Local commit created
+
 ---
 
 ## Milestone 7 — Telegram Upload + Google Drive Upload
+
+**Status**: ⏳ Not Started
+**Estimated Effort**: ⭐⭐ Medium
+**Dependencies**: Milestone 6
 
 **Target**: Implement real file delivery to the end user.
 
@@ -221,7 +342,7 @@
 ### Tasks
 - **Telegram**:
   - [ ] Implement `send_video(chat_id, video_path, caption)` using Telegram Bot API `sendVideo` (multipart/form‑data).
-  - [ ] Handle files ≤ 50 MB.
+  - [ ] Handle files ≤ 50 MB.
   - [ ] If file > 50 MB, return a message telling the user "large file – will be delivered via Google Drive".
 - **Google Drive**:
   - [ ] Parse `GOOGLE_DRIVE_CREDENTIALS` as JSON to create a `google.oauth2.service_account.Credentials` object.
@@ -243,11 +364,26 @@
 - [ ] `test_gdrive_client.py` (mock credentials; verify URL format).
 - [ ] End‑to‑end: run `render.py` with a real job and verify the Telegram message contains the file/link.
 
+### Review Checklist
+- [ ] Code review completed
+- [ ] Tests passed
+- [ ] Documentation updated
+- [ ] TODOList updated
+- [ ] Local commit created
+
 ---
 
 ## Milestone 8 — End-to-End Integration & Production Validation
 
+**Status**: ⏳ Not Started
+**Estimated Effort**: ⭐⭐⭐ Hard
+**Dependencies**: Milestone 7
+
 **Target**: Run a complete real job from Telegram → Worker → 3 workflows → Delivery, then validate stability on the `master` and `working-branch`.
+
+### Files to edit
+- Integration test scripts (new)
+- No core logic changes expected; only validation.
 
 ### Tasks
 - [ ] **Worker → workflow #1**: Send a real Telegram message → Worker receives webhook → dispatch `telegram_video_ingest` → Ingest runs and uploads to R2.
@@ -274,13 +410,31 @@
 - [ ] **Performance test**: Timing of each workflow relative to video length.
 - [ ] **Security audit**: Re‑run secret scanner and confirm no credentials in code or logs.
 
+### Review Checklist
+- [ ] Code review completed
+- [ ] Tests passed
+- [ ] Documentation updated
+- [ ] TODOList updated
+- [ ] Local commit created
+
 ---
 
 ## Future / Backlog (Cloudflare Queue)
 
+**Status**: ⏳ Not Started
+**Estimated Effort**: ⭐⭐ Medium
+**Dependencies**: Milestone 8
+
 - [ ] Add Cloudflare Queue between Worker and Workflow #1 for traffic smoothing.
 - [ ] Add Cloudflare Queue for intermediate retry (transcribe → align → translate → TTS → render).
 - [ ] Automate HF Space health check & restart via GitHub Actions cron.
+
+### Review Checklist
+- [ ] Code review completed
+- [ ] Tests passed
+- [ ] Documentation updated
+- [ ] TODOList updated
+- [ ] Local commit created
 
 ---
 
