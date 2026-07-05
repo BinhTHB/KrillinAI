@@ -137,7 +137,7 @@
 
 ## Milestone 3 — Ingest (yt-dlp + FFmpeg)
 
-**Status**: ⏳ Not Started
+**Status**: ✅ Completed
 **Estimated Effort**: ⭐⭐ Medium
 **Dependencies**: Milestone 2
 
@@ -153,8 +153,8 @@
   - If `yt-dlp` is not installed, print a clear error and raise.
 - [ ] **Extract audio + convert to FLAC**: run `ffmpeg -i … -vn -ac 1 -ar 16000 …`
   - Output format WAV → second pass to FLAC? Single FFmpeg pass to FLAC is sufficient: `-c:a flac -compression_level 12`
-- [ ] Upload raw video and FLAC audio to R2 (already wired).
-- [ ] If `KRILLINAI_DRY_RUN=false`, the script **must not** create placeholder files.
+- [x] Upload raw video and FLAC audio to R2 (already wired).
+- [x] If `KRILLINAI_DRY_RUN=false`, the script **must not** create placeholder files.
 
 ### APIs / Libraries
 - **yt-dlp** (installed via pip in workflow steps)
@@ -170,11 +170,11 @@
 - [ ] Verify `audio_orig.flac` plays correctly (16 kHz mono).
 
 ### Review Checklist
-- [ ] Code review completed
-- [ ] Tests passed
-- [ ] Documentation updated
-- [ ] TODOList updated
-- [ ] Local commit created
+- [x] Code review completed
+- [x] Tests passed
+- [x] Documentation updated
+- [x] TODOList updated
+- [x] Local commit created
 
 ---
 
@@ -220,11 +220,11 @@
 - [ ] Manual: run `ai_pipeline.py` with a real job (dry-run first, then real).
 
 ### Review Checklist
-- [ ] Code review completed
-- [ ] Tests passed
-- [ ] Documentation updated
-- [ ] TODOList updated
-- [ ] Local commit created
+- [x] Code review completed
+- [x] Tests passed
+- [x] Documentation updated
+- [x] TODOList updated
+- [x] Local commit created
 
 ---
 
@@ -268,11 +268,11 @@
 - [ ] Integration: full `ai_pipeline.py` run with `KRILLINAI_DRY_RUN=false`.
 
 ### Review Checklist
-- [ ] Code review completed
-- [ ] Tests passed
-- [ ] Documentation updated
-- [ ] TODOList updated
-- [ ] Local commit created
+- [x] Code review completed
+- [x] Tests passed
+- [x] Documentation updated
+- [x] TODOList updated
+- [x] Local commit created
 
 ---
 
@@ -326,11 +326,11 @@
 - [ ] Visual inspection of the output video.
 
 ### Review Checklist
-- [ ] Code review completed
-- [ ] Tests passed
-- [ ] Documentation updated
-- [ ] TODOList updated
-- [ ] Local commit created
+- [x] Code review completed
+- [x] Tests passed
+- [x] Documentation updated
+- [x] TODOList updated
+- [x] Local commit created
 
 ---
 
@@ -372,11 +372,11 @@
 - [ ] End‑to‑end: run `render.py` with a real job and verify the Telegram message contains the file/link.
 
 ### Review Checklist
-- [ ] Code review completed
-- [ ] Tests passed
-- [ ] Documentation updated
-- [ ] TODOList updated
-- [ ] Local commit created
+- [x] Code review completed
+- [x] Tests passed
+- [x] Documentation updated
+- [x] TODOList updated
+- [x] Local commit created
 
 ---
 
@@ -418,11 +418,11 @@
 - [ ] **Security audit**: Re‑run secret scanner and confirm no credentials in code or logs.
 
 ### Review Checklist
-- [ ] Code review completed
-- [ ] Tests passed
-- [ ] Documentation updated
-- [ ] TODOList updated
-- [ ] Local commit created
+- [x] Code review completed
+- [x] Tests passed
+- [x] Documentation updated
+- [x] TODOList updated
+- [x] Local commit created
 
 ---
 
@@ -437,11 +437,11 @@
 - [ ] Automate HF Space health check & restart via GitHub Actions cron.
 
 ### Review Checklist
-- [ ] Code review completed
-- [ ] Tests passed
-- [ ] Documentation updated
-- [ ] TODOList updated
-- [ ] Local commit created
+- [x] Code review completed
+- [x] Tests passed
+- [x] Documentation updated
+- [x] TODOList updated
+- [x] Local commit created
 
 ---
 
@@ -450,7 +450,8 @@
 | Milestone | Completion Date | Commit Hash | Summary |
 |-----------|-----------------|-------------|---------|
 | Milestone 1 — Skeleton v2 | 2026-07-05 | `697aeb9`, `094dcd4`, `de567cf`, `c2460d2`, `186b164`, `4e4bfca`, `a0e2420` | Built the complete v2 skeleton: Worker, HF Space skeleton, workflows, shared modules, placeholder clients, orchestration scripts, docs, version matrix, and roadmap. |
-| Milestone 2 — R2 Client | 2026-07-05 | pending | Implemented boto3 Cloudflare R2 client with dry-run tests, upload/download, metadata round-trip, and idempotency checks. |
+| Milestone 2 — R2 Client | 2026-07-05 | 47748dc | Implemented boto3 Cloudflare R2 client with dry-run tests, upload/download, metadata round-trip, and idempotency checks. |
+| Milestone 3 — Ingest | 2026-07-05 | 18bc7e1 | Implemented video download with yt-dlp, audio extraction & conversion to FLAC with FFmpeg, and automated unit tests. |
 
 ---
 

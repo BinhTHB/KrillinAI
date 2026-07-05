@@ -45,10 +45,10 @@
 
 ## Next Planned Task
 
-- [ ] Start Milestone 3: Implement ingest (`scripts/v2/workflows/ingest.py`)
-  - Download video with `yt-dlp`
-  - Extract FLAC audio with `FFmpeg`
-  - Upload raw video and audio to R2
+- [ ] Start Milestone 4: Implement HF Space connection (`scripts/v2/hf_client.py`)
+  - Deploy FastAPI + faster-whisper Space
+  - Implement `/health` poll in `check_health()`
+  - Implement POST `/transcribe` in `transcribe()`
   - Keep `dry_run` guard for testing
 
 ---
@@ -57,7 +57,7 @@
 
 | Blocker | Description | Impact | Mitigation |
 |---------|-------------|--------|------------|
-| Manual R2 integration not verified | R2 credentials are configured in GitHub, but real workflow upload/download still needs validation | Cannot confirm real R2 round-trip in CI yet | Run ingest workflow after Milestone 3 implementation |
+| HF Space not deployed | GPU Space must be created and deployed to Hugging Face before testing hf_client | Transcription integration tests blocked | Set up the Docker Space and configure secrets in Space dashboard |
 
 ---
 
@@ -78,6 +78,7 @@
 |-----------|--------|-----------------|
 | Milestone 1: Skeleton v2 | ✅ Completed | 2026-07-05 |
 | Milestone 2: R2 Client | ✅ Completed | 2026-07-05 |
+| Milestone 3: Ingest | ✅ Completed | 2026-07-05 |
 
 ---
 
@@ -85,7 +86,6 @@
 
 | Milestone | Status | Estimated Effort | Dependencies |
 |-----------|--------|------------------|--------------|
-| Milestone 3: Ingest | ⏳ Not Started | ⭐⭐ Medium | Milestone 2 |
 | Milestone 4: HF Space + hf_client | ⏳ Not Started | ⭐⭐⭐ Hard | Milestone 2, 3 |
 | Milestone 5: Gemini Translation + TTS | ⏳ Not Started | ⭐⭐⭐ Hard | Milestone 4 |
 | Milestone 6: FFmpeg Render | ⏳ Not Started | ⭐⭐⭐⭐ Very Hard | Milestone 5 |
@@ -98,7 +98,7 @@
 ## Notes for Next Agent
 
 1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `AGENT_ONBOARDING.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md` → `CHANGELOG.md`
-2. **Current focus**: Milestone 3 (Ingest). Implement `yt-dlp` download and `FFmpeg` audio extraction in `scripts/v2/workflows/ingest.py`.
+2. **Current focus**: Milestone 4 (HF Space + hf_client). Deploy HF Space and implement `hf_client.py` connection.
 3. **Do not** change architecture, workflow triggers, or branch strategy without a new entry in `DECISIONS.md`.
 4. **Secrets/Variables**: Never hardcode. Use `config.py` → environment variables → GitHub Secrets/Variables.
 5. **After finishing a task**:
