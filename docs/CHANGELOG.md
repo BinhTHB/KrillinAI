@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `scripts/v2/tests/test_r2_client.py` for R2 mock round-trip and metadata persistence checks.
 - Milestone 4 HF client implementation with `/health` polling and multipart `/transcribe` upload.
 - `scripts/v2/tests/test_hf_client.py` for Hugging Face client dry-run health and transcription checks.
+- Hugging Face CPU Free Tier deployment support for `hf-space/`.
+- Milestone 5 Gemini translation and native Live API TTS integration.
 
 ### Changed
 
@@ -27,6 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Documented dev/production mapping in `ARCHITECTURE.md` and `ENVIRONMENT.md`.
 - `scripts/v2/config.py` now supports both `CF_R2_*` and `R2_*` environment variable prefixes, plus R2 region configuration.
 - `scripts/v2/hf_client.py` now calls the HF Space API instead of raising `NotImplementedError`.
+- `scripts/v2/gemini_client.py` now uses Gemini REST for SRT translation and Gemini Live API (`gemini-3.1-flash-live-preview`) for text-to-audio synthesis.
+- `.github/workflows/ai_pipeline.yml` now installs `google-genai` and passes `GEMINI_TTS_MODEL`.
 
 ---
 
