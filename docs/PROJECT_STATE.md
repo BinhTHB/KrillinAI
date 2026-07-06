@@ -18,7 +18,7 @@
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: `5355b66` — feat: integrate Gemini Live API TTS (gemini-3.1-flash-live-preview) via google-genai SDK
+- **Last Local Commit**: `a6d4490` — feat: implement Milestone 6 FFmpeg render pipeline
 
 - **Last Reviewed Date**: 2026-07-06
 
