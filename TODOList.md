@@ -1502,7 +1502,7 @@
 
 
 
-- [ ] Local commit created
+- [x] Local commit created
 
 
 
@@ -1806,7 +1806,7 @@
 | Milestone 4 — HF Space + hf_client | 2026-07-05 | 5355b66 | Deployed CPU Free Tier HF Space and integrated hf_client health/transcribe calls. |
 | Milestone 5 — Gemini Translation + TTS | 2026-07-05 | 5355b66 | Implemented Gemini REST SRT translation and Gemini Live API TTS using google-genai. |
 | Milestone 6 — FFmpeg Render | 2026-07-06 | a6d4490 | Implemented FFmpeg subtitle blur, translated subtitle overlay, TTS audio muxing, dry-run fallback, and render tests. |
-| Milestone 7 — Telegram + Google Drive Upload | 2026-07-06 | pending commit | Implemented Telegram sendVideo upload, Google Drive upload, delivery channel routing, workflow dependencies, and dry-run tests. |
+| Milestone 7 — Telegram + Google Drive Upload | 2026-07-06 | 3cd74b0 | Implemented Telegram sendVideo upload, Google Drive upload, delivery channel routing, workflow dependencies, and dry-run tests. |
 
 
 
