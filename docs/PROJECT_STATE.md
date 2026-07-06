@@ -18,7 +18,7 @@
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: `48bab57` — fix: parse Drive credentials JSON before path lookup, revert delivery threshold to 50MB
+- **Last Local Commit**: `5f39853` — chore: update PROJECT_STATE known issues and commit reference for Drive quota limitation
 
 - **Last Reviewed Date**: 2026-07-06
 
