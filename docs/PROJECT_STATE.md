@@ -18,7 +18,7 @@
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: `ed9def3` — test: add test_real_pipeline.py integration script and sync TODOList tests
+- **Last Local Commit**: `2c30c5d` — chore: sync TODOList M8 completion, add empty-SRT guard
 
 - **Last Reviewed Date**: 2026-07-06
 
