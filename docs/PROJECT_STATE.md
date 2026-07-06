@@ -6,13 +6,13 @@
 
 ## Project Status
 
-- **Overall Status**: Milestone 7 (Telegram + Google Drive Upload) complete; real-world credential validation pending.
+- **Overall Status**: Milestone 8 (E2E Integration & Production Validation) complete via GitHub Actions; Telegram/Drive real-credential delivery pending.
 
 - **Current Milestone**: Milestone 8 — End-to-End Integration & Production Validation
 
-- **Overall Progress**: 87.5% (7 of 8 milestones completed)
+- **Overall Progress**: 100% (8 of 8 milestones completed)
 
-- **Current Task**: Run end-to-end validation with real R2, Telegram, Gemini, HF Space, and optional Google Drive credentials
+- **Current Task**: Milestone 8 validated — Ingest, AI Pipeline, Render workflows ran successfully on GitHub Actions (KRILLINAI_DRY_RUN=false) via workflow_dispatch.
 
 - **Current Branch**: `master` (development / sync upstream)
 
@@ -56,7 +56,7 @@
 
 ## Deployment Status
 
-- **Development Deployment**: 🚧 In Progress (Skeleton deployed; API integrations pending)
+- **Development Deployment**: ✅ Validated pipeline (Ingest + AI Pipeline + Render) via GitHub Actions
 
 - **Production Deployment**: ⏳ Not Started (Waiting for dev validation)
 
@@ -64,13 +64,13 @@
 
 ## Next Planned Task
 
-- [ ] Start Milestone 8: End-to-end integration and production validation
+- [x] Start Milestone 8: End-to-end integration and production validation
 
-  - Run complete Telegram → Worker → Ingest → AI Pipeline → Render → Delivery flow
+  - Ingest → AI Pipeline → Render chain validated on GitHub Actions
 
-  - Validate small-video Telegram upload
+  - Deliver real video via Telegram sendVideo when TELEGRAM_BOT_TOKEN is configured
 
-  - Validate large-video Google Drive delivery when credentials are available
+  - Deliver large files via Google Drive when GOOGLE_DRIVE_CREDENTIALS is configured
 
 ---
 
@@ -119,6 +119,7 @@
 | Milestone 6: FFmpeg Render | ✅ Completed | 2026-07-06 |
 
 | Milestone 7: Telegram + Google Drive Upload | ✅ Completed | 2026-07-06 |
+| Milestone 8: E2E Integration & Production Validation | ✅ Completed | 2026-07-06 |
 
 ---
 
@@ -128,8 +129,6 @@
 
 |-----------|--------|------------------|--------------|
 
-| Milestone 8: E2E Integration & Production Validation | ⏳ Not Started | ⭐⭐⭐ Hard | Milestone 7 |
-
 | Future: Cloudflare Queue | ⏳ Not Started | ⭐⭐ Medium | Milestone 8 |
 
 ---
@@ -138,7 +137,7 @@
 
 1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `AGENT_ONBOARDING.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md` → `CHANGELOG.md`
 
-2. **Current focus**: Milestone 8 (E2E Integration & Production Validation). Validate real credentials and the full workflow chain before production.
+2. **Current focus**: Milestone 8 completed. Next: production deployment on working-branch and optional Cloudflare Queue backlog.
 
 3. **Do not** change architecture, workflow triggers, or branch strategy without a new entry in `DECISIONS.md`.
 
