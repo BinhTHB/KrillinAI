@@ -32,8 +32,6 @@ jobs:
       CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
       CF_R2_ENDPOINT: ${{ vars.CF_R2_ENDPOINT }}
       CF_R2_BUCKET: ${{ vars.CF_R2_BUCKET }}
-      GOOGLE_DRIVE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
-      GOOGLE_DRIVE_FOLDER_ID: ${{ vars.GOOGLE_DRIVE_FOLDER_ID }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
     steps:
       - name: Checkout code
@@ -48,7 +46,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Install dependencies
-        run: pip install requests boto3 google-api-python-client google-auth-httplib2 google-auth-oauthlib
+        run: pip install requests boto3
 
       - name: Parse trigger context
         id: ctx

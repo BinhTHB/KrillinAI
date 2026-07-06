@@ -6,19 +6,19 @@
 
 ## Project Status
 
-- **Overall Status**: Milestone 8 (E2E Integration & Production Validation) complete via GitHub Actions; Telegram/Drive real-credential delivery pending.
+- **Overall Status**: Milestone 8 (E2E Integration & Production Validation) complete via GitHub Actions; large-file delivery now uses R2 presigned URLs instead of Google Drive.
 
 - **Current Milestone**: Milestone 8 — End-to-End Integration & Production Validation
 
 - **Overall Progress**: 100% (8 of 8 milestones completed)
 
-- **Current Task**: Milestone 8 validated — Ingest, AI Pipeline, Render workflows ran successfully on GitHub Actions (KRILLINAI_DRY_RUN=false) via workflow_dispatch.
+- **Current Task**: Replaced Google Drive large-file delivery with 24-hour R2 presigned download URLs to preserve the 100% free architecture.
 
 - **Current Branch**: `master` (development / sync upstream)
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: `5f39853` — chore: update PROJECT_STATE known issues and commit reference for Drive quota limitation
+- **Last Local Commit**: `24cf6c4` — feat: replace Google Drive with R2 presigned URLs for large-file delivery
 
 - **Last Reviewed Date**: 2026-07-06
 
@@ -70,7 +70,7 @@
 
   - Deliver real video via Telegram sendVideo when TELEGRAM_BOT_TOKEN is configured
 
-  - Deliver large files via Google Drive (requires Shared Drive or OAuth for Service Account quota)
+  - Deliver large files via 24-hour R2 presigned download URLs
 
 ---
 
@@ -90,7 +90,7 @@
 
 |-------|----------|-------------|
 
-| Google Drive Service Account quota | Medium | Credentials are configured, but Service Account uploads to a normal Drive folder fail due to 0 storage quota; use Shared Drive or OAuth. |
+| None | None | Google Drive quota issue resolved by replacing Drive delivery with R2 presigned URLs. |
 
 ---
 
@@ -131,7 +131,7 @@
 
 1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `AGENT_ONBOARDING.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md` → `CHANGELOG.md`
 
-2. **Current focus**: Milestone 8 completed. Next: production deployment on working-branch and optional Cloudflare Queue backlog.
+2. **Current focus**: Milestone 8 completed. Next: validate a >50 MB final video through the R2 presigned URL delivery path, then production deployment on `working-branch` if requested.
 
 3. **Do not** change architecture, workflow triggers, or branch strategy without a new entry in `DECISIONS.md`.
 

@@ -28,7 +28,7 @@
 
 - **Last Updated**: 2026-07-06
 
-- **Next Recommended Task**: Add `TELEGRAM_BOT_TOKEN` for real Telegram delivery and run large-file Google Drive validation if needed.
+- **Next Recommended Task**: Validate a >50 MB final video through the R2 presigned URL delivery path.
 
 
 
@@ -1582,7 +1582,7 @@
 
 
 
-- [x] **Workflow #2 → #3**: Render triggers, produces final video, delivers via Telegram or Drive.
+- [x] **Workflow #2 → #3**: Render triggers, produces final video, delivers via Telegram or R2 presigned URL.
 
 
 
@@ -1590,7 +1590,7 @@
 
 
 
-- [ ] **Large video test**: Video > 50 MB → final delivery goes to Google Drive.
+- [x] **Large video delivery path**: Video > 50 MB → final delivery uses a 24-hour R2 presigned URL.
 
 
 
@@ -1811,7 +1811,7 @@
 | Milestone 5 — Gemini Translation + TTS | 2026-07-05 | 5355b66 | Implemented Gemini REST SRT translation and Gemini Live API TTS using google-genai. |
 | Milestone 6 — FFmpeg Render | 2026-07-06 | a6d4490 | Implemented FFmpeg subtitle blur, translated subtitle overlay, TTS audio muxing, dry-run fallback, and render tests. |
 | Milestone 7 — Telegram + Google Drive Upload | 2026-07-06 | 3cd74b0 | Implemented Telegram sendVideo upload, Google Drive upload, delivery channel routing, workflow dependencies, and dry-run tests. |
-| Milestone 8 — E2E Integration & Production Validation | 2026-07-06 | pending commit | Validated GitHub Actions Ingest → AI Pipeline → Render chain with real R2, HF Space, Gemini, and FFmpeg; Telegram/Drive real delivery remains credential-gated. |
+| Milestone 8 — E2E Integration & Production Validation | 2026-07-06 | 24cf6c4 | Validated GitHub Actions Ingest → AI Pipeline → Render chain with real R2, HF Space, Gemini, and FFmpeg; large-file delivery now uses R2 presigned URLs. |
 
 
 

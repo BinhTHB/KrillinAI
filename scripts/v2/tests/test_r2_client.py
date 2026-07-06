@@ -53,9 +53,18 @@ def test_metadata_save_and_load() -> None:
     assert loaded.chat_id == 123
     assert loaded.message_id == 456
 
+def test_generate_presigned_url_dry_run() -> None:
+    os.environ["KRILLINAI_DRY_RUN"] = "true"
+    client = R2Client()
+
+    url = client.generate_presigned_url("jobs/test-r2/video_final.mp4", expires_in=60)
+
+    assert url == "https://r2-mock.example.com/jobs/test-r2/video_final.mp4?expires_in=60"
+
 
 if __name__ == "__main__":
     test_exists_returns_false_for_missing_key()
     test_upload_and_download_roundtrip()
+    test_generate_presigned_url_dry_run()
     test_metadata_save_and_load()
     print("All tests passed.")

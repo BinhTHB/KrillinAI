@@ -100,6 +100,20 @@ class R2Client:
         self._s3_client().download_file(self.cfg.r2_bucket, key, local_path)
         logger.info(f"Downloaded R2:{key} -> {local_path}")
 
+    def generate_presigned_url(self, key: str, expires_in: int = 86400) -> str:
+        """Generate a time-limited download URL for an R2 object."""
+        if self.cfg.dry_run:
+            logger.info(f"[DRY RUN] Generated presigned URL for mock R2:{key}")
+            return f"https://r2-mock.example.com/{key}?expires_in={expires_in}"
+
+        url = self._s3_client().generate_presigned_url(
+            ClientMethod="get_object",
+            Params={"Bucket": self.cfg.r2_bucket, "Key": key},
+            ExpiresIn=expires_in,
+        )
+        logger.info(f"Generated presigned URL for R2:{key}")
+        return url
+
     def get_metadata(self, job_id: str) -> Optional[JobMetadata]:
         key = f"jobs/{job_id}/metadata.json"
         local_tmp = f"workdir/tmp_{job_id}_metadata.json"

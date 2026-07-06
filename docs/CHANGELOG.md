@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `scripts/v2/tests/test_telegram_client.py` and `scripts/v2/tests/test_gdrive_client.py` for delivery client dry-run checks.
 - `scripts/v2/tests/test_gemini_client.py` for Gemini translation and TTS dry-run checks.
 - `scripts/v2/tests/test_real_pipeline.py` for real R2, Gemini, and FFmpeg smoke checks using local credentials.
+- R2 presigned download URL generation for large final video delivery.
 
 ### Changed
 
@@ -39,8 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `scripts/v2/gemini_client.py` now uses Gemini REST for SRT translation and Gemini Live API (`gemini-3.1-flash-live-preview`) for text-to-audio synthesis.
 - `.github/workflows/ai_pipeline.yml` now installs `google-genai` and passes `GEMINI_TTS_MODEL`.
 - `scripts/v2/workflows/render.py` now calls the real FFmpeg render helper outside dry-run mode instead of copying the source video placeholder.
-- `scripts/v2/workflows/render.py` now uploads small final videos to Telegram and routes files over 50 MB to Google Drive.
-- `.github/workflows/render.yml` now installs Google Drive API client dependencies for large-file delivery.
+- `scripts/v2/workflows/render.py` now uploads small final videos to Telegram and routes files over 50 MB to 24-hour R2 presigned URLs.
+- `.github/workflows/render.yml` no longer installs Google Drive API client dependencies for the default large-file delivery path.
 
 ---
 

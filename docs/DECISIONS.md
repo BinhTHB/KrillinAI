@@ -108,4 +108,14 @@ This document records the architectural and technical decisions made during the 
 
 ---
 
-_Last updated: 2026-07-05_
+## DEC-011: R2 Presigned URLs for Large-File Delivery
+
+- **Status**: Accepted
+- **Context**: Telegram Bot API delivery is limited to small files, while Google Drive Service Account uploads require quota or Shared Drive setup that does not fit the 100% free project constraint.
+- **Decision**: Deliver final videos over Telegram when they are at most 50 MB; for larger files, keep the final video in Cloudflare R2 and send the user a 24-hour presigned download URL.
+- **Reason**: R2 is already part of the pipeline, avoids Google Drive quota issues, preserves private bucket access, and stays within the free serverless architecture.
+- **Impact**: `render.py` no longer depends on Google Drive for large-file delivery. R2 credentials must remain available to generate signed download links.
+
+---
+
+_Last updated: 2026-07-06_

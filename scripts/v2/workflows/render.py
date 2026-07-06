@@ -18,7 +18,6 @@ from logger import get_logger
 from models import JobStatus
 from r2_client import R2Client
 from telegram_client import TelegramClient
-from gdrive_client import GoogleDriveClient
 from layout import StorageLayout
 from render_ffmpeg import render_video
 
@@ -40,7 +39,7 @@ def run(job_id: str, chat_id: int, message_id: int) -> int:
     try:
         if r2.exists(final_key):
             logger.info("Final video already exists in R2, skipping render and uploading result directly")
-            # Upload result to Telegram or Google Drive
+            # Upload result to Telegram or an R2 presigned URL
             tg = TelegramClient()
             local = Path("workdir") / job_id / "video_final.mp4"
             local.parent.mkdir(parents=True, exist_ok=True)
@@ -79,7 +78,7 @@ def run(job_id: str, chat_id: int, message_id: int) -> int:
             render_video(video_path, subtitle_path, tts_audio_path, final_video_path)
         r2.upload_file(str(final_video_path), final_key)
 
-    # Upload result to Telegram or Google Drive
+    # Upload result to Telegram or an R2 presigned URL
     metadata.status = JobStatus.UPLOADING
     r2.save_metadata(metadata)
     send_result(TelegramClient(), r2, chat_id, job_id, final_video_path)
@@ -91,15 +90,13 @@ def run(job_id: str, chat_id: int, message_id: int) -> int:
 
 
 def send_result(tg: TelegramClient, r2: R2Client, chat_id: int, job_id: str, path: Path) -> None:
-    """Upload final video (<50MB to Telegram, else Google Drive) and notify user."""
+    """Upload final video (<50MB to Telegram, else R2 presigned URL) and notify user."""
     file_size = path.stat().st_size
     if file_size <= 50 * 1024 * 1024:
         tg.send_video(chat_id, str(path), caption=f"📺 KrillinAI job {job_id} completed")
     else:
-        tg.send_message(chat_id, f"📺 <b>Video hoàn tất!</b> File lớn hơn 50MB, sẽ được gửi qua Google Drive.")
-        drive = GoogleDriveClient()
-        link = drive.upload_file(str(path))
-        tg.send_message(chat_id, f"📺 <b>Video hoàn tất!</b> Tải xuống: {link}")
+        link = r2.generate_presigned_url(StorageLayout.get_video_final_key(job_id))
+        tg.send_message(chat_id, f"📺 <b>Video hoàn tất!</b> File lớn hơn 50MB. Link tải hết hạn sau 24 giờ: {link}")
 
     tg.send_message(chat_id, f"🎉 <b>Hoàn tất!</b> Job <code>{job_id}</code> đã xử lý xong toàn bộ pipeline.")
 
