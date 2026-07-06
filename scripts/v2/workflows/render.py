@@ -20,6 +20,7 @@ from r2_client import R2Client
 from telegram_client import TelegramClient
 from gdrive_client import GoogleDriveClient
 from layout import StorageLayout
+from render_ffmpeg import render_video
 
 logger = get_logger("RenderWorkflow")
 
@@ -65,22 +66,17 @@ def run(job_id: str, chat_id: int, message_id: int) -> int:
     r2.download_file(StorageLayout.get_translated_srt_key(job_id), str(subtitle_path))
     r2.download_file(StorageLayout.get_tts_audio_key(job_id), str(tts_audio_path))
 
-    # Render video
-    # TODO: Implement FFmpeg render
-    #   1. Detect original subtitle area.
-    #   2. Apply blur filter to original subtitle region.
-    #   3. Overlay translated subtitles.
-    #   4. Replace/mix audio with TTS audio.
-    #   5. Encode H.264/AAC final MP4.
     if r2.exists(final_key):
         logger.info("Final video already uploaded, skipping render")
         r2.download_file(final_key, str(final_video_path))
     else:
         metadata.status = JobStatus.RENDERING
         r2.save_metadata(metadata)
-        # For skeleton, just copy the original video as placeholder
-        shutil.copy2(video_path, final_video_path)
-        # upload final video to R2
+        if r2.cfg.dry_run:
+            logger.info("[DRY RUN] Skipping FFmpeg render and creating placeholder final video")
+            shutil.copy2(video_path, final_video_path)
+        else:
+            render_video(video_path, subtitle_path, tts_audio_path, final_video_path)
         r2.upload_file(str(final_video_path), final_key)
 
     # Upload result to Telegram or Google Drive

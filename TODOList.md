@@ -26,19 +26,17 @@
 
 
 
-- **Current Milestone**: Milestone 6 — FFmpeg Render
+- **Current Milestone**: Milestone 6 — FFmpeg Render validation
 
 
 
-- **Overall Progress**: 62.5% (5 of 8 milestones completed)
+- **Overall Progress**: 75% (6 of 8 milestones completed)
 
 
 
-- **Last Updated**: 2026-07-05
+- **Last Updated**: 2026-07-06
 
-
-
-- **Next Recommended Task**: Deploy HF Space Docker image and implement `/transcribe` multipart call in `scripts/v2/hf_client.py`.
+- **Next Recommended Task**: Validate Milestone 6 with a real 30-second subtitled video and GitHub `workflow_dispatch`.
 
 
 
@@ -1118,7 +1116,7 @@
 
 
 
-**Status**: ⏳ Not Started
+**Status**: ✅ Completed
 
 
 
@@ -1162,7 +1160,7 @@
 
 
 
-- [ ] **Original subtitle region detection** (optional for skeleton → real):
+- [x] **Original subtitle region detection** (optional for skeleton → real):
 
 
 
@@ -1174,7 +1172,7 @@
 
 
 
-- [ ] **Blur original subtitle**:
+- [x] **Blur original subtitle**:
 
 
 
@@ -1202,7 +1200,7 @@
 
 
 
-- [ ] **Overlay translated subtitles**:
+- [x] **Overlay translated subtitles**:
 
 
 
@@ -1218,7 +1216,7 @@
 
 
 
-- [ ] **Replace / mix audio** with TTS voice:
+- [x] **Replace / mix audio** with TTS voice:
 
 
 
@@ -1238,7 +1236,7 @@
 
 
 
-- [ ] Idempotency: if `video_final.mp4` already exists on R2, skip entirely.
+- [x] Idempotency: if `video_final.mp4` already exists on R2, skip entirely.
 
 
 
@@ -1290,6 +1288,8 @@
 
 
 
+- [x] Local synthetic FFmpeg smoke test.
+
 - [ ] Local test with a 30‑second test video containing Chinese hardcoded subs.
 
 
@@ -1314,15 +1314,15 @@
 
 
 
-- [ ] Tests passed
+- [x] Tests passed
 
 
 
-- [ ] Documentation updated
+- [x] Documentation updated
 
 
 
-- [ ] TODOList updated
+- [x] TODOList updated
 
 
 
@@ -1813,6 +1813,7 @@
 | Milestone 3 — Ingest | 2026-07-05 | 18bc7e1 | Implemented video download with yt-dlp, audio extraction & conversion to FLAC with FFmpeg, and automated unit tests. |
 | Milestone 4 — HF Space + hf_client | 2026-07-05 | 5355b66 | Deployed CPU Free Tier HF Space and integrated hf_client health/transcribe calls. |
 | Milestone 5 — Gemini Translation + TTS | 2026-07-05 | 5355b66 | Implemented Gemini REST SRT translation and Gemini Live API TTS using google-genai. |
+| Milestone 6 — FFmpeg Render | 2026-07-06 | pending commit | Implemented FFmpeg subtitle blur, translated subtitle overlay, TTS audio muxing, dry-run fallback, and render tests. |
 
 
 
@@ -1828,7 +1829,7 @@
 
 
 
-_Last updated: 2026-07-05_
+_Last updated: 2026-07-06_
 
 
 

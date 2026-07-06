@@ -21,6 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `scripts/v2/tests/test_hf_client.py` for Hugging Face client dry-run health and transcription checks.
 - Hugging Face CPU Free Tier deployment support for `hf-space/`.
 - Milestone 5 Gemini translation and native Live API TTS integration.
+- Milestone 6 FFmpeg render pipeline with subtitle-region blur, translated SRT overlay, and TTS audio muxing.
+- `scripts/v2/render_ffmpeg.py` for reusable FFmpeg render command construction and execution.
+- Render workflow dry-run and FFmpeg command tests.
 
 ### Changed
 
@@ -31,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `scripts/v2/hf_client.py` now calls the HF Space API instead of raising `NotImplementedError`.
 - `scripts/v2/gemini_client.py` now uses Gemini REST for SRT translation and Gemini Live API (`gemini-3.1-flash-live-preview`) for text-to-audio synthesis.
 - `.github/workflows/ai_pipeline.yml` now installs `google-genai` and passes `GEMINI_TTS_MODEL`.
+- `scripts/v2/workflows/render.py` now calls the real FFmpeg render helper outside dry-run mode instead of copying the source video placeholder.
 
 ---
 

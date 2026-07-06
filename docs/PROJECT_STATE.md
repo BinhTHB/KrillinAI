@@ -6,13 +6,13 @@
 
 ## Project Status
 
-- **Overall Status**: Milestone 5 (Gemini Translation + TTS) complete.
+- **Overall Status**: Milestone 6 (FFmpeg Render) complete; real-world visual validation pending.
 
 - **Current Milestone**: Milestone 6 — FFmpeg Render
 
-- **Overall Progress**: 62.5% (5 of 8 milestones completed)
+- **Overall Progress**: 75% (6 of 8 milestones completed)
 
-- **Current Task**: Implement FFmpeg subtitle blur, overlay, and audio mux rendering
+- **Current Task**: Validate FFmpeg render output with a real 30-second subtitled video and GitHub workflow_dispatch
 
 - **Current Branch**: `master` (development / sync upstream)
 
@@ -20,7 +20,7 @@
 
 - **Last Local Commit**: `5355b66` — feat: integrate Gemini Live API TTS (gemini-3.1-flash-live-preview) via google-genai SDK
 
-- **Last Reviewed Date**: 2026-07-05
+- **Last Reviewed Date**: 2026-07-06
 
 - **Last Updated By**: AI Agent (factory-droid)
 
@@ -64,13 +64,13 @@
 
 ## Next Planned Task
 
-- [ ] Start Milestone 6: Implement FFmpeg render pipeline
+- [ ] Validate Milestone 6 render pipeline
 
-  - Blur original subtitle area
+  - Run render workflow with real subtitled video assets
 
-  - Overlay translated subtitles
+  - Visually inspect blur and translated subtitle overlay
 
-  - Replace or mux TTS audio into final video
+  - Confirm TTS audio replaces original audio
 
 ---
 
@@ -112,6 +112,12 @@
 
 | Milestone 3: Ingest | ✅ Completed | 2026-07-05 |
 
+| Milestone 4: HF Space + hf_client | ✅ Completed | 2026-07-05 |
+
+| Milestone 5: Gemini Translation + TTS | ✅ Completed | 2026-07-05 |
+
+| Milestone 6: FFmpeg Render | ✅ Completed | 2026-07-06 |
+
 ---
 
 ## Remaining Milestones
@@ -119,8 +125,6 @@
 | Milestone | Status | Estimated Effort | Dependencies |
 
 |-----------|--------|------------------|--------------|
-
-| Milestone 6: FFmpeg Render | ⏳ In Progress | ⭐⭐⭐⭐ Very Hard | Milestone 5 |
 
 | Milestone 7: Telegram + Google Drive Upload | ⏳ Not Started | ⭐⭐ Medium | Milestone 6 |
 
@@ -134,7 +138,7 @@
 
 1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `AGENT_ONBOARDING.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md` → `CHANGELOG.md`
 
-2. **Current focus**: Milestone 6 (FFmpeg Render). Implement subtitle blur, translated subtitle overlay, and TTS audio muxing.
+2. **Current focus**: Milestone 7 (Telegram + Google Drive Upload). Before starting it, validate Milestone 6 with a real 30-second subtitled video if credentials/assets are available.
 
 3. **Do not** change architecture, workflow triggers, or branch strategy without a new entry in `DECISIONS.md`.
 
@@ -156,5 +160,5 @@
 
 ---
 
-_Last updated: 2026-07-05_
+_Last updated: 2026-07-06_
 
