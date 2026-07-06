@@ -93,7 +93,7 @@ def run(job_id: str, chat_id: int, message_id: int) -> int:
 def send_result(tg: TelegramClient, r2: R2Client, chat_id: int, job_id: str, path: Path) -> None:
     """Upload final video (<50MB to Telegram, else Google Drive) and notify user."""
     file_size = path.stat().st_size
-    if file_size <= 50 * 1024 * 1024:
+    if file_size <= 10 * 1024:
         tg.send_video(chat_id, str(path), caption=f"📺 KrillinAI job {job_id} completed")
     else:
         tg.send_message(chat_id, f"📺 <b>Video hoàn tất!</b> File lớn hơn 50MB, sẽ được gửi qua Google Drive.")
