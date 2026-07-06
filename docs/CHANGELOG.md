@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Milestone 7 Telegram `sendVideo` upload and Google Drive file upload delivery clients.
 - `scripts/v2/tests/test_telegram_client.py` and `scripts/v2/tests/test_gdrive_client.py` for delivery client dry-run checks.
 - `scripts/v2/tests/test_gemini_client.py` for Gemini translation and TTS dry-run checks.
+- `scripts/v2/tests/test_real_pipeline.py` for real R2, Gemini, and FFmpeg smoke checks using local credentials.
 
 ### Changed
 

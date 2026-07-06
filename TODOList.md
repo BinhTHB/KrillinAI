@@ -490,6 +490,8 @@
 
   - `test_metadata_save_and_load`
 
+- [x] Real R2 upload / exists / download / cleanup smoke test via `scripts/v2/tests/test_real_pipeline.py`
+
 
 
 - [ ] Manual workflow_dispatch on ingest → verify R2 bucket content via Cloudflare Dashboard.
@@ -1053,6 +1055,8 @@
 
 
   - `test_synthesize_returns_audio`
+
+- [x] Real Gemini translation and Gemini Live TTS smoke test via `scripts/v2/tests/test_real_pipeline.py`
 
 
 
