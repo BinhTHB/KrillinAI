@@ -18,7 +18,7 @@
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: `5909b4b` — chore: sync POS docs, fix milestone statuses and known issues
+- **Last Local Commit**: `48bab57` — fix: parse Drive credentials JSON before path lookup, revert delivery threshold to 50MB
 
 - **Last Reviewed Date**: 2026-07-06
 
@@ -70,7 +70,7 @@
 
   - Deliver real video via Telegram sendVideo when TELEGRAM_BOT_TOKEN is configured
 
-  - Deliver large files via Google Drive when GOOGLE_DRIVE_CREDENTIALS is configured
+  - Deliver large files via Google Drive (requires Shared Drive or OAuth for Service Account quota)
 
 ---
 
@@ -90,13 +90,7 @@
 
 |-------|----------|-------------|
 
-| Google Drive credentials not configured | Low | Blocks real large-file delivery validation only |
-
-| Telegram bot token not configured | Low | Blocks real Telegram delivery validation only |
-
-
-
-| No Google Drive credentials | Low | Blocks real large-file delivery validation only |
+| Google Drive Service Account quota | Medium | Credentials are configured, but Service Account uploads to a normal Drive folder fail due to 0 storage quota; use Shared Drive or OAuth. |
 
 ---
 
