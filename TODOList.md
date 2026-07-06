@@ -780,23 +780,23 @@
 
 
 
-  - [ ] Rewrite `check_health()` to poll `/health` until `ready` (with timeout ≈ 5 min).
+  - [x] Rewrite `check_health()` to poll `/health` until `ready` (with timeout ≈ 5 min).
 
 
 
-  - [ ] Rewrite `transcribe(audio_path)`:
+  - [x] Rewrite `transcribe(audio_path)`:
 
 
 
-    - Send multipart POST to `{space_url}/transcribe` with `file=…`.
+    - [x] Send multipart POST to `{space_url}/transcribe` with `file=…`.
 
 
 
-    - Receive SRT text back as HTTP response.
+    - [x] Receive SRT text back as HTTP response.
 
 
 
-    - Return the SRT string.
+    - [x] Return the SRT string.
 
 
 
@@ -964,35 +964,35 @@
 
 
 
-- [ ] In `gemini_client.py`:
+- [x] In `gemini_client.py`:
 
 
 
-  - [ ] `translate_srt(srt_text, target_language)`:
+  - [x] `translate_srt(srt_text, target_language)`:
 
 
 
-    - Call Gemini API with a structured prompt that preserves timecodes and only translates text content.
+    - [x] Call Gemini API with a structured prompt that preserves timecodes and only translates text content.
 
 
 
-    - Return the translated SRT string.
+    - [x] Return the translated SRT string.
 
 
 
-  - [ ] `synthesize_voice(text, voice)`:
+  - [x] `synthesize_voice(text, voice)`:
 
 
 
-    - Call Gemini Voice API (gemini‑live‑tts or REST equivalent) to generate audio bytes.
+    - [x] Call Gemini Voice API (gemini‑live‑tts or REST equivalent) to generate audio bytes.
 
 
 
-    - Return raw WAV/MP3 bytes.
+    - [x] Return raw WAV/MP3 bytes.
 
 
 
-- [ ] Remove the `NotImplementedError` and dry_run placeholder.
+- [x] Remove `NotImplementedError`; dry-run fallback remains for local tests.
 
 
 
@@ -1044,7 +1044,7 @@
 
 
 
-- [ ] `scripts/v2/tests/test_gemini_client.py`
+- [x] `scripts/v2/tests/test_gemini_client.py`
 
 
 
