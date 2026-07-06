@@ -1811,7 +1811,7 @@
 | Milestone 5 — Gemini Translation + TTS | 2026-07-05 | 5355b66 | Implemented Gemini REST SRT translation and Gemini Live API TTS using google-genai. |
 | Milestone 6 — FFmpeg Render | 2026-07-06 | a6d4490 | Implemented FFmpeg subtitle blur, translated subtitle overlay, TTS audio muxing, dry-run fallback, and render tests. |
 | Milestone 7 — Telegram + Google Drive Upload | 2026-07-06 | 3cd74b0 | Implemented Telegram sendVideo upload, Google Drive upload, delivery channel routing, workflow dependencies, and dry-run tests. |
-| Milestone 8 — E2E Integration & Production Validation | 2026-07-06 | 24cf6c4 | Validated GitHub Actions Ingest → AI Pipeline → Render chain with real R2, HF Space, Gemini, and FFmpeg; large-file delivery now uses R2 presigned URLs. |
+| Milestone 8 — E2E Integration & Production Validation | 2026-07-06 | 6259f79 | Validated GitHub Actions Ingest → AI Pipeline → Render chain with real R2, HF Space, Gemini, and FFmpeg; large-file delivery now uses R2 presigned URLs. |
 
 
 
