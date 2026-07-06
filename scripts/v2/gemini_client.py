@@ -22,6 +22,10 @@ class GeminiClient:
         self.cfg = load_config()
 
     def translate_srt(self, srt_text: str, target_language: str = "vi") -> str:
+        if not srt_text.strip():
+            logger.info("SRT is empty, skipping Gemini translation")
+            return ""
+
         if self.cfg.dry_run:
             logger.info(f"[DRY RUN] Translating SRT to {target_language}")
             return srt_text.replace("[Dry run]", "[Dry run translated]")
