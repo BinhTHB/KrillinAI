@@ -7,7 +7,7 @@ logger = get_logger("RenderFFmpeg")
 
 
 def _escape_subtitle_path(path: Path) -> str:
-    return str(path.resolve()).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
+    return str(path).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
 
 
 def build_render_command(
@@ -20,7 +20,7 @@ def build_render_command(
     subtitles = _escape_subtitle_path(subtitle_path)
     filter_complex = (
         f"[0:v]crop=iw:{subtitle_height}:0:ih-{subtitle_height},boxblur=10:5[blur];"
-        f"[0:v][blur]overlay=0:H-{subtitle_height},subtitles='{subtitles}'[v]"
+        f"[0:v][blur]overlay=0:H-{subtitle_height},subtitles=filename='{subtitles}'[v]"
     )
     return [
         "ffmpeg",
