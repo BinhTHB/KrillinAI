@@ -6,19 +6,19 @@
 
 ## Project Status
 
-- **Overall Status**: Milestone 6 (FFmpeg Render) complete; real-world visual validation pending.
+- **Overall Status**: Milestone 7 (Telegram + Google Drive Upload) complete; real-world credential validation pending.
 
-- **Current Milestone**: Milestone 6 — FFmpeg Render
+- **Current Milestone**: Milestone 8 — End-to-End Integration & Production Validation
 
-- **Overall Progress**: 75% (6 of 8 milestones completed)
+- **Overall Progress**: 87.5% (7 of 8 milestones completed)
 
-- **Current Task**: Validate FFmpeg render output with a real 30-second subtitled video and GitHub workflow_dispatch
+- **Current Task**: Run end-to-end validation with real R2, Telegram, Gemini, HF Space, and optional Google Drive credentials
 
 - **Current Branch**: `master` (development / sync upstream)
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: `a6d4490` — feat: implement Milestone 6 FFmpeg render pipeline
+- **Last Local Commit**: pending — feat: implement Milestone 7 delivery clients
 
 - **Last Reviewed Date**: 2026-07-06
 
@@ -64,13 +64,13 @@
 
 ## Next Planned Task
 
-- [ ] Validate Milestone 6 render pipeline
+- [ ] Start Milestone 8: End-to-end integration and production validation
 
-  - Run render workflow with real subtitled video assets
+  - Run complete Telegram → Worker → Ingest → AI Pipeline → Render → Delivery flow
 
-  - Visually inspect blur and translated subtitle overlay
+  - Validate small-video Telegram upload
 
-  - Confirm TTS audio replaces original audio
+  - Validate large-video Google Drive delivery when credentials are available
 
 ---
 
@@ -96,7 +96,7 @@
 
 
 
-| No Google Drive credentials | Low | Only needed for Milestone 7 (>50 MB videos) |
+| No Google Drive credentials | Low | Blocks real large-file delivery validation only |
 
 ---
 
@@ -118,6 +118,8 @@
 
 | Milestone 6: FFmpeg Render | ✅ Completed | 2026-07-06 |
 
+| Milestone 7: Telegram + Google Drive Upload | ✅ Completed | 2026-07-06 |
+
 ---
 
 ## Remaining Milestones
@@ -125,8 +127,6 @@
 | Milestone | Status | Estimated Effort | Dependencies |
 
 |-----------|--------|------------------|--------------|
-
-| Milestone 7: Telegram + Google Drive Upload | ⏳ Not Started | ⭐⭐ Medium | Milestone 6 |
 
 | Milestone 8: E2E Integration & Production Validation | ⏳ Not Started | ⭐⭐⭐ Hard | Milestone 7 |
 
@@ -138,7 +138,7 @@
 
 1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `AGENT_ONBOARDING.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md` → `CHANGELOG.md`
 
-2. **Current focus**: Milestone 7 (Telegram + Google Drive Upload). Before starting it, validate Milestone 6 with a real 30-second subtitled video if credentials/assets are available.
+2. **Current focus**: Milestone 8 (E2E Integration & Production Validation). Validate real credentials and the full workflow chain before production.
 
 3. **Do not** change architecture, workflow triggers, or branch strategy without a new entry in `DECISIONS.md`.
 

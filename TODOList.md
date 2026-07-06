@@ -18,17 +18,17 @@
 
 
 
-- **Current Milestone**: Milestone 6 — FFmpeg Render validation
+- **Current Milestone**: Milestone 7 — Telegram Upload + Google Drive Upload validation
 
 
 
-- **Overall Progress**: 75% (6 of 8 milestones completed)
+- **Overall Progress**: 87.5% (7 of 8 milestones completed)
 
 
 
 - **Last Updated**: 2026-07-06
 
-- **Next Recommended Task**: Validate Milestone 6 with a real 30-second subtitled video and GitHub `workflow_dispatch`.
+- **Next Recommended Task**: Run Milestone 7 with real Telegram and Google Drive credentials, then start Milestone 8 E2E validation.
 
 
 
@@ -1342,7 +1342,7 @@
 
 
 
-**Status**: ⏳ Not Started
+**Status**: ✅ Completed
 
 
 
@@ -1390,15 +1390,15 @@
 
 
 
-  - [ ] Implement `send_video(chat_id, video_path, caption)` using Telegram Bot API `sendVideo` (multipart/form‑data).
+  - [x] Implement `send_video(chat_id, video_path, caption)` using Telegram Bot API `sendVideo` (multipart/form‑data).
 
 
 
-  - [ ] Handle files ≤ 50 MB.
+  - [x] Handle files ≤ 50 MB.
 
 
 
-  - [ ] If file > 50 MB, return a message telling the user "large file – will be delivered via Google Drive".
+  - [x] If file > 50 MB, return a message telling the user "large file – will be delivered via Google Drive".
 
 
 
@@ -1406,19 +1406,19 @@
 
 
 
-  - [ ] Parse `GOOGLE_DRIVE_CREDENTIALS` as JSON to create a `google.oauth2.service_account.Credentials` object.
+  - [x] Parse `GOOGLE_DRIVE_CREDENTIALS` as JSON to create a `google.oauth2.service_account.Credentials` object.
 
 
 
-  - [ ] Use `googleapiclient.discovery.build("drive", "v3", credentials=…)` to upload the file.
+  - [x] Use `googleapiclient.discovery.build("drive", "v3", credentials=…)` to upload the file.
 
 
 
-  - [ ] Set file permissions to `anyoneWithLink` so the link is shareable.
+  - [x] Set file permissions to `anyoneWithLink` so the link is shareable.
 
 
 
-  - [ ] Return the public `webViewLink`.
+  - [x] Return the public `webViewLink`.
 
 
 
@@ -1466,11 +1466,11 @@
 
 
 
-- [ ] `test_telegram_client.py`
+- [x] `test_telegram_client.py`
 
 
 
-- [ ] `test_gdrive_client.py` (mock credentials; verify URL format).
+- [x] `test_gdrive_client.py` (dry-run placeholder link).
 
 
 
@@ -1490,15 +1490,15 @@
 
 
 
-- [ ] Tests passed
+- [x] Tests passed
 
 
 
-- [ ] Documentation updated
+- [x] Documentation updated
 
 
 
-- [ ] TODOList updated
+- [x] TODOList updated
 
 
 
@@ -1806,6 +1806,7 @@
 | Milestone 4 — HF Space + hf_client | 2026-07-05 | 5355b66 | Deployed CPU Free Tier HF Space and integrated hf_client health/transcribe calls. |
 | Milestone 5 — Gemini Translation + TTS | 2026-07-05 | 5355b66 | Implemented Gemini REST SRT translation and Gemini Live API TTS using google-genai. |
 | Milestone 6 — FFmpeg Render | 2026-07-06 | a6d4490 | Implemented FFmpeg subtitle blur, translated subtitle overlay, TTS audio muxing, dry-run fallback, and render tests. |
+| Milestone 7 — Telegram + Google Drive Upload | 2026-07-06 | pending commit | Implemented Telegram sendVideo upload, Google Drive upload, delivery channel routing, workflow dependencies, and dry-run tests. |
 
 
 

@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Milestone 6 FFmpeg render pipeline with subtitle-region blur, translated SRT overlay, and TTS audio muxing.
 - `scripts/v2/render_ffmpeg.py` for reusable FFmpeg render command construction and execution.
 - Render workflow dry-run and FFmpeg command tests.
+- Milestone 7 Telegram `sendVideo` upload and Google Drive file upload delivery clients.
+- `scripts/v2/tests/test_telegram_client.py` and `scripts/v2/tests/test_gdrive_client.py` for delivery client dry-run checks.
 
 ### Changed
 
@@ -35,6 +37,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `scripts/v2/gemini_client.py` now uses Gemini REST for SRT translation and Gemini Live API (`gemini-3.1-flash-live-preview`) for text-to-audio synthesis.
 - `.github/workflows/ai_pipeline.yml` now installs `google-genai` and passes `GEMINI_TTS_MODEL`.
 - `scripts/v2/workflows/render.py` now calls the real FFmpeg render helper outside dry-run mode instead of copying the source video placeholder.
+- `scripts/v2/workflows/render.py` now uploads small final videos to Telegram and routes files over 50 MB to Google Drive.
+- `.github/workflows/render.yml` now installs Google Drive API client dependencies for large-file delivery.
 
 ---
 

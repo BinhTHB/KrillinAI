@@ -30,6 +30,9 @@ Version reference matrix for all components in the KrillinAI v2 serverless pipel
 
 - **boto3**: `latest` (AWS S3 Python SDK used to access Cloudflare R2 bucket).
 - **requests**: `latest` (HTTP library for calling HF Space /transcribe and Gemini API).
+- **google-api-python-client**: `latest` (Google Drive upload client).
+- **google-auth-httplib2**: `latest` (Google API HTTP auth transport).
+- **google-auth-oauthlib**: `latest` (Google auth helper dependency used by the Drive client stack).
 
 ---
 

@@ -94,13 +94,12 @@ def send_result(tg: TelegramClient, r2: R2Client, chat_id: int, job_id: str, pat
     """Upload final video (<50MB to Telegram, else Google Drive) and notify user."""
     file_size = path.stat().st_size
     if file_size <= 50 * 1024 * 1024:
-        # TODO: Implement Telegram sendVideo / sendDocument API
-        # tg.send_video(chat_id, str(path), caption=f"KrillinAI job {job_id} completed")
-        tg.send_message(chat_id, f"📺 <b>Video đã hoàn tất!</b> Job <code>{job_id}</code> kích thước {file_size // (1024*1024)}MB sẽ được upload.")
+        tg.send_video(chat_id, str(path), caption=f"📺 KrillinAI job {job_id} completed")
     else:
+        tg.send_message(chat_id, f"📺 <b>Video hoàn tất!</b> File lớn hơn 50MB, sẽ được gửi qua Google Drive.")
         drive = GoogleDriveClient()
         link = drive.upload_file(str(path))
-        tg.send_message(chat_id, f"📺 <b>Video hoàn tất!</b> (dung lượng lớn) Tải xuống: {link}")
+        tg.send_message(chat_id, f"📺 <b>Video hoàn tất!</b> Tải xuống: {link}")
 
     tg.send_message(chat_id, f"🎉 <b>Hoàn tất!</b> Job <code>{job_id}</code> đã xử lý xong toàn bộ pipeline.")
 
