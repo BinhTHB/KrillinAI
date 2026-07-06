@@ -6,7 +6,13 @@
 
 ## Project Status
 
-- **Overall Status**: Core pipeline implementation is complete, but Telegram entry is not yet operationally validated because Cloudflare Worker deployment and Telegram webhook validation are still pending.
+- **Overall Status**: Core pipeline code is implemented, but Telegram entry is not production-ready because Cloudflare Worker deployment and operational validation are still pending.
+
+- **Code Status**: Worker source implements `POST /health`, `POST /webhook/telegram`, Telegram replies, and GitHub `repository_dispatch`.
+
+- **Deployment Status**: Not verified. No live Cloudflare Worker URL has been validated in this repository session.
+
+- **Operational Validation Status**: Not complete. Telegram webhook, live request delivery, acknowledgement replies, dispatch success, and first workflow startup still require manual validation.
 
 - **Current Milestone**: Milestone 8 — End-to-End Integration & Production Validation
 
@@ -123,7 +129,7 @@
 | Milestone 6: FFmpeg Render | ✅ Completed | 2026-07-06 |
 
 | Milestone 7: Telegram + Google Drive Upload | ✅ Completed | 2026-07-06 |
-| Milestone 8: E2E Integration & Production Validation | ✅ Completed | 2026-07-06 |
+| Milestone 8: E2E Integration & Production Validation | ⚠️ Partially Complete | 2026-07-06 |
 
 ---
 

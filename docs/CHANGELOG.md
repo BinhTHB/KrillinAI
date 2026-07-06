@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Cloudflare Worker deployment guide with required Worker secrets, variables, Telegram webhook setup, and live entry-point validation checklist.
+- Architecture decision DEC-012 separating code implementation, infrastructure deployment, and operational validation states.
 - Project state tracking via `docs/PROJECT_STATE.md`.
 - Architecture decision log via `docs/DECISIONS.md`.
 - Agent onboarding procedure via `docs/AGENT_ONBOARDING.md`.
@@ -35,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `worker/wrangler.toml` now includes non-sensitive production defaults for GitHub dispatch and Telegram API URL while keeping secrets out of source control.
 - Project state now marks Telegram entry as not operationally validated until Cloudflare Worker deployment and webhook checks pass.
+- Project state now separates Code Status, Deployment Status, and Operational Validation Status.
 - Restructured `TODOList.md` with Status, Estimated Effort, Dependencies, Review Checklist per milestone.
 - Standardized Secrets vs Variables classification across documentation.
 - Documented dev/production mapping in `ARCHITECTURE.md` and `ENVIRONMENT.md`.

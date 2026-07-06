@@ -56,21 +56,26 @@ Set under Settings → Secrets and variables → Actions → Variables.
 
 ## Cloudflare Worker Deployment
 
-The Cloudflare Worker is the Telegram entry point. It receives Telegram webhook updates at `POST /webhook/telegram`, validates the submitted video URL, replies to the user immediately, and triggers GitHub Actions through `repository_dispatch`.
+The Cloudflare Worker is the intended Telegram entry point after deployment and operational validation. Source code alone does not prove the Telegram entry is live.
 
 Do not claim Telegram entry is operational until every validation item in this section passes.
 
-### Worker implementation status
+### Worker code verification
 
-Implemented in `worker/src/index.js`:
+Verified against `worker/src/index.js`:
 
-- `POST /webhook/telegram` endpoint.
-- Telegram `message` / `edited_message` parsing.
-- Text-only URL extraction and validation for YouTube, TikTok, Douyin, X/Twitter, and direct video files.
-- Immediate Telegram acknowledgement for valid URLs.
-- Telegram error reply for unsupported text.
-- GitHub `repository_dispatch` call using `GITHUB_TOKEN`.
-- Worker console logging for webhook errors.
+| Feature | Implemented | Evidence | Missing |
+|---------|-------------|----------|---------|
+| Supported HTTP method | Yes | `if (request.method !== 'POST') return 405` | `GET` requests are intentionally rejected. |
+| Health route | Yes | `url.pathname === '/health'` returns `{"status":"ok"}` | Only works with `POST /health`. |
+| Telegram webhook route | Yes | `url.pathname === '/webhook/telegram'` | None. |
+| Telegram update parsing | Yes | `const msg = body.message || body.edited_message` | Non-text messages are ignored. |
+| URL validation | Yes | `validateVideoUrl(text)` supports YouTube, TikTok/Douyin, Twitter/X, direct video file URLs | Telegram file uploads are not supported. |
+| Invalid message reply | Yes | Calls `replyTelegram(...)` with invalid-link message | Requires valid `TELEGRAM_BOT_TOKEN`. |
+| Immediate valid URL acknowledgement | Yes | Calls `replyTelegram(...)` before GitHub dispatch | Requires valid `TELEGRAM_BOT_TOKEN`. |
+| GitHub repository dispatch | Yes | `POST ${GITHUB_API_URL}/repos/${owner}/${repo}/dispatches` | Requires valid `GITHUB_TOKEN` permissions. |
+| Success status update | Yes | Sends `Đã khởi tạo pipeline xử lý...` after dispatch succeeds | Not sent if dispatch fails. |
+| Error logging | Yes | `console.error('webhook error:', err)` | Telegram does not receive a failure message when dispatch throws. |
 
 Known operational limits:
 
@@ -108,7 +113,7 @@ Set sensitive values with Wrangler or Cloudflare Dashboard. Do not hardcode them
 
 | Name | Description |
 |------|-------------|
-| `GITHUB_TOKEN` | GitHub Personal Access Token with `actions:write` scope. |
+| `GITHUB_TOKEN` | GitHub Personal Access Token allowed to call `POST /repos/{owner}/{repo}/dispatches`. Classic PAT: `repo` for private repositories or `public_repo` for public repositories. Fine-grained PAT: repository access with Contents write permission. |
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot token. |
 
 Wrangler commands:
@@ -174,18 +179,23 @@ Expected response:
 {"status":"ok"}
 ```
 
-### Validate Telegram entry point
+### Operational Validation
 
 Run this checklist after deployment:
 
 - [ ] Worker deployed.
 - [ ] Worker URL reachable with `POST /health`.
 - [ ] Telegram webhook configured with `/webhook/telegram`.
-- [ ] `getWebhookInfo` returns the correct webhook URL and no recent error.
-- [ ] Sending a supported video URL to the Telegram bot produces an acknowledgement message.
-- [ ] Cloudflare Worker logs show the webhook request.
-- [ ] GitHub `repository_dispatch` is triggered with event `telegram_video_ingest`.
+- [ ] `getWebhookInfo` returns the correct URL.
+- [ ] Telegram request reaches Worker.
+- [ ] Invalid message receives expected reply.
+- [ ] Valid URL receives acknowledgement.
+- [ ] `repository_dispatch` succeeds.
 - [ ] GitHub workflow `ingest.yml` starts.
+- [ ] First workflow logs are visible.
+- [ ] Telegram receives status update.
+
+Only after every item passes may Telegram be considered the production entry point.
 
 Supported test message examples:
 

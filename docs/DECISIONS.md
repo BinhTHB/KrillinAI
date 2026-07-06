@@ -118,4 +118,14 @@ This document records the architectural and technical decisions made during the 
 
 ---
 
+## DEC-012: Operational Validation of Infrastructure
+
+- **Status**: Accepted
+- **Context**: Serverless infrastructure depends on external systems such as Telegram Bot API, Cloudflare Workers, GitHub Actions, R2, and Hugging Face Spaces. Source code implementation alone does not prove that those systems are deployed, connected, or receiving traffic.
+- **Decision**: Treat code implementation, infrastructure deployment, and operational validation as separate project states. A milestone involving external infrastructure is not complete until live operational validation succeeds.
+- **Reason**: Prevents false completion claims and keeps project state aligned with what has been verified in the real environment.
+- **Impact**: `PROJECT_STATE.md`, `TODOList.md`, and deployment docs must clearly distinguish implemented code from deployed infrastructure and validated operations.
+
+---
+
 _Last updated: 2026-07-06_
