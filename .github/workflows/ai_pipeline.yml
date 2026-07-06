@@ -28,16 +28,16 @@ jobs:
   ai:
     runs-on: ubuntu-latest
     env:
-      KRILLINAI_DRY_RUN: ${{ vars.KRILLINAI_DRY_RUN || "true" }}
+      KRILLINAI_DRY_RUN: ${{ vars.KRILLINAI_DRY_RUN || 'true' }}
       CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
       CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
       CF_R2_ENDPOINT: ${{ vars.CF_R2_ENDPOINT }}
       CF_R2_BUCKET: ${{ vars.CF_R2_BUCKET }}
       HF_SPACE_URL: ${{ vars.HF_SPACE_URL }}
-      WHISPER_MODEL: ${{ vars.WHISPER_MODEL || "base" }}
+      WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'base' }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      GEMINI_MODEL: ${{ vars.GEMINI_MODEL || "gemini-3.1-flash-lite" }}
-      GEMINI_TTS_MODEL: ${{ vars.GEMINI_TTS_MODEL || "gemini-3.1-flash-live-preview" }}
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.1-flash-lite' }}
+      GEMINI_TTS_MODEL: ${{ vars.GEMINI_TTS_MODEL || 'gemini-3.1-flash-live-preview' }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
     steps:
       - name: Checkout code
