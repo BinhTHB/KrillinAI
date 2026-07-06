@@ -40,7 +40,7 @@ Set in Cloudflare Dashboard → Worker → Settings → Variables and Secrets �
 
 | Name | Description |
 |------|-------------|
-| `GITHUB_TOKEN` | GitHub token used by Worker to dispatch `telegram_video_ingest`. Sensitive. |
+| `GITHUB_TOKEN` | GitHub token used by Worker to dispatch `telegram_video_ingest`. Sensitive. Classic PAT needs `repo` for private repositories or `public_repo` for public repositories; fine-grained PAT needs repository access with Contents write permission. |
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot token used for webhook replies. Sensitive. |
 
 ## Cloudflare Worker Variables

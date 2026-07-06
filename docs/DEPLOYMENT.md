@@ -54,40 +54,160 @@ Set under Settings → Secrets and variables → Actions → Variables.
 | `GEMINI_MODEL` | Gemini model for translation/TTS, default `gemini-1.5-flash`. |
 | `GOOGLE_DRIVE_FOLDER_ID` | Target Google Drive folder ID. |
 
-## Cloudflare Worker setup
+## Cloudflare Worker Deployment
+
+The Cloudflare Worker is the Telegram entry point. It receives Telegram webhook updates at `POST /webhook/telegram`, validates the submitted video URL, replies to the user immediately, and triggers GitHub Actions through `repository_dispatch`.
+
+Do not claim Telegram entry is operational until every validation item in this section passes.
+
+### Worker implementation status
+
+Implemented in `worker/src/index.js`:
+
+- `POST /webhook/telegram` endpoint.
+- Telegram `message` / `edited_message` parsing.
+- Text-only URL extraction and validation for YouTube, TikTok, Douyin, X/Twitter, and direct video files.
+- Immediate Telegram acknowledgement for valid URLs.
+- Telegram error reply for unsupported text.
+- GitHub `repository_dispatch` call using `GITHUB_TOKEN`.
+- Worker console logging for webhook errors.
+
+Known operational limits:
+
+- The Worker does not process Telegram file uploads directly; users must send a supported URL.
+- Failed `repository_dispatch` calls return HTTP 500 to Telegram and are logged in Cloudflare Worker logs.
+
+### Install dependencies
 
 ```bash
 cd worker
 npm install
-wrangler deploy
 ```
 
-### Worker Secrets
+### Authenticate Wrangler
+
+```bash
+npx wrangler login
+```
+
+### Configure Worker variables
+
+Non-sensitive defaults are set in `worker/wrangler.toml`. Override them in Cloudflare Dashboard → Workers & Pages → `krillin-ai-worker` → Settings → Variables and Secrets → Variables when deploying a different repo or environment.
+
+| Name | Required | Example | Description |
+|------|----------|---------|-------------|
+| `GITHUB_OWNER` | Yes | `BinhTHB` | GitHub user or org that owns the repository. |
+| `GITHUB_REPO` | Yes | `KrillinAI` | Repository name. |
+| `GITHUB_DISPATCH_EVENT` | Yes | `telegram_video_ingest` | Initial GitHub event type consumed by `.github/workflows/ingest.yml`. |
+| `GITHUB_API_URL` | Yes | `https://api.github.com` | GitHub API base URL. |
+| `TELEGRAM_API_URL` | Yes | `https://api.telegram.org/bot` | Telegram Bot API base URL. |
+
+### Configure Worker secrets
+
+Set sensitive values with Wrangler or Cloudflare Dashboard. Do not hardcode them in `wrangler.toml`.
 
 | Name | Description |
 |------|-------------|
 | `GITHUB_TOKEN` | GitHub Personal Access Token with `actions:write` scope. |
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot token. |
 
-### Worker Variables
+Wrangler commands:
 
-| Name | Description |
-|------|-------------|
-| `GITHUB_OWNER` | GitHub username or org. |
-| `GITHUB_REPO` | Repository name. |
-| `GITHUB_DISPATCH_EVENT` | Event type, usually `telegram_video_ingest`. |
-| `GITHUB_API_URL` | `https://api.github.com` |
-| `TELEGRAM_API_URL` | `https://api.telegram.org/bot` |
+```bash
+cd worker
+npx wrangler secret put GITHUB_TOKEN
+npx wrangler secret put TELEGRAM_BOT_TOKEN
+```
+
+### Deploy Worker
+
+```bash
+cd worker
+npx wrangler deploy
+```
+
+Expected Worker URL:
+
+```text
+https://krillin-ai-worker.<cloudflare-subdomain>.workers.dev
+```
+
+If a custom domain or route is configured in Cloudflare, use that URL instead.
+
+### Configure Telegram webhook
+
+Replace `<TOKEN>` and `<WORKER_URL>`:
+
+```text
+https://api.telegram.org/bot<TOKEN>/setWebhook?url=<WORKER_URL>/webhook/telegram
+```
+
+Example:
+
+```bash
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://krillin-ai-worker.<cloudflare-subdomain>.workers.dev/webhook/telegram"
+```
+
+### Verify Telegram webhook
+
+```bash
+curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"
+```
+
+Expected:
+
+- `url` equals `<WORKER_URL>/webhook/telegram`.
+- `last_error_message` is absent or empty.
+- `pending_update_count` does not continuously increase after sending test messages.
+
+### Verify Worker health
+
+The Worker currently accepts only `POST` requests globally, so `GET /health` returns `405 Method Not Allowed`. Verify health with:
+
+```bash
+curl -X POST "<WORKER_URL>/health"
+```
+
+Expected response:
+
+```json
+{"status":"ok"}
+```
+
+### Validate Telegram entry point
+
+Run this checklist after deployment:
+
+- [ ] Worker deployed.
+- [ ] Worker URL reachable with `POST /health`.
+- [ ] Telegram webhook configured with `/webhook/telegram`.
+- [ ] `getWebhookInfo` returns the correct webhook URL and no recent error.
+- [ ] Sending a supported video URL to the Telegram bot produces an acknowledgement message.
+- [ ] Cloudflare Worker logs show the webhook request.
+- [ ] GitHub `repository_dispatch` is triggered with event `telegram_video_ingest`.
+- [ ] GitHub workflow `ingest.yml` starts.
+
+Supported test message examples:
+
+```text
+https://www.youtube.com/watch?v=<id>
+https://youtu.be/<id>
+https://www.tiktok.com/@user/video/<id>
+https://x.com/user/status/<id>
+https://example.com/video.mp4
+```
+
+If the bot does not respond, check in order:
+
+1. `getWebhookInfo` for Telegram webhook errors.
+2. Cloudflare Worker logs for `webhook error`.
+3. Worker secrets: `TELEGRAM_BOT_TOKEN`, `GITHUB_TOKEN`.
+4. Worker variables: `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_DISPATCH_EVENT`, `GITHUB_API_URL`, `TELEGRAM_API_URL`.
+5. GitHub token permissions for repository dispatch / Actions.
 
 ### R2 bucket
 
 Create a bucket in Cloudflare Dashboard, generate R2 API tokens, and set `CF_R2_ACCESS_KEY_ID`, `CF_R2_SECRET_ACCESS_KEY`, `CF_R2_ENDPOINT`, `CF_R2_BUCKET` in GitHub Secrets and Variables.
-
-### Telegram webhook
-
-```text
-https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<worker>.<account>.workers.dev/webhook/telegram
-```
 
 ## Hugging Face Space
 

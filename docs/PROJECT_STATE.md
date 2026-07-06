@@ -6,19 +6,19 @@
 
 ## Project Status
 
-- **Overall Status**: Milestone 8 (E2E Integration & Production Validation) complete via GitHub Actions; large-file delivery now uses R2 presigned URLs instead of Google Drive.
+- **Overall Status**: Core pipeline implementation is complete, but Telegram entry is not yet operationally validated because Cloudflare Worker deployment and Telegram webhook validation are still pending.
 
 - **Current Milestone**: Milestone 8 — End-to-End Integration & Production Validation
 
-- **Overall Progress**: 100% (8 of 8 milestones completed)
+- **Overall Progress**: 95% (8 of 8 implementation milestones completed; Worker deployment validation pending)
 
-- **Current Task**: Replaced Google Drive large-file delivery with 24-hour R2 presigned download URLs to preserve the 100% free architecture.
+- **Current Task**: Prepared Cloudflare Worker deployment instructions and validation checklist for Telegram entry point. Worker source exists, but production entry must not be considered operational until deployment, webhook, acknowledgement, and repository_dispatch validation pass.
 
 - **Current Branch**: `master` (development / sync upstream)
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: `24cf6c4` — feat: replace Google Drive with R2 presigned URLs for large-file delivery
+- **Last Local Commit**: `27029a6` — docs: add Cloudflare Worker deployment validation for Telegram entry point
 
 - **Last Reviewed Date**: 2026-07-06
 
@@ -56,13 +56,23 @@
 
 ## Deployment Status
 
-- **Development Deployment**: ✅ Validated pipeline (Ingest + AI Pipeline + Render) via GitHub Actions
+- **Development Deployment**: ⚠️ GitHub Actions pipeline validated, but Cloudflare Worker Telegram entry deployment is not yet validated.
 
-- **Production Deployment**: ⏳ Not Started (Waiting for dev validation)
+- **Production Deployment**: ⏳ Not Started. Requires Worker deploy, Telegram webhook setup, and entry-point validation first.
 
 ---
 
 ## Next Planned Task
+
+- [ ] Complete Cloudflare Worker deployment validation for Telegram entry point
+
+  - Deploy Worker with `wrangler deploy`
+
+  - Configure Worker secrets and variables in Cloudflare
+
+  - Set Telegram webhook to `/webhook/telegram`
+
+  - Verify Telegram acknowledgement and GitHub `repository_dispatch`
 
 - [x] Start Milestone 8: End-to-end integration and production validation
 
@@ -80,7 +90,7 @@
 
 |---------|-------------|--------|------------|
 
-| None | None | None | None |
+| Worker entry not validated | Cloudflare Worker source exists, but deployment URL, Telegram webhook, acknowledgement reply, and repository_dispatch trigger have not been manually validated in the live environment. | Telegram bot may not function as the actual entry point. | Follow `docs/DEPLOYMENT.md` → Cloudflare Worker Deployment checklist. |
 
 ---
 
@@ -90,7 +100,7 @@
 
 |-------|----------|-------------|
 
-| None | None | Google Drive quota issue resolved by replacing Drive delivery with R2 presigned URLs. |
+| Telegram entry not proven live | High | Sending a link to the bot may do nothing until Worker deployment and webhook setup are verified. |
 
 ---
 
@@ -124,6 +134,7 @@
 |-----------|--------|------------------|--------------|
 
 | Future: Cloudflare Queue | ⏳ Not Started | ⭐⭐ Medium | Milestone 8 |
+| Worker Deployment Validation | ⏳ Not Started | ⭐ Easy | Worker source, Cloudflare account, Telegram bot token, GitHub token |
 
 ---
 
@@ -131,7 +142,7 @@
 
 1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `AGENT_ONBOARDING.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md` → `CHANGELOG.md`
 
-2. **Current focus**: Milestone 8 completed. Next: validate a >50 MB final video through the R2 presigned URL delivery path, then production deployment on `working-branch` if requested.
+2. **Current focus**: Complete Cloudflare Worker deployment validation before treating Telegram as a live entry point. Follow `docs/DEPLOYMENT.md` → Cloudflare Worker Deployment.
 
 3. **Do not** change architecture, workflow triggers, or branch strategy without a new entry in `DECISIONS.md`.
 
