@@ -18,7 +18,7 @@
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: `2c30c5d` — chore: sync TODOList M8 completion, add empty-SRT guard
+- **Last Local Commit**: `d8fe114` — chore: sync PROJECT_STATE commit reference to 2c30c5d
 
 - **Last Reviewed Date**: 2026-07-06
 
@@ -90,9 +90,9 @@
 
 |-------|----------|-------------|
 
-| No real R2 credentials in CI | Medium | `KRILLINAI_DRY_RUN=true` by default; integration tests blocked until credentials added |
+| Google Drive credentials not configured | Low | Blocks real large-file delivery validation only |
 
-
+| Telegram bot token not configured | Low | Blocks real Telegram delivery validation only |
 
 
 

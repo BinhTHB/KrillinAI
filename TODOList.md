@@ -52,7 +52,7 @@
 
 
 
-**Status**: ⏳ Not Started
+**Status**: ✅ Completed
 
 
 
@@ -762,7 +762,7 @@
 
 
 
-- [ ] **Deploy `hf-space/` to Hugging Face Spaces** as a Docker Space with CPU Basic (Free Tier).
+- [x] **Deploy `hf-space/` to Hugging Face Spaces** as a Docker Space with CPU Basic (Free Tier).
 
 
 
@@ -774,11 +774,11 @@
 
 
 
-- [ ] **Test `GET /health`** returns `{"status":"ready","model":"…"}`.
+- [x] **Test `GET /health`** returns `{"status":"ready","model":"…"}`.
 
 
 
-- [ ] In `hf_client.py`:
+- [x] In `hf_client.py`:
 
 
 
@@ -802,7 +802,7 @@
 
 
 
-- [ ] Remove dry_run guard in `hf_client.transcribe()` (it only returns placeholder now).
+- [x] Remove dry_run guard in `hf_client.transcribe()` (it only returns placeholder now).
 
 
 
@@ -962,7 +962,7 @@
 
 
 
-- [ ] Create an API key and store it in GitHub Secrets as `GEMINI_API_KEY`.
+- [x] Create an API key and store it in GitHub Secrets as `GEMINI_API_KEY`.
 
 
 
@@ -1060,7 +1060,7 @@
 
 
 
-- [ ] Integration: full `ai_pipeline.py` run with `KRILLINAI_DRY_RUN=false`.
+- [x] Integration: full `ai_pipeline.py` run with `KRILLINAI_DRY_RUN=false`.
 
 
 
@@ -1610,7 +1610,7 @@
 
 
 
-- [ ] `master` (dev) branch: full test suite.
+- [x] `master` (dev) branch: full test suite.
 
 
 
@@ -1650,7 +1650,7 @@
 
 
 
-- [ ] **Full E2E test** script: `scripts/v2/tests/test_e2e.py`
+- [x] **Full E2E test** script: `scripts/v2/tests/test_e2e.py` (validated via GitHub Actions)
 
 
 
