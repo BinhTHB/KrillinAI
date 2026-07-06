@@ -7,7 +7,7 @@ logger = get_logger("RenderFFmpeg")
 
 
 def _escape_subtitle_path(path: Path) -> str:
-    return str(path).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
+    return path.name.replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
 
 
 def build_render_command(
@@ -26,9 +26,9 @@ def build_render_command(
         "ffmpeg",
         "-y",
         "-i",
-        str(video_path),
+        video_path.name,
         "-i",
-        str(tts_audio_path),
+        tts_audio_path.name,
         "-filter_complex",
         filter_complex,
         "-map",
@@ -48,7 +48,7 @@ def build_render_command(
         "-shortest",
         "-movflags",
         "+faststart",
-        str(output_path),
+        output_path.name,
     ]
 
 
@@ -65,4 +65,4 @@ def render_video(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     command = build_render_command(video_path, subtitle_path, tts_audio_path, output_path)
     logger.info("Running FFmpeg render")
-    subprocess.run(command, check=True)
+    subprocess.run(command, check=True, cwd=video_path.parent)

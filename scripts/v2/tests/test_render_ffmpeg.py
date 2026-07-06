@@ -21,9 +21,9 @@ def test_build_render_command_blurs_subtitles_and_uses_tts_audio() -> None:
     assert command[0] == "ffmpeg"
     assert "crop=iw:120:0:ih-120" in joined
     assert "boxblur=10:5" in joined
-    assert "subtitles=" in joined
+    assert "subtitles=filename='translated_vi.srt'" in joined
     assert "-map 1:a:0" in joined
-    assert "workdir\\job\\video_final.mp4" in joined or "workdir/job/video_final.mp4" in joined
+    assert command[-1] == "video_final.mp4"
 
 
 if __name__ == "__main__":
