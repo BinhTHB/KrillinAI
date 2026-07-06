@@ -17,8 +17,11 @@ class GoogleDriveClient:
         if not raw:
             raise ValueError("GOOGLE_DRIVE_CREDENTIALS is not configured")
 
-        candidate = Path(raw)
         scopes = ["https://www.googleapis.com/auth/drive.file"]
+        if raw.lstrip().startswith("{"):
+            return service_account.Credentials.from_service_account_info(json.loads(raw), scopes=scopes)
+
+        candidate = Path(raw)
         if candidate.exists():
             return service_account.Credentials.from_service_account_file(str(candidate), scopes=scopes)
         return service_account.Credentials.from_service_account_info(json.loads(raw), scopes=scopes)
