@@ -132,7 +132,7 @@ jobs:
             [transcribe.fasterwhisper]
               model = "medium"
             [transcribe.whisperx]
-              model = "${{ vars.WHISPER_MODEL || 'base' }}"
+              model = "medium"
             [transcribe.whisperkit]
               model = "large-v2"
             [transcribe.whispercpp]
