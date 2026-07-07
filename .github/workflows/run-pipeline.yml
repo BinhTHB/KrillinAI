@@ -1,4 +1,4 @@
-name: Run Video Processing Pipeline
+﻿name: Run Video Processing Pipeline
 
 on:
   workflow_dispatch:
@@ -94,6 +94,14 @@ jobs:
         run: |
           if [ -n "$DOUYIN_COOKIE" ]; then
             printf '%s' "$DOUYIN_COOKIE" > cookie_string.txt
+          fi
+
+      - name: Create YouTube cookie file
+        env:
+          YT_DLP_COOKIES: ${{ secrets.YT_DLP_COOKIES }}
+        run: |
+          if [ -n "$YT_DLP_COOKIES" ]; then
+            printf '%s' "$YT_DLP_COOKIES" > cookies.txt
           fi
 
       - name: Create config.toml
