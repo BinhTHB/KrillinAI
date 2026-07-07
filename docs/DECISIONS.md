@@ -128,4 +128,14 @@ This document records the architectural and technical decisions made during the 
 
 ---
 
-_Last updated: 2026-07-06_
+## DEC-013: f2 fallback for Douyin downloads
+
+- **Status**: Accepted
+- **Context**: `yt-dlp` still rejects fresh Douyin cookies with `Fresh cookies are needed`, while `f2` successfully downloads the same Douyin URL with the same exported browser cookie.
+- **Decision**: Keep `yt-dlp` as the default downloader, but fall back to `f2 dy -M one` for Douyin URLs when `yt-dlp` fails.
+- **Reason**: Minimal change, keeps generic downloader behavior for other platforms, and uses a Douyin-specific downloader only when needed.
+- **Impact**: Workflow #1 installs `f2`; `YT_DLP_COOKIES` remains the single cookie secret and is converted to a cookie header for `f2`.
+
+---
+
+_Last updated: 2026-07-07_
