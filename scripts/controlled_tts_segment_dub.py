@@ -155,7 +155,10 @@ def ensure_media(path: Path, label: str, min_duration: float = 0.05) -> float:
 
 
 def parse_time(value: str) -> float:
-    h, m, s = value.strip().replace(',', '.').split(':')
+    parts = value.strip().replace(',', '.').split(':')
+    if len(parts) == 2:
+        parts = ['00'] + parts
+    h, m, s = parts
     return int(h) * 3600 + int(m) * 60 + float(s)
 
 
