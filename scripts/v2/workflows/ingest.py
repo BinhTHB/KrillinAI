@@ -6,6 +6,7 @@ save metadata, notify Telegram, and output job_id for next workflow.
 """
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -23,6 +24,21 @@ from telegram_client import TelegramClient
 from layout import StorageLayout
 
 logger = get_logger("IngestWorkflow")
+
+def _resolve_cookies_file(workdir: Path) -> Path | None:
+    env_cookies = os.environ.get("YT_DLP_COOKIES", "").strip()
+    if env_cookies:
+        cookies_path = workdir / "cookies.txt"
+        cookies_path.write_text(env_cookies + "\n", encoding="utf-8")
+        logger.info("Using yt-dlp cookies from YT_DLP_COOKIES")
+        return cookies_path
+
+    local_cookies = Path("cookies.txt")
+    if local_cookies.exists():
+        logger.info("Using local cookies.txt for yt-dlp")
+        return local_cookies
+
+    return None
 
 
 def run(job_id: str, video_url: str, chat_id: int, message_id: int) -> int:
@@ -72,17 +88,22 @@ def run(job_id: str, video_url: str, chat_id: int, message_id: int) -> int:
         if not shutil.which("ffmpeg"):
             raise RuntimeError("ffmpeg is required but not installed or not on PATH")
 
+        cookies_path = _resolve_cookies_file(workdir)
+        yt_dlp_cmd = [
+            "yt-dlp",
+            "-f",
+            "mp4/best",
+            "-o",
+            str(video_path),
+        ]
+        if cookies_path:
+            yt_dlp_cmd.extend(["--cookies", str(cookies_path)])
+        yt_dlp_cmd.append(video_url)
+
         logger.info(f"Downloading video from {video_url} with yt-dlp")
         try:
             subprocess.run(
-                [
-                    "yt-dlp",
-                    "-f",
-                    "mp4/best",
-                    "-o",
-                    str(video_path),
-                    video_url,
-                ],
+                yt_dlp_cmd,
                 check=True,
                 capture_output=True,
                 text=True,
