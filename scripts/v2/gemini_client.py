@@ -74,7 +74,7 @@ class GeminiClient:
         if genai is None or types is None:
             raise RuntimeError("google-genai SDK is required for Gemini Live TTS")
 
-        return asyncio.run(self._synthesize_voice_live(text, voice or "Puck"))
+        return asyncio.run(self._synthesize_voice_live(text, voice or self.cfg.tts_voice))
 
     async def _synthesize_voice_live(self, text: str, voice: str) -> bytes:
         model = os.getenv("GEMINI_TTS_MODEL", "gemini-3.1-flash-live-preview")

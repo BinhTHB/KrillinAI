@@ -1,4 +1,4 @@
-﻿name: "Workflow #3: Render"
+name: "Workflow #3: Render"
 
 on:
   repository_dispatch:
@@ -33,6 +33,12 @@ jobs:
       CF_R2_ENDPOINT: ${{ vars.CF_R2_ENDPOINT }}
       CF_R2_BUCKET: ${{ vars.CF_R2_BUCKET }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      SUBTITLE_HEIGHT: ${{ vars.SUBTITLE_HEIGHT || '120' }}
+      SUBTITLE_MARGIN_V: ${{ vars.SUBTITLE_MARGIN_V || '44' }}
+      BLUR_POWER: ${{ vars.BLUR_POWER || '10' }}
+      BLUR_RADIUS: ${{ vars.BLUR_RADIUS || '5' }}
+      BG_VOLUME: ${{ vars.BG_VOLUME || '0.10' }}
+      VOICE_VOLUME: ${{ vars.VOICE_VOLUME || '1.6' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

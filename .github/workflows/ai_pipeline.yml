@@ -1,4 +1,4 @@
-﻿name: "Workflow #2: AI Pipeline"
+name: "Workflow #2: AI Pipeline"
 
 on:
   repository_dispatch:
