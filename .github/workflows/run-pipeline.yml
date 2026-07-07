@@ -1,0 +1,185 @@
+name: Run Video Processing Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: "URL of the video to process"
+        required: true
+        type: string
+      origin_lang:
+        description: "Original language of the video"
+        required: false
+        default: "zh"
+        type: string
+      target_lang:
+        description: "Target language for subtitle and TTS"
+        required: false
+        default: "vi"
+        type: string
+      transcriber:
+        description: "Transcriber provider"
+        required: false
+        default: "whisperx"
+        type: choice
+        options:
+          - whisperx
+          - openai
+      tts_provider:
+        description: "TTS provider"
+        required: false
+        default: "edge-tts"
+        type: choice
+        options:
+          - edge-tts
+          - gemini
+          - openai
+      tts_voice:
+        description: "TTS voice code/name"
+        required: false
+        default: "vi-VN-HoaiAnNeural"
+        type: string
+      timeline_mode:
+        description: "Timeline alignment mode"
+        required: false
+        default: "overlay"
+        type: choice
+        options:
+          - overlay
+          - voiceover
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3 python3-pip python3-venv curl
+
+      - name: Install yt-dlp
+        run: |
+          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
+          yt-dlp --version
+
+      - name: Install f2
+        run: |
+          pip install f2 --break-system-packages
+          f2 --version
+
+      - name: Set up WhisperX
+        if: ${{ github.event.inputs.transcriber == 'whisperx' }}
+        run: |
+          mkdir -p bin/whisperx
+          python3 -m venv bin/whisperx/.venv
+          source bin/whisperx/.venv/bin/activate
+          pip install --upgrade pip
+          pip install whisperx
+          whisperx --help
+
+      - name: Create Douyin cookie file
+        env:
+          DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
+        run: |
+          if [ -n "$DOUYIN_COOKIE" ]; then
+            printf '%s' "$DOUYIN_COOKIE" > cookie_string.txt
+          fi
+
+      - name: Create config.toml
+        run: |
+          cat > config/config.toml << EOF
+          [app]
+            segment_duration = 5
+            transcribe_parallel_num = 1
+            translate_parallel_num = 1
+            transcribe_max_attempts = 3
+            translate_max_attempts = 5
+            max_sentence_length = 70
+            enable_block_vtt_batch = false
+            vtt_batch_size = 10
+            target_language_first = true
+            short_subtitle_max_chars = 20
+            proxy = ""
+            enable_ocr = false
+
+          [server]
+            host = "127.0.0.1"
+            port = 8888
+
+          [llm]
+            base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+            api_key = "${{ secrets.GEMINI_API_KEY }}"
+            model = "${{ vars.GEMINI_MODEL || 'gemini-3.1-flash-lite' }}"
+
+          [transcribe]
+            provider = "${{ github.event.inputs.transcriber }}"
+            enable_gpu_acceleration = false
+            [transcribe.openai]
+              base_url = ""
+              api_key = "${{ secrets.OPENAI_API_KEY }}"
+              model = "whisper-1"
+            [transcribe.fasterwhisper]
+              model = "medium"
+            [transcribe.whisperx]
+              model = "large-v2"
+            [transcribe.whisperkit]
+              model = "large-v2"
+            [transcribe.whispercpp]
+              model = "large-v2"
+
+          [tts]
+            provider = "${{ github.event.inputs.tts_provider }}"
+            [tts.openai]
+              base_url = ""
+              api_key = "${{ secrets.OPENAI_API_KEY }}"
+              model = "tts-1"
+
+          [dubbing]
+            min_subtitle_duration = 2.5
+            max_chunk_size = 5
+            gap_tolerance = 1.5
+            speed_min = 0.95
+            speed_accept = 1.15
+            speed_max = 1.30
+            enable_text_rewrite = false
+            rewrite_max_attempts = 2
+            estimator = "statistical"
+            skip_failed_tts_chunks = true
+
+          [image]
+            provider = "openai-compatible"
+
+          [deepl]
+            api_key = "${{ secrets.DEEPL_API_KEY }}"
+          EOF
+
+      - name: Build CLI
+        run: go build -o krillinai-cli ./cmd/cli
+
+      - name: Run pipeline
+        run: |
+          ./krillinai-cli pipeline "${{ github.event.inputs.video_url }}" \
+            --workdir "tasks/ci-task" \
+            --origin-lang "${{ github.event.inputs.origin_lang }}" \
+            --target-lang "${{ github.event.inputs.target_lang }}" \
+            --provider "${{ github.event.inputs.tts_provider }}" \
+            --voice "${{ github.event.inputs.tts_voice }}" \
+            --timeline-mode "${{ github.event.inputs.timeline_mode }}"
+
+      - name: Upload output artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: processed-video
+          path: tasks/ci-task/
