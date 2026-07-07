@@ -38,6 +38,15 @@ class Config:
     google_drive_credentials: Optional[str]  # Can be JSON string or path to JSON
     google_drive_folder_id: Optional[str]
 
+    # Render & Style Settings
+    subtitle_height: int
+    blur_power: int
+    blur_radius: int
+    subtitle_margin_v: int
+    tts_voice: str
+    bg_volume: float
+    voice_volume: float
+
 
 def load_config() -> Config:
     dry_run = os.getenv("KRILLINAI_DRY_RUN", "false").lower() in ("true", "1", "yes")
@@ -67,4 +76,13 @@ def load_config() -> Config:
         # Google Drive
         google_drive_credentials=os.getenv("GOOGLE_DRIVE_CREDENTIALS"),
         google_drive_folder_id=os.getenv("GOOGLE_DRIVE_FOLDER_ID"),
+
+        # Render & Style
+        subtitle_height=int(os.getenv("SUBTITLE_HEIGHT", "120")),
+        blur_power=int(os.getenv("BLUR_POWER", "10")),
+        blur_radius=int(os.getenv("BLUR_RADIUS", "5")),
+        subtitle_margin_v=int(os.getenv("SUBTITLE_MARGIN_V", "44")),
+        tts_voice=os.getenv("GEMINI_TTS_VOICE", "Puck"),
+        bg_volume=float(os.getenv("BG_VOLUME", "0.10")),
+        voice_volume=float(os.getenv("VOICE_VOLUME", "1.6")),
     )
