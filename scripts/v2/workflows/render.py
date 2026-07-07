@@ -1,17 +1,20 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Workflow #3 – Render Orchestration.
 
-Download assets from R2, render final video with FFmpeg, upload final video,
-and notify Telegram.
+Download assets from R2, generate timeline-aligned TTS, render final video,
+upload final video, and notify Telegram.
 """
 
 import argparse
-import sys
+import os
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 # Ensure we can import modules from scripts/v2/
 ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = ROOT.parents[1]
 sys.path.insert(0, str(ROOT))
 
 from logger import get_logger
@@ -19,9 +22,47 @@ from models import JobStatus
 from r2_client import R2Client
 from telegram_client import TelegramClient
 from layout import StorageLayout
-from render_ffmpeg import render_video
 
 logger = get_logger("RenderWorkflow")
+
+
+def render_controlled(video_path: Path, subtitle_path: Path, output_path: Path, workdir: Path) -> None:
+    script = REPO_ROOT / "scripts" / "controlled_tts_segment_dub.py"
+    out_dir_name = "controlled_tts_segment"
+    cmd = [
+        sys.executable,
+        str(script),
+        "--workdir",
+        str(workdir),
+        "--video",
+        str(video_path),
+        "--srt",
+        str(subtitle_path),
+        "--output-dir",
+        out_dir_name,
+        "--tts-provider",
+        os.getenv("TTS_PROVIDER", "hybrid"),
+        "--voice",
+        os.getenv("EDGE_TTS_VOICE", "vi-VN-HoaiMyNeural"),
+        "--gemini-voice",
+        os.getenv("GEMINI_TTS_VOICE", "Puck"),
+        "--gemini-model",
+        os.getenv("GEMINI_TTS_MODEL", "gemini-3.1-flash-live-preview"),
+        "--timeline-mode",
+        os.getenv("TIMELINE_MODE", "overlay"),
+        "--bg-volume",
+        os.getenv("BG_VOLUME", "0.10"),
+        "--voice-volume",
+        os.getenv("VOICE_VOLUME", "1.6"),
+        "--cleanup-temp",
+    ]
+    logger.info("Running controlled local render pipeline")
+    subprocess.run(cmd, check=True)
+
+    controlled_output = workdir / out_dir_name / "controlled_tts_final.mp4"
+    if not controlled_output.exists():
+        raise FileNotFoundError(f"Controlled render output missing: {controlled_output}")
+    shutil.copy2(controlled_output, output_path)
 
 
 def run(job_id: str, chat_id: int, message_id: int) -> int:
@@ -35,11 +76,9 @@ def run(job_id: str, chat_id: int, message_id: int) -> int:
 
     final_key = StorageLayout.get_video_final_key(job_id)
 
-    # Check if final video already exists (render may have been done)
     try:
         if r2.exists(final_key):
             logger.info("Final video already exists in R2, skipping render and uploading result directly")
-            # Upload result to Telegram or an R2 presigned URL
             tg = TelegramClient()
             local = Path("workdir") / job_id / "video_final.mp4"
             local.parent.mkdir(parents=True, exist_ok=True)
@@ -49,21 +88,17 @@ def run(job_id: str, chat_id: int, message_id: int) -> int:
     except NotImplementedError:
         logger.info("R2 exists check not available, proceeding with render")
 
-    # Prepare local workdir
     workdir = Path("workdir") / job_id
     workdir.mkdir(parents=True, exist_ok=True)
 
     video_path = workdir / "video_orig.mp4"
     subtitle_path = workdir / "translated_vi.srt"
-    tts_audio_path = workdir / "tts_voice.wav"
     final_video_path = workdir / "video_final.mp4"
 
-    # Download required assets
     metadata.status = JobStatus.RENDERING
     r2.save_metadata(metadata)
     r2.download_file(StorageLayout.get_video_orig_key(job_id), str(video_path))
     r2.download_file(StorageLayout.get_translated_srt_key(job_id), str(subtitle_path))
-    r2.download_file(StorageLayout.get_tts_audio_key(job_id), str(tts_audio_path))
 
     if r2.exists(final_key):
         logger.info("Final video already uploaded, skipping render")
@@ -72,13 +107,12 @@ def run(job_id: str, chat_id: int, message_id: int) -> int:
         metadata.status = JobStatus.RENDERING
         r2.save_metadata(metadata)
         if r2.cfg.dry_run:
-            logger.info("[DRY RUN] Skipping FFmpeg render and creating placeholder final video")
+            logger.info("[DRY RUN] Skipping controlled render and copying source video")
             shutil.copy2(video_path, final_video_path)
         else:
-            render_video(video_path, subtitle_path, tts_audio_path, final_video_path)
+            render_controlled(video_path, subtitle_path, final_video_path, workdir)
         r2.upload_file(str(final_video_path), final_key)
 
-    # Upload result to Telegram or an R2 presigned URL
     metadata.status = JobStatus.UPLOADING
     r2.save_metadata(metadata)
     send_result(TelegramClient(), r2, chat_id, job_id, final_video_path)

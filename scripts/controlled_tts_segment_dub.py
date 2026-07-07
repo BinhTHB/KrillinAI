@@ -256,6 +256,10 @@ def merge_entries(entries: list[Entry], min_chunk: float, max_chunk: float, max_
 
 
 def load_api_key() -> str:
+    import os
+    env_key = os.getenv("GEMINI_API_KEY", "")
+    if env_key:
+        return env_key
     config_path = Path("config/config.toml")
     if not config_path.exists():
         return ""

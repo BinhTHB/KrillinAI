@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Workflow #2 – AI Pipeline Orchestration.
 
 Check HF space health, download audio from R2, run Whisper transcription,
@@ -95,19 +95,7 @@ def run(job_id: str, chat_id: int, message_id: int) -> int:
         translated_srt_path.write_text(translated_srt, encoding="utf-8")
         r2.upload_file(str(translated_srt_path), translated_srt_key)
 
-    # Step 4: TTS
-    if r2.exists(tts_audio_key):
-        logger.info("TTS audio already exists in R2, skipping TTS")
-        r2.download_file(tts_audio_key, str(tts_audio_path))
-    else:
-        metadata.status = JobStatus.TTS_PROCESSING
-        r2.save_metadata(metadata)
-        if not translated_srt_path.exists():
-            r2.download_file(translated_srt_key, str(translated_srt_path))
-        gemini = GeminiClient()
-        tts_audio_data = gemini.synthesize_voice(translated_srt_path.read_text(encoding="utf-8"))
-        tts_audio_path.write_bytes(tts_audio_data)
-        r2.upload_file(str(tts_audio_path), tts_audio_key)
+    # Step 4: TTS (Skip monolithic TTS generation to avoid API quota errors; render pipeline will generate aligned TTS)
 
     # Save final stage metadata
     metadata.current_stage = JobStage.RENDER
