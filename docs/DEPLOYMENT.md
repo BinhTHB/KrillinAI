@@ -260,6 +260,30 @@ WHISPER_COMPUTE_TYPE=float16
 
 The code does **not** hardcode any of these names. All are read from environment variables at runtime.
 
+## Douyin/TikTok cookies for yt-dlp
+
+Some Douyin/TikTok videos cannot be downloaded by `yt-dlp` without fresh browser cookies. R2 does not solve this because R2 only stores files after a successful download; the blocked step is the initial download from Douyin.
+
+Preferred setup:
+
+1. Log in to Douyin/TikTok in a browser.
+2. Export cookies for `douyin.com` / `tiktok.com` in Netscape format as `cookies.txt`.
+3. Save the full text content of `cookies.txt` as a GitHub Actions Secret named `YT_DLP_COOKIES`.
+4. Re-run the ingest workflow or send the Telegram link again.
+
+The ingest workflow passes `YT_DLP_COOKIES` into `scripts/v2/workflows/ingest.py`; the script writes it to a temporary `workdir/{job_id}/cookies.txt` and calls:
+
+```bash
+yt-dlp --cookies workdir/<job_id>/cookies.txt ...
+```
+
+Local fallback:
+
+- Put a Netscape-format `cookies.txt` file at the repository root.
+- Run `python scripts/v2/workflows/ingest.py ...` locally.
+
+Do not commit cookie files. They contain authenticated browser sessions.
+
 ## Testing
 
 ```bash

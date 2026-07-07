@@ -34,6 +34,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Ingest workflow now passes optional `YT_DLP_COOKIES` from GitHub Secrets to `yt-dlp`, enabling authenticated Douyin/TikTok downloads when fresh cookies are required.
+- Deployment guide now documents how to export Douyin/TikTok cookies and store them as the `YT_DLP_COOKIES` GitHub Actions Secret.
 - `scripts/v2/workflows/ingest.py` now catches `yt-dlp` and FFmpeg failures, stores failed metadata, and sends a human-readable Telegram error message.
 - Cloudflare Worker entry point deployed and validated at `https://krillin-ai-worker.yhomha1111.workers.dev`; Telegram webhook configured to `/webhook/telegram`.
 - `worker/wrangler.toml` now includes non-sensitive production defaults for GitHub dispatch and Telegram API URL while keeping secrets out of source control.

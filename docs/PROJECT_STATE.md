@@ -1,4 +1,4 @@
-﻿# KrillinAI v2 — Project State
+# KrillinAI v2 — Project State
 
 > This file reflects the **current state of the project** and should be updated after each milestone by the agent who completes it.
 
@@ -24,7 +24,7 @@
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: `b9469e2` — docs: complete operational validation for Cloudflare Worker entry point
+- **Last Local Commit**: `3798e3d` — chore: remove accidental committed files, add .gitignore rules for debug/cookies/binary files
 
 - **Last Reviewed Date**: 2026-07-06
 
