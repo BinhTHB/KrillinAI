@@ -24,7 +24,7 @@
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: `3798e3d` — chore: remove accidental committed files, add .gitignore rules for debug/cookies/binary files
+- **Last Local Commit**: `aab7093` — docs: add Douyin cookie setup guide and cleanup ignore rules
 
 - **Last Reviewed Date**: 2026-07-06
 
