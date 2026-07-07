@@ -34,8 +34,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Cloudflare Worker entry point deployed and validated at `https://krillin-ai-worker.yhomha1111.workers.dev`; Telegram webhook configured to `/webhook/telegram`.
 - `worker/wrangler.toml` now includes non-sensitive production defaults for GitHub dispatch and Telegram API URL while keeping secrets out of source control.
-- Project state now marks Telegram entry as not operationally validated until Cloudflare Worker deployment and webhook checks pass.
+- Project state now marks Telegram entry as operationally validated for development after Worker health, webhook setup, and repository_dispatch trigger checks passed.
 - Project state now separates Code Status, Deployment Status, and Operational Validation Status.
 - Restructured `TODOList.md` with Status, Estimated Effort, Dependencies, Review Checklist per milestone.
 - Standardized Secrets vs Variables classification across documentation.

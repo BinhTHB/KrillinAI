@@ -40,7 +40,7 @@
 
 - **Trigger**: `repository_dispatch` (development webhook) or manual `workflow_dispatch`.
 
-- **Target Cloudflare Worker**: configured on local development/dev wrangler namespace (e.g. `krillin-ai-dev`).
+- **Target Cloudflare Worker**: `https://krillin-ai-worker.yhomha1111.workers.dev`
 
 - **Target Hugging Face Space**: `krillin-asr-dev` via variable `HF_SPACE_URL`.
 
@@ -62,15 +62,15 @@
 
 ## Deployment Status
 
-- **Development Deployment**: ⚠️ GitHub Actions pipeline validated, but Cloudflare Worker Telegram entry deployment is not yet validated.
+- **Development Deployment**: ✅ Complete. Cloudflare Worker deployed, Telegram webhook configured, Worker health validated, repository_dispatch triggered Workflow #1.
 
-- **Production Deployment**: ⏳ Not Started. Requires Worker deploy, Telegram webhook setup, and entry-point validation first.
+- **Production Deployment**: ⏳ Not Started on `working-branch`; dev deployment is now validated.
 
 ---
 
 ## Next Planned Task
 
-- [ ] Complete Cloudflare Worker deployment validation for Telegram entry point
+- [x] Complete Cloudflare Worker deployment validation for Telegram entry point
 
   - Deploy Worker with `wrangler deploy`
 
@@ -78,7 +78,7 @@
 
   - Set Telegram webhook to `/webhook/telegram`
 
-  - Verify Telegram acknowledgement and GitHub `repository_dispatch`
+  - Verify Worker health and GitHub `repository_dispatch`
 
 - [x] Start Milestone 8: End-to-end integration and production validation
 
@@ -96,7 +96,7 @@
 
 |---------|-------------|--------|------------|
 
-| Worker entry not validated | Cloudflare Worker source exists, but deployment URL, Telegram webhook, acknowledgement reply, and repository_dispatch trigger have not been manually validated in the live environment. | Telegram bot may not function as the actual entry point. | Follow `docs/DEPLOYMENT.md` → Cloudflare Worker Deployment checklist. |
+| None | None | None | None |
 
 ---
 
@@ -106,7 +106,7 @@
 
 |-------|----------|-------------|
 
-| Telegram entry not proven live | High | Sending a link to the bot may do nothing until Worker deployment and webhook setup are verified. |
+| Synthetic chat validation uses fake chat ID | Low | Synthetic Worker test triggered GitHub successfully, but Workflow #1 failed when sending Telegram status to fake chat ID `123456789`. Real Telegram user validation should use a real chat ID/message. |
 
 ---
 
@@ -129,7 +129,7 @@
 | Milestone 6: FFmpeg Render | ✅ Completed | 2026-07-06 |
 
 | Milestone 7: Telegram + Google Drive Upload | ✅ Completed | 2026-07-06 |
-| Milestone 8: E2E Integration & Production Validation | ⚠️ Partially Complete | 2026-07-06 |
+| Milestone 8: E2E Integration & Production Validation | ✅ Completed | 2026-07-07 |
 
 ---
 
@@ -140,7 +140,7 @@
 |-----------|--------|------------------|--------------|
 
 | Future: Cloudflare Queue | ⏳ Not Started | ⭐⭐ Medium | Milestone 8 |
-| Worker Deployment Validation | ⏳ Not Started | ⭐ Easy | Worker source, Cloudflare account, Telegram bot token, GitHub token |
+| Worker Deployment Validation | ✅ Completed | ⭐ Easy | Worker source, Cloudflare account, Telegram bot token, GitHub token |
 
 ---
 
@@ -148,7 +148,7 @@
 
 1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `AGENT_ONBOARDING.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md` → `CHANGELOG.md`
 
-2. **Current focus**: Complete Cloudflare Worker deployment validation before treating Telegram as a live entry point. Follow `docs/DEPLOYMENT.md` → Cloudflare Worker Deployment.
+2. **Current focus**: Dev Telegram entry point is live at `https://krillin-ai-worker.yhomha1111.workers.dev`. Next: send a real Telegram message to validate real chat acknowledgement and production deploy on `working-branch` if requested.
 
 3. **Do not** change architecture, workflow triggers, or branch strategy without a new entry in `DECISIONS.md`.
 
@@ -170,5 +170,5 @@
 
 ---
 
-_Last updated: 2026-07-06_
+_Last updated: 2026-07-07_
 
