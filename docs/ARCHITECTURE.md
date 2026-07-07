@@ -1,6 +1,6 @@
 ﻿# KrillinAI v2 Architecture
 
-KrillinAI v2 uses the current serverless event-driven pipeline from `architecture.md`: Telegram → Cloudflare Worker → GitHub Actions Workflows → Cloudflare R2 → Hugging Face/Gemini/FFmpeg → Telegram or R2 presigned URL.
+KrillinAI v2 uses the current serverless event-driven pipeline from `architecture.md`: Telegram → Cloudflare Worker → GitHub Actions Workflows → Cloudflare R2 → Gemini/FFmpeg/WhisperX → Telegram or R2 presigned URL.
 
 ## Pipeline
 
@@ -20,7 +20,7 @@ No workflow uses `workflow_run`. Workflow chaining is explicit via `repository_d
 - `scripts/v2/r2_client.py`: Cloudflare R2 boto3 client with idempotency checks and presigned download URLs.
 - `scripts/v2/telegram_client.py`: Telegram placeholder client.
 - `scripts/v2/github_client.py`: GitHub dispatch placeholder client.
-- `scripts/v2/hf_client.py`: Hugging Face ASR client retained for legacy/manual workflows; not used by the default Telegram path.
+- `scripts/v2/hf_client.py`: Hugging Face ASR client is legacy; ASR compute is run directly via WhisperX on the GitHub Actions runner.
 - `scripts/v2/gemini_client.py`: Gemini translation/TTS placeholder client.
 - `scripts/v2/workflows/go_pipeline_io.py`: R2 download/upload and Telegram delivery helper around the Go CLI pipeline.
 - `scripts/v2/gdrive_client.py`: optional Google Drive upload client, not used by the default large-file delivery path.
@@ -66,14 +66,14 @@ See `docs/ENVIRONMENT.md` for the complete list.
 |-------|-------------|------------|
 | GitHub branch | `master` | `working-branch` |
 | Cloudflare Worker | Dev Worker configured by variables/secrets | Prod Worker configured by variables/secrets |
-| Hugging Face Space | `krillin-asr-dev` via `HF_SPACE_URL` | `krillin-asr-prod` via `HF_SPACE_URL` |
+| Hugging Face Space | Legacy (not used) | Legacy (not used) |
 | R2 bucket | Dev bucket via `CF_R2_BUCKET` | Prod bucket via `CF_R2_BUCKET` |
 
 The code does not hardcode environment names; resource names are selected through variables/secrets.
 
 ## TODO
 
-- Implement HF Space `/transcribe` multipart call.
+- [x] Standardize ASR compute on GitHub Actions Go CLI (no HF Space).
 - Implement Gemini translation and TTS.
 - Implement FFmpeg render pipeline.
 - Implement Telegram video upload.
@@ -95,3 +95,4 @@ New AI agents should read the following documents in order:
 9. **`docs/CHANGELOG.md`** — Project changelog following Keep a Changelog format.
 
 All documents are kept at the repository root (`TODOList.md`) or under `docs/`.
+

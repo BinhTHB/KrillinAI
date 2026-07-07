@@ -9,9 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
-- Unified Go CLI pipeline workflow (.github/workflows/ai_pipeline.yml) running krillinai-cli pipeline locally on the GitHub Actions runner.
-- Helper script scripts/v2/workflows/go_pipeline_io.py to handle Cloudflare R2 and Telegram I/O around the Go pipeline.
-
+- Unified Go CLI pipeline workflow (`.github/workflows/ai_pipeline.yml`) running `krillinai-cli pipeline` locally on the GitHub Actions runner.
+- Helper script `scripts/v2/workflows/go_pipeline_io.py` to handle Cloudflare R2 and Telegram I/O around the Go pipeline.
 - Cloudflare Worker deployment guide with required Worker secrets, variables, Telegram webhook setup, and live entry-point validation checklist.
 - Architecture decision DEC-012 separating code implementation, infrastructure deployment, and operational validation states.
 - Project state tracking via `docs/PROJECT_STATE.md`.
@@ -35,9 +34,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - R2 presigned download URL generation for large final video delivery.
 
 ### Changed
-- Replaced Python-based AI Pipeline (i_pipeline.py) and Render (ender.py) with unified Go CLI execution for Telegram pipeline.
-- Disabled epository_dispatch auto-trigger for ender.yml to make it manual-only.
-
+- Standardized ASR compute on GitHub Actions Go CLI (no HF Space) to run WhisperX locally on runner.
+- Replaced Python-based AI Pipeline (`ai_pipeline.py`) and Render (`render.py`) with unified Go CLI execution for Telegram pipeline.
+- Disabled `repository_dispatch` auto-trigger for `render.yml` to make it manual-only.
 - Gemini SRT translation now retries transient API failures with exponential backoff and uses a 300s read timeout to avoid failing long subtitle translations.
 - Ingest workflow now falls back to `f2` for Douyin downloads when `yt-dlp` rejects fresh cookies; validated by Workflow #1 run `28851614314`.
 - Ingest workflow now passes optional `YT_DLP_COOKIES` from GitHub Secrets to `yt-dlp`, enabling authenticated Douyin/TikTok downloads when fresh cookies are required.
@@ -63,9 +62,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [0.2.0] — 2026-07-05 — Documentation System
 
 ### Added
-- Unified Go CLI pipeline workflow (.github/workflows/ai_pipeline.yml) running krillinai-cli pipeline locally on the GitHub Actions runner.
-- Helper script scripts/v2/workflows/go_pipeline_io.py to handle Cloudflare R2 and Telegram I/O around the Go pipeline.
-
 - `docs/ARCHITECTURE.md` — pipeline overview, R2 layout, idempotency, environment mapping.
 - `docs/DEPLOYMENT.md` — deployment guide with version pinning and environment mapping.
 - `docs/ENVIRONMENT.md` — environment variables reference (Secrets vs Variables).
@@ -76,16 +72,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [0.1.1] — 2026-07-05 — Standardised Workflows and Docs
 
 ### Added
-- Unified Go CLI pipeline workflow (.github/workflows/ai_pipeline.yml) running krillinai-cli pipeline locally on the GitHub Actions runner.
-- Helper script scripts/v2/workflows/go_pipeline_io.py to handle Cloudflare R2 and Telegram I/O around the Go pipeline.
-
 - `docs/` directory with deployment and environment setup documentation.
 - Environment classification rules (Secrets vs Variables).
 
 ### Changed
-- Replaced Python-based AI Pipeline (i_pipeline.py) and Render (ender.py) with unified Go CLI execution for Telegram pipeline.
-- Disabled epository_dispatch auto-trigger for ender.yml to make it manual-only.
-
 - Workflow triggering switched from `workflow_run` to `repository_dispatch` for multi-branch support.
 - Removed `scripts/v2/pipeline_step.py` — moved orchestration entirely into `scripts/v2/workflows/`.
 - Upgraded `r2_client.py` with `exists()` for step-level idempotency.
@@ -97,29 +87,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [0.1.0] — 2026-07-05 — Skeleton v2
 
 ### Added
-- Unified Go CLI pipeline workflow (.github/workflows/ai_pipeline.yml) running krillinai-cli pipeline locally on the GitHub Actions runner.
-- Helper script scripts/v2/workflows/go_pipeline_io.py to handle Cloudflare R2 and Telegram I/O around the Go pipeline.
-
-- Cloudflare Worker (`worker/`) for Telegram webhook + GitHub dispatch.
-- Hugging Face Space skeleton (`hf-space/`) with FastAPI (`/health`, `/transcribe`).
-- Three GitHub Actions workflows:
-  - `ingest.yml` — download video, extract audio, upload to R2.
-  - `ai_pipeline.yml` — transcription, alignment, translation, TTS.
-  - `render.yml` — blur subtitles, overlay, audio mux.
-- Shared modules in `scripts/v2/`:
-  - `config.py` — environment variable loader.
-  - `logger.py`, `retry.py` — utilities.
-  - `models.py` — job metadata, status, stage.
-  - `layout.py` — canonical R2 storage layout.
-  - Client placeholders: `r2_client.py`, `telegram_client.py`, `github_client.py`, `hf_client.py`, `gemini_client.py`, `gdrive_client.py`.
-- Workflow orchestrators: `scripts/v2/workflows/ingest.py`, `ai_pipeline.py`, `render.py`.
-- Step-level idempotency via `r2_client.exists()`.
-- `config/config-example.toml` — updated with `[serverless_v2]` section.
-
----
-
-[Unreleased]: https://github.com/BinhTHB/KrillinAI/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/BinhTHB/KrillinAI/compare/v0.1.1...v0.2.0
-[0.1.1]: https://github.com/BinhTHB/KrillinAI/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/BinhTHB/KrillinAI/releases/tag/v0.1.0
-
+- Basic project structure and workflow configurations.

@@ -50,7 +50,7 @@
 
 - **Target Cloudflare Worker**: `https://krillin-ai-worker.yhomha1111.workers.dev`
 
-- **Target Hugging Face Space**: `krillin-asr-dev` via variable `HF_SPACE_URL`.
+- **Target Hugging Face Space**: Legacy (not used in Go CLI pipeline).
 
 - **Target R2 Bucket**: dev bucket configured via variable `CF_R2_BUCKET`.
 
@@ -62,7 +62,7 @@
 
 - **Target Cloudflare Worker**: configured on prod wrangler namespace (e.g. `krillin-ai-prod`).
 
-- **Target Hugging Face Space**: `krillin-asr-prod` via variable `HF_SPACE_URL`.
+- **Target Hugging Face Space**: Legacy (not used in Go CLI pipeline).
 
 - **Target R2 Bucket**: prod bucket configured via variable `CF_R2_BUCKET`.
 
@@ -88,7 +88,7 @@
 
   - Verify Worker health and GitHub `repository_dispatch`
 
-- [x] Start Milestone 8: End-to-end integration and production validation
+- [x] Start Milestone 8: End-to-end integration and production validation`r`n- [x] Standardize ASR compute on GitHub Actions Go CLI (no HF Space)
 
   - Ingest → AI Pipeline → Render chain validated on GitHub Actions
 
@@ -179,5 +179,6 @@
 ---
 
 _Last updated: 2026-07-07_
+
 
 

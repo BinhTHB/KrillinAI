@@ -148,18 +148,22 @@ This document records the architectural and technical decisions made during the 
 
 ---
 
-_Last updated: 2026-07-07_
-## DEC-014: Unified Go CLI Pipeline for Telegram Workflows
+## DEC-015: Standardize ASR compute on GitHub Actions Go CLI
 
 - **Status**: Accepted
-- **Context**: Previously, Telegram pipeline used two separate Python-based workflows: AI Pipeline (Workflow #2, i_pipeline.yml) calling Hugging Face Whisper API, then Render (Workflow #3, ender.yml) calling Python TTS/render scripts. This duplicated and diverged from local Go CLI logic (krillinai-cli pipeline), causing word-level SRT issues, wrong TTS provider defaults, and maintenance burden.
-- **Decision**: Replace Workflow #2 and #3 with a single unified workflow i_pipeline.yml that runs the local Go CLI (krillinai-cli pipeline "local:...") on the GitHub Actions runner. The workflow sets up Go, WhisperX (venv), ffmpeg, generates config.toml from secrets, downloads ideo_orig.mp4 from R2, runs the pipeline locally, and uploads final video to R2.
-- **Reason**: Ensures CI runs identical logic to local CLI (single source of truth). Any local Go pipeline improvement automatically applies to Telegram. Removes Python duplication (i_pipeline.py, ender.py logic for ASR/translate/TTS/render).
-- **Impact**: 
-  - Workflow #1 (Ingest) unchanged.
-  - Workflow #2 now runs Go CLI and handles render internally.
-  - Workflow #3 (ender.yml) becomes manual-only (no epository_dispatch trigger).
-  - HF_SPACE_URL and HuggingFaceClient no longer used by Telegram pipeline (WhisperX runs locally on runner).
-  - Environment variable TTS_PROVIDER default changed from edge to gemini to match local.
-  - New helper script scripts/v2/workflows/go_pipeline_io.py for R2/Telegram I/O around Go pipeline.
+- **Context**: HF Space Free Tier was considered for ASR compute to offload WhisperX from GitHub Actions. Current constraints show GitHub Actions `ubuntu-latest` public runners provide enough CPU/RAM for the present pipeline, while adding HF Space would reintroduce an external ASR microservice and risk divergence between Python/HF output and Go CLI subtitle logic.
+- **Decision**: Do not use HF Space Free Tier for the default ASR compute path. Use WhisperX installed in a Python venv directly on GitHub Actions and invoke it through the Go CLI pipeline (`krillinai-cli pipeline local:<video>`).
+- **Reason**:
+  - GitHub Actions `ubuntu-latest` has sufficient resources for the current ASR workload.
+  - Local and CI stay synchronized because ASR, subtitle normalization, translation, TTS, synchronization, and render all flow through the Go CLI.
+  - Avoids adding an external ASR microservice and avoids drift between Python/HF Space output and Go pipeline behavior.
+  - Debugging is simpler because ASR, translation, TTS, and render logs stay in one workflow run.
+- **Impact**:
+  - Workflow #2 must install FFmpeg, Python venv, WhisperX, and required Python dependencies.
+  - Runtime, disk usage, and dependency install time must be monitored; dependency caching can be added later if needed.
+  - HF Space is retained only as a possible future fallback, not part of the current architecture.
+  - `ai_pipeline.py`, `render.py`, and HF Space ASR are legacy/manual paths, not the default Telegram pipeline.
 
+---
+
+_Last updated: 2026-07-07_
