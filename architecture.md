@@ -1,4 +1,4 @@
-# 🚀 KrillinAI v2 - Serverless Production Architecture (2026)
+﻿# 🚀 KrillinAI v2 - Serverless Production Architecture (2026)
 
 ## Tổng quan
 
@@ -12,6 +12,7 @@ Mục tiêu của kiến trúc:
 * Dễ mở rộng
 * Không cần duy trì VPS chạy 24/7
 * Tận dụng tối đa hạ tầng miễn phí
+* Logic xử lý đồng bộ 100% giữa local và CI
 
 ---
 
@@ -21,7 +22,6 @@ Mục tiêu của kiến trúc:
                           +----------------+
                           |     USER       |
                           +-------+--------+
-                                  |
                                   |
                          Send Video URL
                                   |
@@ -37,7 +37,6 @@ Mục tiêu của kiến trúc:
                    | API Gateway + Dispatcher     |
                    +--------------+--------------+
                                   |
-                                  |
                                   ▼
                      GitHub Repository Dispatch
                                   |
@@ -45,118 +44,45 @@ Mục tiêu của kiến trúc:
         =====================================================
                 GITHUB ACTIONS WORKFLOW #1 (INGEST)
         =====================================================
-
         Download Video
-                │
+                |
                 ▼
-
         Extract Audio (FFmpeg)
-
-                │
+                |
                 ▼
-
-        Convert WAV → FLAC
-
-                │
+        Upload Assets to R2
+        (Video gốc + Audio FLAC + Metadata)
+                |
                 ▼
-
-        Upload Assets
-
-                │
-                ▼
-
-             Cloudflare R2
-        (Video + Audio + Metadata)
-
-                │
-                ▼
-
-     Trigger Workflow #2
+        Trigger Workflow #2 (repository_dispatch)
 
         =====================================================
-                GITHUB ACTIONS WORKFLOW #2 (AI)
+                GITHUB ACTIONS WORKFLOW #2 (GO CLI PIPELINE)
         =====================================================
 
-          Download Audio From R2
+        Download Video gốc từ R2
 
-                │
+                |
                 ▼
 
-        Wake HuggingFace Space
-        (Health Check Until Ready)
-
-                │
+        Chạy krillinai-cli pipeline "local:video_orig.mp4"
+                |
+                ├── WhisperX (ASR cục bộ trên runner)
+                ├── Subtitle normalization (gom câu)
+                ├── Gemini translation
+                ├── Gemini Voice / Edge TTS (theo từng câu)
+                ├── Blur subtitle gốc + overlay phụ đề dịch
+                ├── Ghép audio TTS
+                └── FFmpeg render final.mp4
+                |
                 ▼
 
-          Faster-Whisper
-        base CPU/int8 default
+        Upload final.mp4 lên R2
 
-                │
+                |
                 ▼
 
-         Word Timestamp SRT
-
-                │
-                ▼
-
-       Anchor Alignment Engine
-
-                │
-                ▼
-
-       Gemini Translation
-
-                │
-                ▼
-
-      Gemini Voice / Edge TTS
-
-                │
-                ▼
-
-      Upload Generated Assets
-
-                │
-                ▼
-
-             Cloudflare R2
-
-                │
-                ▼
-
-     Trigger Workflow #3
-
-        =====================================================
-              GITHUB ACTIONS WORKFLOW #3 (RENDER)
-        =====================================================
-
-      Download Assets
-
-                │
-                ▼
-
-        Blur Original Subtitle
-
-                │
-                ▼
-
-         FFmpeg Rendering
-
-                │
-                ▼
-
-      Upload Final Video
-
-         ┌───────────────┐
-         │ Google Drive  │
-         └──────┬────────┘
-                │
-                ▼
-        Telegram Bot Reply
-
-                │
-                ▼
-               USER
+        Telegram notification (link/video)
 ```
 
 ---
@@ -192,17 +118,16 @@ Vai trò:
 
 ---
 
-## 3. GitHub Actions Workflow #1 – Ingest
+## 3. GitHub Actions Workflow #1 - Ingest
 
 Chỉ chịu trách nhiệm chuẩn bị dữ liệu.
 
 ### Các bước
 
-1. Download video
-2. Trích xuất audio
-3. Chuyển WAV → FLAC
-4. Upload lên Cloudflare R2
-5. Gửi Workflow #2
+1. Download video gốc từ Telegram URL (yt-dlp + f2 fallback cho Douyin)
+2. Trích xuất audio (FFmpeg: FLAC 16kHz mono)
+3. Upload `video_orig.mp4` + `audio_orig.flac` + metadata lên Cloudflare R2
+4. Gửi `repository_dispatch` để kích Workflow #2
 
 Không chạy AI.
 
@@ -210,16 +135,14 @@ Không chạy AI.
 
 ## 4. Cloudflare R2
 
-Đóng vai trò Storage trung gian.
+Đóng vai trò Storage trung gian giữa các workflow.
 
 Lưu:
 
-* Video gốc
-* Audio FLAC
-* Metadata
-* Subtitle
-* Audio TTS
-* Video render
+* `jobs/{job_id}/video_orig.mp4` - Video gốc
+* `jobs/{job_id}/audio_orig.flac` - Audio gốc (dự phòng)
+* `jobs/{job_id}/metadata.json` - Trạng thái job
+* `jobs/{job_id}/video_final.mp4` - Video sau render
 
 Ưu điểm:
 
@@ -229,267 +152,94 @@ Lưu:
 
 ---
 
-## 5. GitHub Actions Workflow #2 – AI Pipeline
+## 5. GitHub Actions Workflow #2 - Unified Go CLI Pipeline
 
-Workflow AI hoàn toàn độc lập.
+Workflow duy nhất thực hiện tất cả xử lý AI và render.
 
-### Bước 1
+### Thiết lập
 
-Đánh thức HuggingFace Space.
+Trong mỗi lần chạy, workflow tự động:
 
-Health Check:
+1. Cài đặt Go, Python, venv, ffmpeg, yt-dlp, WhisperX (venv)
+2. Tạo `config/config.toml` từ GitHub Secrets/Variables
+3. Build Go CLI: `go build -o krillinai-cli ./cmd/cli`
+4. Tải `video_orig.mp4` từ R2 xuống runner
 
+### Pipeline (krillinai-cli pipeline)
+
+```text
+local:video_orig.mp4
+        |
+        ▼
+Extract audio
+        |
+        ▼
+WhisperX (model medium, CPU, không GPU)
+   - Tạo segments với word-level timestamps
+   - Không dùng Hugging Face Space
+        |
+        ▼
+Go subtitle normalization:
+   - Parse segments từ WhisperX JSON
+   - Merge word-level thành sentence-level
+   - Sinh origin_language_srt.srt (câu)
+        |
+        ▼
+Gemini API:
+   - Dịch SRT từ ngôn ngữ gốc → tiếng Việt
+   - Giữ nguyên cấu trúc cues
+        |
+        ▼
+TTS (mặc định Gemini Voice, fallback Edge-TTS):
+   - Sinh audio cho từng cue
+   - Căn chỉnh thời gian theo timeline
+        |
+        ▼
+Render:
+   - Blur vùng subtitle gốc
+   - Overlay phụ đề dịch (ASS)
+   - Ghép TTS audio với video
+   - FFmpeg: H264 + AAC
+        |
+        ▼
+final.mp4
 ```
-GET /health
 
-status = loading
+### Kết thúc
 
-↓
+1. Upload `final.mp4` lên R2
+2. Gửi thông báo Telegram (video nếu ≤ 50MB, presigned URL nếu lớn hơn)
 
-status = ready
-```
-
-Chỉ gửi audio sau khi model load xong.
+Workflow #2 hoàn toàn độc lập, không phụ thuộc Hugging Face Space hay dịch vụ ASR ngoài.
 
 ---
 
-### Bước 2
+## 6. Workflow #3 - Render (Manual Only)
 
-Speech Recognition
+Workflow cũ chỉ dùng cho fallback thủ công, không được tự động kích hoạt.
 
-Free-tier mặc định:
-
-```
-base CPU/int8
-```
-
-Nếu cần chất lượng tối đa trên GPU trả phí:
-
-```
-base / distil-large-v3 (GPU)
-```
+Không dùng trong pipeline chính.
 
 ---
 
-### Bước 3
-
-Sinh Word Timestamp
-
-Ví dụ:
-
-```
-Xin
-00:00:01.24
-
-chào
-
-00:00:01.58
-
-mọi
-
-00:00:01.80
-```
-
----
-
-### Bước 4
-
-Anchor Alignment
-
-Thực hiện:
-
-* Merge
-* Split
-* Anchor Lock
-* Boundary Balance
-
-Đảm bảo subtitle dịch khớp tuyệt đối.
-
----
-
-### Bước 5
-
-Gemini Translation
-
-Input:
-
-```
-Chinese SRT
-```
-
-Output:
-
-```
-Vietnamese SRT
-```
-
----
-
-### Bước 6
-
-Gemini Voice / Edge-TTS
-
-Sinh:
-
-```
-Vietnamese Audio
-```
-
----
-
-### Bước 7
-
-Upload kết quả lên R2.
-
----
-
-## 6. HuggingFace Space
-
-Đóng vai trò AI Worker.
-
-Chỉ thực hiện:
-
-```
-Audio
-
-↓
-
-Speech Recognition
-
-↓
-
-Timestamp
-```
-
-Không render.
-
-Không dịch.
-
-Không chạy FFmpeg.
-
----
-
-## 7. GitHub Actions Workflow #3 – Render
-
-Workflow cuối.
-
-### Download
-
-Tải:
-
-* Video
-* Subtitle
-* Audio TTS
-
-Từ R2.
-
----
-
-### FFmpeg
-
-Thực hiện:
-
-* Blur subtitle cũ
-* Overlay subtitle mới
-* Replace audio
-* Encode H264
-
----
-
-### Upload
-
-Nếu:
-
-```
-< 50MB
-```
-
-↓
-
-Telegram
-
-Nếu:
-
-```
-> 50MB
-```
-
-↓
-
-Google Drive
-
-↓
-
-Telegram gửi link.
-
----
-
-# 🔄 Retry Strategy
+# 🔄 Chiến lược Retry
 
 Workflow được tách biệt hoàn toàn.
 
-```
-Workflow 1
+```text
+Workflow 1 (Ingest)
 
-↓
+    ↓ (repository_dispatch)
 
-Workflow 2
-
-↓
-
-Workflow 3
+Workflow 2 (Go CLI Pipeline)
 ```
 
-Nếu Workflow 3 lỗi:
+Nếu Workflow 2 lỗi:
 
-Chỉ chạy lại Workflow 3.
+- Chạy lại Workflow 2 (có thể dùng `workflow_dispatch` với cùng `job_id`)
+- Workflow 2 tải lại `video_orig.mp4` từ R2 và chạy lại pipeline
 
-Không cần:
-
-* Download lại video
-* Chạy Whisper lại
-* Dịch lại
-* Sinh TTS lại
-
----
-
-# 📊 Luồng dữ liệu
-
-```
-Telegram
-
-↓
-
-Cloudflare Worker
-
-↓
-
-Workflow #1
-
-↓
-
-Cloudflare R2
-
-↓
-
-Workflow #2
-
-↓
-
-Cloudflare R2
-
-↓
-
-Workflow #3
-
-↓
-
-Google Drive
-
-↓
-
-Telegram
-```
+Không cần chạy lại Ingest.
 
 ---
 
@@ -497,24 +247,19 @@ Telegram
 
 ## Speech Recognition
 
-* Faster-Whisper
-* base CPU/int8 (mặc định Free Tier)
-* base / distil-large-v3 (GPU) (tuỳ chọn GPU trả phí)
-
----
+* WhisperX
+* Model: medium (CPU, không GPU)
+* Chạy trực tiếp trên GitHub Actions runner
+* Không dùng Hugging Face Space
 
 ## Translation
 
-* Google Gemini
-
----
+* Google Gemini (Gemini 3.1 Flash Lite)
 
 ## Text To Speech
 
-* Gemini Voice
-* Edge-TTS
-
----
+* Gemini Voice (mặc định)
+* Edge-TTS (fallback)
 
 ## Video Processing
 
@@ -528,29 +273,25 @@ Telegram
 * Chi phí gần bằng 0 USD
 * Retry từng workflow
 * Không truyền file lớn trực tiếp giữa các job
-* Dễ mở rộng nhiều AI Worker
-* Không phụ thuộc vào một GitHub Runner duy nhất
-* Dễ thay thế ASR, Translator hoặc TTS trong tương lai
-* Có thể bổ sung hàng đợi (Queue) hoặc nhiều AI Worker mà không cần thay đổi kiến trúc tổng thể
+* **Logic local và CI đồng bộ 100%** - không cần port code giữa Python và Go
+* Dễ mở rộng
+* Không phụ thuộc vào GPU hay Hugging Face Space free tier
+* Dễ debug vì log tập trung trong workflow run
 
 ---
 
-# 🚀 Khả năng mở rộng
+# 🚀 Khả năng mở rộng trong tương lai
 
-Trong tương lai có thể bổ sung:
-
-* Cloudflare Queues
-* Nhiều HuggingFace Space chạy song song
-* Worker Pool cho AI
-* GPU Worker khi cần
+* Cache WhisperX model trên GitHub Actions (giảm thời gian cài đặt)
+* Cloudflare Queues cho load balancing
 * Hỗ trợ nhiều ngôn ngữ
 * Dashboard quản lý tiến trình
-* Hệ thống cache subtitle và audio để tái sử dụng
+* Cache subtitle và audio để tái sử dụng
 
 ---
 
 # 📌 Kết luận
 
-KrillinAI v2 áp dụng mô hình **Serverless Event-Driven Pipeline**, trong đó mỗi workflow đảm nhận một giai đoạn độc lập của quá trình xử lý.
+KrillinAI v2 áp dụng mô hình **Serverless Event-Driven Pipeline** với **Go CLI làm single source of truth** cho toàn bộ logic xử lý.
 
-Việc sử dụng **Cloudflare Workers**, **GitHub Actions**, **Cloudflare R2**, **Hugging Face Spaces**, **Google Gemini**, **FFmpeg** và **Google Drive** giúp hệ thống đạt được sự cân bằng giữa **chi phí thấp**, **khả năng mở rộng**, **khả năng chịu lỗi** và **hiệu năng**, đồng thời tạo nền tảng để nâng cấp lên kiến trúc quy mô lớn hơn trong tương lai mà không cần thay đổi thiết kế cốt lõi.
+Toàn bộ ASR, dịch, TTS, đồng bộ và render đều đi qua một pipeline Go duy nhất, chạy giống hệt trên local và GitHub Actions. Điều này giúp tránh việc nhân bản logic và đảm bảo mọi cải tiến ở local tự động áp dụng cho Telegram pipeline.
