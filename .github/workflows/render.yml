@@ -40,6 +40,13 @@ jobs:
       BLUR_RADIUS: ${{ vars.BLUR_RADIUS || '5' }}
       BG_VOLUME: ${{ vars.BG_VOLUME || '0.10' }}
       VOICE_VOLUME: ${{ vars.VOICE_VOLUME || '1.6' }}
+      TTS_PROVIDER: ${{ vars.TTS_PROVIDER || 'edge' }}
+      EDGE_TTS_VOICE: ${{ vars.EDGE_TTS_VOICE || 'vi-VN-HoaiAnNeural' }}
+      TTS_SPEED: ${{ vars.TTS_SPEED || '2.1' }}
+      TTS_GAP: ${{ vars.TTS_GAP || '0.02' }}
+      FORCE_SPEED: ${{ vars.FORCE_SPEED || 'true' }}
+      PRESERVE_CUES: ${{ vars.PRESERVE_CUES || 'true' }}
+      TIMELINE_MODE: ${{ vars.TIMELINE_MODE || 'overlay' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
