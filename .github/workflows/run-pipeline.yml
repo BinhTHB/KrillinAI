@@ -28,12 +28,12 @@ on:
       tts_provider:
         description: "TTS provider"
         required: false
-        default: "edge-tts"
+        default: "edge"
         type: choice
         options:
-          - edge-tts
+          - edge
           - gemini
-          - openai
+          - hybrid
       tts_voice:
         description: "TTS voice code/name"
         required: false
@@ -75,8 +75,8 @@ jobs:
 
       - name: Install f2
         run: |
-          pip install f2 --break-system-packages
-          f2 --version
+          pip install f2 edge-tts google-genai --break-system-packages
+          python3 -c "import edge_tts; print(\"edge-tts ok\")"
 
       - name: Set up WhisperX
         if: ${{ github.event.inputs.transcriber == 'whisperx' }}
