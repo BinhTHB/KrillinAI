@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- `scripts/v2/workflows/ingest.py` now catches `yt-dlp` and FFmpeg failures, stores failed metadata, and sends a human-readable Telegram error message.
 - Cloudflare Worker entry point deployed and validated at `https://krillin-ai-worker.yhomha1111.workers.dev`; Telegram webhook configured to `/webhook/telegram`.
 - `worker/wrangler.toml` now includes non-sensitive production defaults for GitHub dispatch and Telegram API URL while keeping secrets out of source control.
 - Project state now marks Telegram entry as operationally validated for development after Worker health, webhook setup, and repository_dispatch trigger checks passed.
