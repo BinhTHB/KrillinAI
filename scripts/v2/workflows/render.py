@@ -29,6 +29,12 @@ logger = get_logger("RenderWorkflow")
 def render_controlled(video_path: Path, subtitle_path: Path, aligned_srt_path: Path, output_path: Path, workdir: Path) -> None:
     script = REPO_ROOT / "scripts" / "controlled_tts_segment_dub.py"
     out_dir_name = "controlled_tts_segment"
+    # Local CLI defaults to match commands.go executeGeminiDub
+    tts_speed = os.getenv("TTS_SPEED", "2.1")
+    tts_gap = os.getenv("TTS_GAP", "0.02")
+    force_speed = os.getenv("FORCE_SPEED", "true").lower() == "true"
+    preserve_cues = os.getenv("PRESERVE_CUES", "true").lower() == "true"
+
     cmd = [
         sys.executable,
         str(script),
@@ -54,8 +60,19 @@ def render_controlled(video_path: Path, subtitle_path: Path, aligned_srt_path: P
         os.getenv("BG_VOLUME", "0.10"),
         "--voice-volume",
         os.getenv("VOICE_VOLUME", "1.6"),
+        "--speed",
+        tts_speed,
+        "--gap",
+        tts_gap,
+        "--force-speed",
+        "--preserve-cues",
         "--cleanup-temp",
     ]
+    if not force_speed:
+        # Remove --force-speed flag if disabled
+        cmd.remove("--force-speed")
+    if not preserve_cues:
+        cmd.remove("--preserve-cues")
     logger.info("Running controlled local render pipeline")
     subprocess.run(cmd, check=True)
 
