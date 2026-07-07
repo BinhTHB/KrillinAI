@@ -26,7 +26,7 @@ from layout import StorageLayout
 logger = get_logger("RenderWorkflow")
 
 
-def render_controlled(video_path: Path, subtitle_path: Path, output_path: Path, workdir: Path) -> None:
+def render_controlled(video_path: Path, subtitle_path: Path, aligned_srt_path: Path, output_path: Path, workdir: Path) -> None:
     script = REPO_ROOT / "scripts" / "controlled_tts_segment_dub.py"
     out_dir_name = "controlled_tts_segment"
     cmd = [
@@ -62,7 +62,27 @@ def render_controlled(video_path: Path, subtitle_path: Path, output_path: Path, 
     controlled_output = workdir / out_dir_name / "controlled_tts_final.mp4"
     if not controlled_output.exists():
         raise FileNotFoundError(f"Controlled render output missing: {controlled_output}")
-    shutil.copy2(controlled_output, output_path)
+
+    # Blur hardsubs and overlay ASS subtitles just like local CLI
+    blur_script = REPO_ROOT / "scripts" / "render_with_sub_blur.py"
+    controlled_ass = workdir / out_dir_name / "controlled_aligned.ass"
+    if controlled_ass.exists() and aligned_srt_path.exists():
+        blur_cmd = [
+            sys.executable,
+            str(blur_script),
+            "--input-video", str(controlled_output),
+            "--origin-srt", str(aligned_srt_path),
+            "--overlay-srt", str(controlled_ass),
+            "--output-video", str(output_path),
+            "--crop-top", "0.82",
+            "--crop-bottom", "0.98",
+            "--blur-power", "10",
+        ]
+        logger.info("Running render_with_sub_blur to blur hardsubs and overlay Vietnamese subtitles")
+        subprocess.run(blur_cmd, check=True)
+    else:
+        logger.warning("Subtitles or aligned SRT missing, fallback to direct copy")
+        shutil.copy2(controlled_output, output_path)
 
 
 def run(job_id: str, chat_id: int, message_id: int) -> int:
@@ -93,12 +113,19 @@ def run(job_id: str, chat_id: int, message_id: int) -> int:
 
     video_path = workdir / "video_orig.mp4"
     subtitle_path = workdir / "translated_vi.srt"
+    aligned_srt_path = workdir / "aligned.srt"
     final_video_path = workdir / "video_final.mp4"
 
     metadata.status = JobStatus.RENDERING
     r2.save_metadata(metadata)
     r2.download_file(StorageLayout.get_video_orig_key(job_id), str(video_path))
     r2.download_file(StorageLayout.get_translated_srt_key(job_id), str(subtitle_path))
+    
+    # Download aligned origin SRT to use for blurring subtitles
+    try:
+        r2.download_file(StorageLayout.get_aligned_srt_key(job_id), str(aligned_srt_path))
+    except Exception as e:
+        logger.warning(f"Failed to download aligned SRT: {e}")
 
     if r2.exists(final_key):
         logger.info("Final video already uploaded, skipping render")
@@ -110,7 +137,7 @@ def run(job_id: str, chat_id: int, message_id: int) -> int:
             logger.info("[DRY RUN] Skipping controlled render and copying source video")
             shutil.copy2(video_path, final_video_path)
         else:
-            render_controlled(video_path, subtitle_path, final_video_path, workdir)
+            render_controlled(video_path, subtitle_path, aligned_srt_path, final_video_path, workdir)
         r2.upload_file(str(final_video_path), final_key)
 
     metadata.status = JobStatus.UPLOADING
