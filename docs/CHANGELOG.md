@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Gemini SRT translation now retries transient API failures with exponential backoff and uses a 300s read timeout to avoid failing long subtitle translations.
 - Ingest workflow now falls back to `f2` for Douyin downloads when `yt-dlp` rejects fresh cookies; validated by Workflow #1 run `28851614314`.
 - Ingest workflow now passes optional `YT_DLP_COOKIES` from GitHub Secrets to `yt-dlp`, enabling authenticated Douyin/TikTok downloads when fresh cookies are required.
 - Deployment guide now documents how to export Douyin/TikTok cookies and store them as the `YT_DLP_COOKIES` GitHub Actions Secret.
