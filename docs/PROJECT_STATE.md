@@ -24,7 +24,7 @@
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: `aab7093` — docs: add Douyin cookie setup guide and cleanup ignore rules
+- **Last Local Commit**: `cb002f4` — feat: fallback to f2 for Douyin downloads when yt-dlp fails
 
 - **Last Reviewed Date**: 2026-07-06
 
