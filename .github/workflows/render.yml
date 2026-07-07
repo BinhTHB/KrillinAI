@@ -34,7 +34,6 @@ jobs:
       CF_R2_BUCKET: ${{ vars.CF_R2_BUCKET }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       SUBTITLE_HEIGHT: ${{ vars.SUBTITLE_HEIGHT || '120' }}
       SUBTITLE_MARGIN_V: ${{ vars.SUBTITLE_MARGIN_V || '44' }}
       BLUR_POWER: ${{ vars.BLUR_POWER || '10' }}
