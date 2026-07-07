@@ -1,4 +1,4 @@
-﻿import os
+import os
 import asyncio
 import requests
 import tempfile
@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 from config import load_config
 from logger import get_logger
+from retry import retry
 
 try:
     from google import genai
@@ -41,15 +42,22 @@ class GeminiClient:
             "Translate only subtitle text. Return only valid SRT.\n\n"
             f"{srt_text}"
         )
-        response = requests.post(
-            url,
-            params={"key": self.cfg.gemini_api_key},
-            headers={"Content-Type": "application/json"},
-            json={"contents": [{"parts": [{"text": prompt}]}]},
-            timeout=120,
-        )
-        response.raise_for_status()
-        data = response.json()
+        def make_request():
+            response = requests.post(
+                url,
+                params={"key": self.cfg.gemini_api_key},
+                headers={"Content-Type": "application/json"},
+                json={"contents": [{"parts": [{"text": prompt}]}]},
+                timeout=300,
+            )
+            response.raise_for_status()
+            return response.json()
+
+        try:
+            data = retry(make_request, attempts=3, delay_seconds=5.0, backoff=2.0)
+        except Exception as exc:
+            logger.error(f"Gemini translation failed after retries: {exc}")
+            raise exc
         try:
             return data["candidates"][0]["content"]["parts"][0]["text"].strip()
         except (KeyError, IndexError) as exc:
