@@ -12,6 +12,8 @@ const (
 	StageCover            Stage = "cover"
 	StagePipeline         Stage = "pipeline"
 	StageGeminiDub        Stage = "gemini-dub"
+	StageVoices           Stage = "voices"
+	StageUpdate           Stage = "update"
 )
 
 type CaptionSource string

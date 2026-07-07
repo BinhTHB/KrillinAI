@@ -60,6 +60,19 @@ type Command struct {
 	Cover             pipeline.CoverRequest
 	Pipeline          pipeline.PipelineRequest
 	GeminiDub         GeminiDubRequest
+	Voices            VoicesRequest
+	Update            UpdateRequest
+}
+
+type VoicesRequest struct {
+	Provider string
+}
+
+type UpdateRequest struct {
+	Repo    string
+	Version string
+	Target  string
+	Force   bool
 }
 
 type GeminiDubRequest struct {
@@ -113,6 +126,10 @@ func Parse(args []string) (Command, error) {
 		return parseCover(name, args[1:])
 	case "gemini-dub":
 		return parseGeminiDub(name, args[1:])
+	case "voices":
+		return parseVoices(name, args[1:])
+	case "update":
+		return parseUpdate(name, args[1:])
 	case "status":
 		if hasHelpArg(args[1:]) {
 			return Command{Name: name, Help: true}, nil
@@ -253,6 +270,27 @@ Flags:
   --dry-run              Validate command without running the script
   -h, --help             Show this help
 `
+	case "voices":
+		return `Usage:
+  krillinai-cli voices [flags]
+
+Flags:
+  --provider <provider>  TTS provider: aliyun, openai, minimax, or edge-tts
+  --dry-run              Return local voice list without external calls
+  -h, --help             Show this help
+`
+	case "update":
+		return `Usage:
+  krillinai-cli update [flags]
+
+Flags:
+  --repo <owner/repo>    GitHub repository (default krillinai/KrillinAI)
+  --version <tag>        Release tag to install
+  --target <path>        Target executable path
+  --force                Force reinstall
+  --dry-run              Validate command without running update
+  -h, --help             Show this help
+`
 	case "status":
 		return `Usage:
   krillinai-cli status
@@ -271,6 +309,8 @@ Commands:
   pipeline             Plan or run multi-stage workflows when supported
   cover                Generate a cover image from a prompt
   gemini-dub           Run controlled Gemini Live dubbing and render final video
+  voices               List supported TTS voices
+  update               Update the CLI from a GitHub release
   status               Reserved status query surface
 
 Run "krillinai-cli <command> --help" for command-specific flags.
@@ -309,6 +349,10 @@ func Execute(ctx context.Context, svc pipeline.StageService, cmd Command) pipeli
 		return executeGeminiDub(ctx, svc, cmd.GeminiDub)
 	case "pipeline":
 		return executeGeminiDub(ctx, svc, cmd.GeminiDub)
+	case "voices":
+		return executeVoices(cmd.Voices)
+	case "update":
+		return executeUpdate(ctx, cmd.Update)
 	default:
 		return pipeline.Response{
 			OK: false,
@@ -804,6 +848,24 @@ func dryRun(cmd Command) pipeline.Response {
 				VideoWithTTS: filepath.Join(cmd.GeminiDub.Workdir, cmd.GeminiDub.OutputDir, "controlled_tts_final.mp4"),
 				TargetSRT:    filepath.Join(cmd.GeminiDub.Workdir, cmd.GeminiDub.OutputDir, "controlled_aligned.srt"),
 			},
+		}
+
+	case "voices":
+		return executeVoices(cmd.Voices)
+	case "update":
+		inputs := map[string]string{
+			"repo": cmd.Update.Repo,
+		}
+		if cmd.Update.Version != "" {
+			inputs["version"] = cmd.Update.Version
+		}
+		if cmd.Update.Target != "" {
+			inputs["target"] = cmd.Update.Target
+		}
+		return pipeline.Response{
+			OK:     true,
+			Stage:  pipeline.StageUpdate,
+			Inputs: inputs,
 		}
 	default:
 		return pipeline.Response{
