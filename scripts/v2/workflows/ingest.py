@@ -25,6 +25,10 @@ from layout import StorageLayout
 
 logger = get_logger("IngestWorkflow")
 
+def _is_douyin_url(video_url: str) -> bool:
+    lower_url = video_url.lower()
+    return "douyin.com" in lower_url or "iesdouyin.com" in lower_url
+
 def _resolve_cookies_file(workdir: Path) -> Path | None:
     env_cookies = os.environ.get("YT_DLP_COOKIES", "").strip()
     if env_cookies:
@@ -39,6 +43,64 @@ def _resolve_cookies_file(workdir: Path) -> Path | None:
         return local_cookies
 
     return None
+
+def _cookies_file_to_header(cookies_path: Path) -> str:
+    cookies = []
+    for line in cookies_path.read_text(encoding="utf-8").splitlines():
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) >= 7 and parts[5]:
+            cookies.append(f"{parts[5]}={parts[6]}")
+    return "; ".join(cookies)
+
+def _download_with_f2(video_url: str, workdir: Path, video_path: Path, cookies_path: Path | None) -> bool:
+    if not shutil.which("f2"):
+        logger.info("f2 is not installed; skipping Douyin fallback")
+        return False
+
+    f2_cmd = [
+        "f2",
+        "dy",
+        "-M",
+        "one",
+        "-u",
+        video_url,
+        "-p",
+        str(workdir),
+        "-l",
+        "en_US",
+    ]
+    if cookies_path:
+        cookie_header = _cookies_file_to_header(cookies_path)
+        if cookie_header:
+            f2_cmd.extend(["-k", cookie_header])
+
+    logger.info("Trying f2 fallback for Douyin download")
+    result = subprocess.run(
+        f2_cmd,
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+    if result.returncode != 0:
+        logger.info(f"f2 returned non-zero status; checking downloaded files anyway: {result.stderr[:300]}")
+
+    downloaded_files = [
+        path
+        for path in workdir.rglob("*.mp4")
+        if path.resolve() != video_path.resolve() and path.stat().st_size > 0
+    ]
+    if not downloaded_files:
+        logger.error(f"f2 fallback did not produce an mp4 file. stderr: {result.stderr[:500]}")
+        return False
+
+    downloaded = max(downloaded_files, key=lambda path: path.stat().st_size)
+    if video_path.exists():
+        video_path.unlink()
+    shutil.move(str(downloaded), str(video_path))
+    logger.info(f"f2 fallback downloaded video to {video_path}")
+    return True
 
 
 def run(job_id: str, video_url: str, chat_id: int, message_id: int) -> int:
@@ -110,18 +172,21 @@ def run(job_id: str, video_url: str, chat_id: int, message_id: int) -> int:
             )
         except subprocess.CalledProcessError as e:
             logger.error(f"yt-dlp failed: {e.stderr}")
-            tg = TelegramClient()
-            error_msg = f"❌ <b>[Workflow #1]</b> Tải video thất bại (yt-dlp error).\n\n"
-            if "cookies" in e.stderr.lower() or "cookie" in e.stderr.lower():
-                error_msg += "Nguồn video này (Douyin/TikTok) yêu cầu cookies để tải. Vui lòng thử lại với link nguồn khác (YouTube/X/direct link)."
+            if _is_douyin_url(video_url) and _download_with_f2(video_url, workdir, video_path, cookies_path):
+                logger.info("Recovered from yt-dlp failure using f2 fallback")
             else:
-                error_msg += f"Chi tiết: <code>{e.stderr[:200]}...</code>"
-            tg.send_message(chat_id, error_msg)
-            metadata = JobMetadata.new(job_id, video_url, chat_id, message_id)
-            metadata.status = JobStatus.FAILED
-            metadata.current_stage = JobStage.INGEST
-            r2.save_metadata(metadata)
-            raise e
+                tg = TelegramClient()
+                error_msg = f"❌ <b>[Workflow #1]</b> Tải video thất bại (yt-dlp error).\n\n"
+                if "cookies" in e.stderr.lower() or "cookie" in e.stderr.lower():
+                    error_msg += "Nguồn video này (Douyin/TikTok) yêu cầu cookies để tải. Vui lòng cập nhật cookies mới rồi thử lại."
+                else:
+                    error_msg += f"Chi tiết: <code>{e.stderr[:200]}...</code>"
+                tg.send_message(chat_id, error_msg)
+                metadata = JobMetadata.new(job_id, video_url, chat_id, message_id)
+                metadata.status = JobStatus.FAILED
+                metadata.current_stage = JobStage.INGEST
+                r2.save_metadata(metadata)
+                raise e
 
         logger.info("Extracting FLAC audio with ffmpeg")
         try:

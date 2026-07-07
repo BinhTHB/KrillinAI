@@ -29,6 +29,9 @@ app.log
 build/
 dist/
 .env
+www.douyin.com_cookies.txt
+
+
 # Cloudflare Worker local development
 worker/.wrangler/
 worker/node_modules/
