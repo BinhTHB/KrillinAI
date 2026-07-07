@@ -73,38 +73,67 @@ def run(job_id: str, video_url: str, chat_id: int, message_id: int) -> int:
             raise RuntimeError("ffmpeg is required but not installed or not on PATH")
 
         logger.info(f"Downloading video from {video_url} with yt-dlp")
-        subprocess.run(
-            [
-                "yt-dlp",
-                "-f",
-                "mp4/best",
-                "-o",
-                str(video_path),
-                video_url,
-            ],
-            check=True,
-        )
+        try:
+            subprocess.run(
+                [
+                    "yt-dlp",
+                    "-f",
+                    "mp4/best",
+                    "-o",
+                    str(video_path),
+                    video_url,
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as e:
+            logger.error(f"yt-dlp failed: {e.stderr}")
+            tg = TelegramClient()
+            error_msg = f"❌ <b>[Workflow #1]</b> Tải video thất bại (yt-dlp error).\n\n"
+            if "cookies" in e.stderr.lower() or "cookie" in e.stderr.lower():
+                error_msg += "Nguồn video này (Douyin/TikTok) yêu cầu cookies để tải. Vui lòng thử lại với link nguồn khác (YouTube/X/direct link)."
+            else:
+                error_msg += f"Chi tiết: <code>{e.stderr[:200]}...</code>"
+            tg.send_message(chat_id, error_msg)
+            metadata = JobMetadata.new(job_id, video_url, chat_id, message_id)
+            metadata.status = JobStatus.FAILED
+            metadata.current_stage = JobStage.INGEST
+            r2.save_metadata(metadata)
+            raise e
 
         logger.info("Extracting FLAC audio with ffmpeg")
-        subprocess.run(
-            [
-                "ffmpeg",
-                "-y",
-                "-i",
-                str(video_path),
-                "-vn",
-                "-ac",
-                "1",
-                "-ar",
-                "16000",
-                "-c:a",
-                "flac",
-                "-compression_level",
-                "12",
-                str(audio_path),
-            ],
-            check=True,
-        )
+        try:
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-y",
+                    "-i",
+                    str(video_path),
+                    "-vn",
+                    "-ac",
+                    "1",
+                    "-ar",
+                    "16000",
+                    "-c:a",
+                    "flac",
+                    "-compression_level",
+                    "12",
+                    str(audio_path),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as e:
+            logger.error(f"ffmpeg failed: {e.stderr}")
+            tg = TelegramClient()
+            tg.send_message(chat_id, f"❌ <b>[Workflow #1]</b> Trích xuất âm thanh thất bại (FFmpeg error).\n\nChi tiết: <code>{e.stderr[:200]}...</code>")
+            metadata = JobMetadata.new(job_id, video_url, chat_id, message_id)
+            metadata.status = JobStatus.FAILED
+            metadata.current_stage = JobStage.INGEST
+            r2.save_metadata(metadata)
+            raise e
 
     # Upload to R2
     r2.upload_file(str(video_path), video_key)
