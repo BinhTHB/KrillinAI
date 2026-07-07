@@ -1,8 +1,6 @@
-name: "Workflow #3: Render"
+﻿name: "Workflow #3: Render (Manual Only)"
 
 on:
-  repository_dispatch:
-    types: [render_start]
   workflow_dispatch:
     inputs:
       r2_prefix:
@@ -86,4 +84,3 @@ jobs:
             --job-id "${{ steps.ctx.outputs.r2_prefix }}" \
             --chat-id "${{ steps.ctx.outputs.chat_id }}" \
             --message-id "${{ steps.ctx.outputs.message_id }}"
-

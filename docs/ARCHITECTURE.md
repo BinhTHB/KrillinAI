@@ -6,11 +6,11 @@ KrillinAI v2 uses the current serverless event-driven pipeline from `architectur
 
 1. Telegram sends a video URL to Cloudflare Worker.
 2. Cloudflare Worker validates the request and dispatches GitHub event `telegram_video_ingest`.
-3. Workflow #1 `ingest.yml` runs only `scripts/v2/workflows/ingest.py`.
+3. Workflow #1 `ingest.yml` runs `scripts/v2/workflows/ingest.py`, downloads the source video/audio, and stores the original assets in R2.
 4. Workflow #1 dispatches event `ai_pipeline_start`.
-5. Workflow #2 `ai_pipeline.yml` runs only `scripts/v2/workflows/ai_pipeline.py`.
-6. Workflow #2 dispatches event `render_start`.
-7. Workflow #3 `render.yml` runs only `scripts/v2/workflows/render.py`.
+5. Workflow #2 `ai_pipeline.yml` downloads `video_orig.mp4` from R2, builds the Go CLI, installs local runner dependencies, and runs `krillinai-cli pipeline local:<video>` to execute the same subtitle, translation, TTS, blur/overlay, and render logic used locally.
+6. Workflow #2 uploads the final video to R2 and notifies Telegram through `scripts/v2/workflows/go_pipeline_io.py`.
+7. Workflow #3 `render.yml` is manual-only fallback for legacy Python render debugging.
 8. Final video is uploaded to Telegram when it is at most 50 MB; larger files stay in R2 and are delivered through a 24-hour presigned download URL.
 
 No workflow uses `workflow_run`. Workflow chaining is explicit via `repository_dispatch`.
@@ -20,8 +20,9 @@ No workflow uses `workflow_run`. Workflow chaining is explicit via `repository_d
 - `scripts/v2/r2_client.py`: Cloudflare R2 boto3 client with idempotency checks and presigned download URLs.
 - `scripts/v2/telegram_client.py`: Telegram placeholder client.
 - `scripts/v2/github_client.py`: GitHub dispatch placeholder client.
-- `scripts/v2/hf_client.py`: Hugging Face ASR placeholder client.
+- `scripts/v2/hf_client.py`: Hugging Face ASR client retained for legacy/manual workflows; not used by the default Telegram path.
 - `scripts/v2/gemini_client.py`: Gemini translation/TTS placeholder client.
+- `scripts/v2/workflows/go_pipeline_io.py`: R2 download/upload and Telegram delivery helper around the Go CLI pipeline.
 - `scripts/v2/gdrive_client.py`: optional Google Drive upload client, not used by the default large-file delivery path.
 - `scripts/v2/layout.py`: canonical R2 layout.
 - `scripts/v2/models.py`: job metadata, status, and stage models.
@@ -48,8 +49,8 @@ jobs/{job_id}/video_final.mp4
 Each workflow checks whether its expected R2 output already exists before doing work.
 
 - Ingest skips video/audio processing when original assets exist.
-- AI Pipeline skips transcription, alignment, translation, and TTS independently when their outputs exist.
-- Render skips FFmpeg rendering when the final video exists.
+- Unified Go CLI Workflow #2 skips final delivery if the expected output already exists in R2 through helper-level checks and Go pipeline cache behavior.
+- Manual Render skips FFmpeg rendering when the final video exists.
 
 ## Environment classification
 

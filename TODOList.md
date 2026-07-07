@@ -1,4 +1,4 @@
-# KrillinAI v2 — Development Roadmap
+﻿# KrillinAI v2 — Development Roadmap
 
 > **Status**: Skeleton v2 is complete. The checklist below covers real implementations.
 
@@ -1828,6 +1828,7 @@
 
 
 _Last updated: 2026-07-06_
+
 
 
 

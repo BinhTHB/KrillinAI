@@ -1,4 +1,4 @@
-name: "Workflow #2: AI Pipeline"
+﻿name: "Workflow #2: AI Pipeline + Render (Unified Go CLI)"
 
 on:
   repository_dispatch:
@@ -25,23 +25,30 @@ permissions:
   contents: write
 
 jobs:
-  ai:
+  pipeline:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     env:
-      KRILLINAI_DRY_RUN: ${{ vars.KRILLINAI_DRY_RUN || 'true' }}
+      KRILLINAI_DRY_RUN: ${{ vars.KRILLINAI_DRY_RUN || 'false' }}
       CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
       CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
       CF_R2_ENDPOINT: ${{ vars.CF_R2_ENDPOINT }}
       CF_R2_BUCKET: ${{ vars.CF_R2_BUCKET }}
-      HF_SPACE_URL: ${{ vars.HF_SPACE_URL }}
-      WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'base' }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.1-flash-lite' }}
-      GEMINI_TTS_MODEL: ${{ vars.GEMINI_TTS_MODEL || 'gemini-3.1-flash-live-preview' }}
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TTS_PROVIDER: ${{ vars.TTS_PROVIDER || 'gemini' }}
+      GEMINI_TTS_VOICE: ${{ vars.GEMINI_TTS_VOICE || 'Aoede' }}
+      TTS_SPEED: ${{ vars.TTS_SPEED || '2.1' }}
+      TTS_GAP: ${{ vars.TTS_GAP || '0.02' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -49,10 +56,26 @@ jobs:
           python-version: "3.10"
 
       - name: Install system packages
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3 python3-pip python3-venv curl
 
-      - name: Install dependencies
-        run: pip install requests boto3 google-genai
+      - name: Install yt-dlp
+        run: |
+          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
+          yt-dlp --version
+
+      - name: Install Python dependencies
+        run: |
+          pip install boto3 requests google-genai edge-tts f2
+
+      - name: Set up WhisperX
+        run: |
+          mkdir -p bin/whisperx
+          python3 -m venv bin/whisperx/.venv
+          bin/whisperx/.venv/bin/python -m pip install --upgrade pip
+          bin/whisperx/.venv/bin/pip install whisperx
 
       - name: Parse trigger context
         id: ctx
@@ -67,28 +90,139 @@ jobs:
             echo "message_id=${{ inputs.message_id }}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Create config.toml
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.1-flash-lite' }}
+          TTS_PROVIDER: ${{ env.TTS_PROVIDER }}
+        run: |
+          mkdir -p config
+          cat > config/config.toml << CONFIGEOF
+          [app]
+            segment_duration = 5
+            transcribe_parallel_num = 1
+            translate_parallel_num = 1
+            transcribe_max_attempts = 3
+            translate_max_attempts = 5
+            max_sentence_length = 70
+            enable_block_vtt_batch = false
+            vtt_batch_size = 10
+            target_language_first = true
+            short_subtitle_max_chars = 20
+            proxy = ""
+            enable_ocr = false
+
+          [server]
+            host = "127.0.0.1"
+            port = 8888
+
+          [llm]
+            base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+            api_key = "$GEMINI_API_KEY"
+            model = "$GEMINI_MODEL"
+
+          [transcribe]
+            provider = "whisperx"
+            enable_gpu_acceleration = false
+            [transcribe.openai]
+              base_url = ""
+              api_key = ""
+              model = "whisper-1"
+            [transcribe.fasterwhisper]
+              model = "medium"
+            [transcribe.whisperx]
+              model = "medium"
+            [transcribe.whisperkit]
+              model = "large-v2"
+            [transcribe.whispercpp]
+              model = "large-v2"
+
+          [tts]
+            provider = "$TTS_PROVIDER"
+            [tts.openai]
+              base_url = ""
+              api_key = ""
+              model = "tts-1"
+
+          [dubbing]
+            min_subtitle_duration = 2.5
+            max_chunk_size = 5
+            gap_tolerance = 1.5
+            speed_min = 0.95
+            speed_accept = 1.15
+            speed_max = 1.30
+            enable_text_rewrite = false
+            rewrite_max_attempts = 2
+            estimator = "statistical"
+            skip_failed_tts_chunks = true
+
+          [image]
+            provider = "openai-compatible"
+
+          [deepl]
+            api_key = ""
+          CONFIGEOF
+
       - name: Set env variables
         run: |
           echo "GITHUB_OWNER=${{ github.repository_owner }}" >> $GITHUB_ENV
           echo "GITHUB_REPO=$(echo "${{ github.repository }}" | cut -d"/" -f2)" >> $GITHUB_ENV
 
-      - name: Run AI Pipeline orchestrator
+      - name: Download video from R2
         run: |
-          python scripts/v2/workflows/ai_pipeline.py \
+          python scripts/v2/workflows/go_pipeline_io.py download \
+            --job-id "${{ steps.ctx.outputs.r2_prefix }}" \
+            --path "workdir/video_orig.mp4"
+
+      - name: Build CLI
+        run: go build -o krillinai-cli ./cmd/cli
+
+      - name: Run pipeline
+        run: |
+          mkdir -p workdir/task
+          cp workdir/video_orig.mp4 workdir/task/origin_video.mp4
+          ./krillinai-cli pipeline "local:workdir/task/origin_video.mp4" \
+            --workdir "workdir/task" \
+            --origin-lang "zh" \
+            --target-lang "vi" \
+            --provider "${{ env.TTS_PROVIDER }}" \
+            --voice "${{ env.GEMINI_TTS_VOICE }}" \
+            --speed "${{ env.TTS_SPEED }}" \
+            --gap "${{ env.TTS_GAP }}" \
+            --preserve-cues
+
+      - name: Check output exists
+        id: check_output
+        run: |
+          if [ -f workdir/task/controlled_gemini_live/final.mp4 ]; then
+            echo "output_exists=true" >> $GITHUB_OUTPUT
+            echo "output_file=workdir/task/controlled_gemini_live/final.mp4" >> $GITHUB_OUTPUT
+          elif [ -f workdir/task/controlled_gemini_live/controlled_tts_final.mp4 ]; then
+            echo "output_exists=true" >> $GITHUB_OUTPUT
+            echo "output_file=workdir/task/controlled_gemini_live/controlled_tts_final.mp4" >> $GITHUB_OUTPUT
+          else
+            echo "output_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload final video to R2 and notify Telegram
+        if: steps.check_output.outputs.output_exists == 'true'
+        run: |
+          python scripts/v2/workflows/go_pipeline_io.py upload-notify \
             --job-id "${{ steps.ctx.outputs.r2_prefix }}" \
             --chat-id "${{ steps.ctx.outputs.chat_id }}" \
-            --message-id "${{ steps.ctx.outputs.message_id }}"
+            --path "${{ steps.check_output.outputs.output_file }}"
 
-      - name: Trigger Workflow #3 via repository_dispatch
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Handle failure
+        if: failure() || steps.check_output.outputs.output_exists == 'false'
         run: |
-          gh api \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/dispatches \
-            -f event_type=render_start \
-            -f client_payload[r2_prefix]="${{ steps.ctx.outputs.r2_prefix }}" \
-            -f client_payload[chat_id]="${{ steps.ctx.outputs.chat_id }}" \
-            -f client_payload[message_id]="${{ steps.ctx.outputs.message_id }}"
+          python scripts/v2/workflows/go_pipeline_io.py error \
+            --job-id "${{ steps.ctx.outputs.r2_prefix }}" \
+            --chat-id "${{ steps.ctx.outputs.chat_id }}" \
+            --error-msg "Pipeline execution failed or output final.mp4 not found."
 
+      - name: Upload artifact on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-debug-${{ steps.ctx.outputs.r2_prefix }}
+          path: workdir/

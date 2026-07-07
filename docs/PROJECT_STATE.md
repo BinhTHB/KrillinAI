@@ -1,4 +1,4 @@
-# KrillinAI v2 — Project State
+﻿# KrillinAI v2 — Project State
 
 > This file reflects the **current state of the project** and should be updated after each milestone by the agent who completes it.
 
@@ -31,6 +31,14 @@
 - **Last Updated By**: AI Agent (factory-droid)
 
 ---
+
+### Completed: Unified Go CLI Pipeline Implementation
+
+- `ai_pipeline.yml` rewritten to run `krillinai-cli pipeline local:video_orig.mp4` on GitHub Actions runner.
+- `render.yml` auto-trigger removed (manual-only fallback).
+- Helper script `scripts/v2/workflows/go_pipeline_io.py` added for R2/Telegram I/O.
+- Go CLI builds successfully locally (`go build -o krillinai-cli ./cmd/cli`).
+- Architecture docs (`ARCHITECTURE.md`, `DECISIONS.md` DEC-014) updated.
 
 ## Current Environment
 
@@ -171,4 +179,5 @@
 ---
 
 _Last updated: 2026-07-07_
+
 

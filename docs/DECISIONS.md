@@ -138,4 +138,28 @@ This document records the architectural and technical decisions made during the 
 
 ---
 
+## DEC-014: Unified Go CLI pipeline for Telegram processing
+
+- **Status**: Accepted
+- **Context**: Telegram Workflow #2 and Workflow #3 duplicated local processing logic in Python (`ai_pipeline.py` and `render.py`). This caused divergence from local behavior, including word-level SRT being preserved as TTS chunks and `edge` being selected before Gemini.
+- **Decision**: Keep Workflow #1 for ingest/R2 backup, then run the same local Go CLI pipeline in Workflow #2 using `krillinai-cli pipeline local:<video>`. Workflow #2 now performs subtitle generation, translation, TTS, blur/overlay render, R2 upload, and Telegram notification. Workflow #3 is retained for manual fallback only.
+- **Reason**: Local and Telegram processing must share one implementation so future local feature changes automatically apply to CI/Telegram without manually porting Python logic.
+- **Impact**: GitHub Actions runner must install Go, FFmpeg, Python dependencies, and WhisperX. Hugging Face ASR workflow is no longer the default Telegram path.
+
+---
+
 _Last updated: 2026-07-07_
+## DEC-014: Unified Go CLI Pipeline for Telegram Workflows
+
+- **Status**: Accepted
+- **Context**: Previously, Telegram pipeline used two separate Python-based workflows: AI Pipeline (Workflow #2, i_pipeline.yml) calling Hugging Face Whisper API, then Render (Workflow #3, ender.yml) calling Python TTS/render scripts. This duplicated and diverged from local Go CLI logic (krillinai-cli pipeline), causing word-level SRT issues, wrong TTS provider defaults, and maintenance burden.
+- **Decision**: Replace Workflow #2 and #3 with a single unified workflow i_pipeline.yml that runs the local Go CLI (krillinai-cli pipeline "local:...") on the GitHub Actions runner. The workflow sets up Go, WhisperX (venv), ffmpeg, generates config.toml from secrets, downloads ideo_orig.mp4 from R2, runs the pipeline locally, and uploads final video to R2.
+- **Reason**: Ensures CI runs identical logic to local CLI (single source of truth). Any local Go pipeline improvement automatically applies to Telegram. Removes Python duplication (i_pipeline.py, ender.py logic for ASR/translate/TTS/render).
+- **Impact**: 
+  - Workflow #1 (Ingest) unchanged.
+  - Workflow #2 now runs Go CLI and handles render internally.
+  - Workflow #3 (ender.yml) becomes manual-only (no epository_dispatch trigger).
+  - HF_SPACE_URL and HuggingFaceClient no longer used by Telegram pipeline (WhisperX runs locally on runner).
+  - Environment variable TTS_PROVIDER default changed from edge to gemini to match local.
+  - New helper script scripts/v2/workflows/go_pipeline_io.py for R2/Telegram I/O around Go pipeline.
+
