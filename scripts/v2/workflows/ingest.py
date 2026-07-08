@@ -157,6 +157,8 @@ def run(job_id: str, video_url: str, chat_id: int, message_id: int) -> int:
             "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
             "--js-runtimes",
             "node",
+            "--remote-components",
+            "ejs:github",
             "-o",
             str(video_path),
         ]

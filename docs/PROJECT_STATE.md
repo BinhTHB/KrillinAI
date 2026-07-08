@@ -18,7 +18,7 @@
 
 - **Overall Progress**: 99% (8 of 8 milestones complete; end-to-end integration fully validated)
 
-- **Current Task**: Updated production `YT_DLP_COOKIES` and fixed yt-dlp YouTube Shorts download by enabling Node.js challenge solving in Workflow #1 ingest.
+- **Current Task**: Enabled Node.js and remote components challenge solving in Workflow #1 ingest to fix YouTube Shorts downloads.
 
 - **Current Branch**: `master` (development / sync upstream)
 
