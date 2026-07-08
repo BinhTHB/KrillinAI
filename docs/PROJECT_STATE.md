@@ -18,13 +18,13 @@
 
 - **Overall Progress**: 99% (8 of 8 milestones complete; end-to-end integration fully validated)
 
-- **Current Task**: Standardized GitHub Actions environment selection (`master` -> `development`, `working-branch` -> `production`) and R2 environment variable names to `R2_*`.
+- **Current Task**: Standardized GitHub Actions environment selection (`master` -> `development`, `working-branch` -> `production`) and restored temporary `CF_R2_*` fallback compatibility while preferring `R2_*`.
 
 - **Current Branch**: `master` (development / sync upstream)
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: pending — docs/workflows: standardize GitHub Actions environments and R2 variables
+- **Last Local Commit**: pending — fix: support legacy CF_R2 fallback during R2 variable migration
 
 - **Last Reviewed Date**: 2026-07-08
 
@@ -179,6 +179,7 @@
 ---
 
 _Last updated: 2026-07-07_
+
 
 
 

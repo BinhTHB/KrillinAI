@@ -34,7 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - R2 presigned download URL generation for large final video delivery.
 
 ### Changed
-- GitHub Actions workflows now select the `development` or `production` environment by branch and use standardized `R2_*` variables.
+- GitHub Actions workflows now select the `development` or `production` environment by branch, prefer standardized `R2_*` variables, and expose legacy `CF_R2_*` fallback variables during migration.
 - Dev Cloudflare Worker renamed from `krillin-ai-worker` to `krillin-ai-worker-dev`.
 - Production Cloudflare Worker `krillin-ai-worker-prod` deployed, production Worker secrets configured, and Telegram production webhook set to `/webhook/telegram`.
 - Deployment guide now requires pushing `working-branch` before production deployment and validation, and documents environment-driven Dev/Production separation.
@@ -53,7 +53,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Restructured `TODOList.md` with Status, Estimated Effort, Dependencies, Review Checklist per milestone.
 - Standardized Secrets vs Variables classification across documentation.
 - Documented dev/production mapping in `ARCHITECTURE.md` and `ENVIRONMENT.md`.
-- `scripts/v2/config.py` now supports both `CF_R2_*` and `R2_*` environment variable prefixes, plus R2 region configuration.
+- `scripts/v2/config.py` now prefers `R2_*` and temporarily falls back to legacy `CF_R2_*` variables during migration.
 - `scripts/v2/hf_client.py` now calls the HF Space API instead of raising `NotImplementedError`.
 - `scripts/v2/gemini_client.py` now uses Gemini REST for SRT translation and Gemini Live API (`gemini-3.1-flash-live-preview`) for text-to-audio synthesis.
 - `.github/workflows/ai_pipeline.yml` now installs `google-genai` and passes `GEMINI_TTS_MODEL`.
@@ -92,6 +92,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - Basic project structure and workflow configurations.
+
 
 
 

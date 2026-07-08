@@ -55,11 +55,11 @@ def load_config() -> Config:
         dry_run=dry_run,
         
         # Cloudflare R2
-        r2_access_key_id=os.getenv("R2_ACCESS_KEY_ID"),
-        r2_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY"),
-        r2_endpoint=os.getenv("R2_ENDPOINT"),
-        r2_bucket=os.getenv("R2_BUCKET"),
-        r2_region=os.getenv("R2_REGION", "auto"),
+        r2_access_key_id=os.getenv("R2_ACCESS_KEY_ID") or os.getenv("CF_R2_ACCESS_KEY_ID"),
+        r2_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY") or os.getenv("CF_R2_SECRET_ACCESS_KEY"),
+        r2_endpoint=os.getenv("R2_ENDPOINT") or os.getenv("CF_R2_ENDPOINT"),
+        r2_bucket=os.getenv("R2_BUCKET") or os.getenv("CF_R2_BUCKET"),
+        r2_region=os.getenv("R2_REGION") or os.getenv("CF_R2_REGION", "auto"),
         
         # Hugging Face
         hf_space_url=os.getenv("HF_SPACE_URL"),
@@ -86,6 +86,7 @@ def load_config() -> Config:
         bg_volume=float(os.getenv("BG_VOLUME", "0.10")),
         voice_volume=float(os.getenv("VOICE_VOLUME", "1.6")),
     )
+
 
 
 
