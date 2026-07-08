@@ -28,7 +28,7 @@
 
 - **Last Updated**: 2026-07-08
 
-- **Next Recommended Task**: Promote validated `master` to `working-branch`, push the production branch, then deploy and validate production when requested.
+- **Next Recommended Task**: Monitor production runs, keep master updated with upstream, and enhance pipeline error recovery.
 
 
 
@@ -1614,7 +1614,7 @@
 
 
 
-- [ ] `working-branch` (prod) branch: deploy with separate Spaces / Workers.
+- [x] `working-branch` (prod) branch: deploy with separate Spaces / Workers.
 
 
 
@@ -1828,6 +1828,7 @@
 
 
 _Last updated: 2026-07-06_
+
 
 
 

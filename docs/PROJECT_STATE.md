@@ -10,9 +10,9 @@
 
 - **Code Status**: Worker source implements `POST /health`, `POST /webhook/telegram`, Telegram replies, and GitHub `repository_dispatch`. Ingest uses f2 fallback for Douyin/TikTok, and AI Pipeline includes backoff retry for Gemini API translation.
 
-- **Deployment Status**: Verified. Full pipeline runs (Ingest -> AI Pipeline -> Render) completed successfully via GitHub Actions (runs 28851614314, 28852288882, and 28852435212).
+- **Deployment Status**: Verified. Development full pipeline runs completed successfully via GitHub Actions (runs 28851614314, 28852288882, and 28852435212). Production branch `working-branch` has been pushed and production Worker has been deployed.
 
-- **Operational Validation Status**: Development pipeline fully validated. Ingest download, transcription, translation, TTS, and FFmpeg rendering are working.
+- **Operational Validation Status**: Development pipeline fully validated. Production Worker health and Telegram webhook setup validated; full production E2E video processing remains pending a real Telegram test message.
 
 - **Current Milestone**: Milestone 8 — End-to-End Integration & Production Validation
 
@@ -60,7 +60,7 @@
 
 - **Trigger**: `repository_dispatch` (production webhook).
 
-- **Target Cloudflare Worker**: configured on prod wrangler namespace (e.g. `krillin-ai-prod`).
+- **Target Cloudflare Worker**: `https://krillin-ai-worker-prod.yhomha1111.workers.dev`
 
 - **Target Hugging Face Space**: Legacy (not used in Go CLI pipeline).
 
@@ -72,7 +72,7 @@
 
 - **Development Deployment**: ✅ Complete. Cloudflare Worker deployed, Telegram webhook configured, Worker health validated, repository_dispatch triggered Workflow #1.
 
-- **Production Deployment**: ⏳ Not Started on `working-branch`; dev deployment is now validated.
+- **Production Deployment**: ✅ Complete on `working-branch`. Production Worker deployed, secrets configured, Telegram webhook configured, and Worker health validated.
 
 ---
 
