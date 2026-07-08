@@ -1,10 +1,25 @@
 .idea
 .claude/
-.github/
 docs/plans/
 docs/superpowers/
 tasks/
 cookies.txt
+cookie_string.txt
+douyin_cookies.txt
+www.douyin.com_*.json
+douyin_page.html
+douyin_users.db
+douyin_videos.db
+test_*.json
+test_*.html
+test_*.wav
+debug_frames/
+Download/
+logs/
+*.exe
+krillinai-cli
+__pycache__/
+*.pyc
 .vscode/
 config/config.toml
 bin/
@@ -13,6 +28,17 @@ uploads/
 app.log
 build/
 dist/
+.env
+www.douyin.com_cookies.txt
+
+
+# Cloudflare Worker local development
+worker/.wrangler/
+worker/node_modules/
+worker/dist/
+
+# Workdir for workflow testing
+workdir/
 
 # Superpowers Skills Framework (local junction to ~/.superpowers)
 .superpowers

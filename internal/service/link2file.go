@@ -188,8 +188,8 @@ func downloadDouyinVideoWithF2(url string, outputPath string, proxy string) erro
 	cmd := exec.Command(f2Path, args...)
 	cmd.Env = append(os.Environ(), "PYTHONUTF8=1", "PYTHONIOENCODING=utf-8")
 	output, err := cmd.CombinedOutput()
+	log.GetLogger().Info("f2 download output", zap.String("url", url), zap.String("output", string(output)), zap.Error(err))
 	if err != nil {
-		log.GetLogger().Error("f2 download failed", zap.String("url", url), zap.String("output", string(output)), zap.Error(err))
 		return fmt.Errorf("f2 download failed: %w, output: %s", err, string(output))
 	}
 

@@ -72,8 +72,12 @@ func (c *WhisperXProcessor) Transcription(audioFile, language, workDir string) (
 		cmd = exec.Command(pythonPath, cmdArgs...)
 		cmd.Env = withPythonUTF8Env(os.Environ())
 	} else {
-		envPath := "python3"
+		pythonPath := "./bin/whisperx/.venv/bin/python"
+		if _, err := os.Stat(pythonPath); os.IsNotExist(err) {
+			pythonPath = "python3"
+		}
 		cmdArgs = []string{
+			"-m", "whisperx",
 			audioFile,
 			"--model_dir", "./models/whisperx",
 			"--model", c.Model,
@@ -81,11 +85,9 @@ func (c *WhisperXProcessor) Transcription(audioFile, language, workDir string) (
 			"--output_dir", workDir,
 			"--compute_type", computeType,
 			"--batch_size", batchSize,
-			"--model_cache_only", "True",
 		}
-		cmd = exec.Command(envPath, cmdArgs...)
-		currentEnv := os.Environ()
-		cmd.Env = currentEnv
+		cmd = exec.Command(pythonPath, cmdArgs...)
+		cmd.Env = withPythonUTF8Env(os.Environ())
 	}
 	log.GetLogger().Info("WhisperXProcessor转录开始", zap.String("cmd", cmd.String()))
 	output, err := cmd.CombinedOutput()

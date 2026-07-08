@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Test Gemini 2.5 Flash Native Audio Live Translation with TranslationConfig.
 Send 15s Chinese audio, get Vietnamese audio back.
@@ -50,9 +50,9 @@ async def main():
             voice_config=types.VoiceConfig(
                 prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name="Puck")
             ),
-            language_code="vi-VN",
+
         ),
-        system_instruction="Dịch audio tiếng Trung ở đầu vào sang tiếng Việt. Chỉ nói phần dịch.",
+        system_instruction=types.Content(parts=[types.Part(text="Dịch audio tiếng Trung ở đầu vào sang tiếng Việt. Chỉ nói phần dịch.")]),
         realtime_input_config=types.RealtimeInputConfig(
             automatic_activity_detection=types.AutomaticActivityDetection(
                 disabled=False,
@@ -116,3 +116,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+

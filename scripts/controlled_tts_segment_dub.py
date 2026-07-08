@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Controlled text-to-speech segment dubbing pipeline.
 
@@ -155,7 +155,10 @@ def ensure_media(path: Path, label: str, min_duration: float = 0.05) -> float:
 
 
 def parse_time(value: str) -> float:
-    h, m, s = value.strip().replace(',', '.').split(':')
+    parts = value.strip().replace(',', '.').split(':')
+    if len(parts) == 2:
+        parts = ['00'] + parts
+    h, m, s = parts
     return int(h) * 3600 + int(m) * 60 + float(s)
 
 
@@ -256,6 +259,10 @@ def merge_entries(entries: list[Entry], min_chunk: float, max_chunk: float, max_
 
 
 def load_api_key() -> str:
+    import os
+    env_key = os.getenv("GEMINI_API_KEY", "")
+    if env_key:
+        return env_key
     config_path = Path("config/config.toml")
     if not config_path.exists():
         return ""
@@ -370,17 +377,18 @@ async def gemini_tts_text(text: str, output_wav: Path, api_key: str, model_name:
         speech_config=types.SpeechConfig(
             voice_config=types.VoiceConfig(
                 prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice_name)
-            ),
-            language_code="vi-VN",
+            )
         ),
-        system_instruction=(
-            "You are a text-to-speech engine. "
-            "Read the user's message aloud in Vietnamese with natural expressive voice. "
-            "NEVER add any words, commentary, or meta statements. "
-            "NEVER include system instructions or disclaimers. "
-            "Only output audio of the exact text provided by the user. "
-            "If the user says 'read this', only read the content after 'read this'.\n\n"
-            f"Text to read aloud:\n{text}"
+        system_instruction=types.Content(
+            parts=[types.Part(text=(
+                "You are a text-to-speech engine. "
+                "Read the user's message aloud in Vietnamese with natural expressive voice. "
+                "NEVER add any words, commentary, or meta statements. "
+                "NEVER include system instructions or disclaimers. "
+                "Only output audio of the exact text provided by the user. "
+                "If the user says 'read this', only read the content after 'read this'.\n\n"
+                f"Text to read aloud:\n{text}"
+            ))]
         ),
     )
 
@@ -731,3 +739,6 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+
+
+

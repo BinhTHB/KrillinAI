@@ -25,7 +25,18 @@ func main() {
 		fmt.Print(cli.Help(cmd))
 		return
 	}
+	if cmd.Name == "voices" {
+		if cmd.Voices.Provider == "" {
+			_ = config.LoadConfig()
+		}
+		writeAndExit(cli.Execute(context.Background(), nil, cmd))
+		return
+	}
 	if cmd.DryRun {
+		writeAndExit(cli.Execute(context.Background(), nil, cmd))
+		return
+	}
+	if cmd.Name == "update" {
 		writeAndExit(cli.Execute(context.Background(), nil, cmd))
 		return
 	}

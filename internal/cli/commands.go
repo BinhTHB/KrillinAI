@@ -6,8 +6,11 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"krillin-ai/config"
 	"krillin-ai/internal/pipeline"
 	subtitlestyle "krillin-ai/internal/subtitle_style"
+	"krillin-ai/internal/updater"
+	"krillin-ai/internal/voices"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -57,6 +60,19 @@ type Command struct {
 	Cover             pipeline.CoverRequest
 	Pipeline          pipeline.PipelineRequest
 	GeminiDub         GeminiDubRequest
+	Voices            VoicesRequest
+	Update            UpdateRequest
+}
+
+type VoicesRequest struct {
+	Provider string
+}
+
+type UpdateRequest struct {
+	Repo    string
+	Version string
+	Target  string
+	Force   bool
 }
 
 type GeminiDubRequest struct {
@@ -110,6 +126,10 @@ func Parse(args []string) (Command, error) {
 		return parseCover(name, args[1:])
 	case "gemini-dub":
 		return parseGeminiDub(name, args[1:])
+	case "voices":
+		return parseVoices(name, args[1:])
+	case "update":
+		return parseUpdate(name, args[1:])
 	case "status":
 		if hasHelpArg(args[1:]) {
 			return Command{Name: name, Help: true}, nil
@@ -250,6 +270,27 @@ Flags:
   --dry-run              Validate command without running the script
   -h, --help             Show this help
 `
+	case "voices":
+		return `Usage:
+  krillinai-cli voices [flags]
+
+Flags:
+  --provider <provider>  TTS provider: aliyun, openai, minimax, or edge-tts
+  --dry-run              Return local voice list without external calls
+  -h, --help             Show this help
+`
+	case "update":
+		return `Usage:
+  krillinai-cli update [flags]
+
+Flags:
+  --repo <owner/repo>    GitHub repository (default krillinai/KrillinAI)
+  --version <tag>        Release tag to install
+  --target <path>        Target executable path
+  --force                Force reinstall
+  --dry-run              Validate command without running update
+  -h, --help             Show this help
+`
 	case "status":
 		return `Usage:
   krillinai-cli status
@@ -268,6 +309,8 @@ Commands:
   pipeline             Plan or run multi-stage workflows when supported
   cover                Generate a cover image from a prompt
   gemini-dub           Run controlled Gemini Live dubbing and render final video
+  voices               List supported TTS voices
+  update               Update the CLI from a GitHub release
   status               Reserved status query surface
 
 Run "krillinai-cli <command> --help" for command-specific flags.
@@ -306,6 +349,10 @@ func Execute(ctx context.Context, svc pipeline.StageService, cmd Command) pipeli
 		return executeGeminiDub(ctx, svc, cmd.GeminiDub)
 	case "pipeline":
 		return executeGeminiDub(ctx, svc, cmd.GeminiDub)
+	case "voices":
+		return executeVoices(cmd.Voices)
+	case "update":
+		return executeUpdate(ctx, cmd.Update)
 	default:
 		return pipeline.Response{
 			OK: false,
@@ -315,6 +362,128 @@ func Execute(ctx context.Context, svc pipeline.StageService, cmd Command) pipeli
 				Message: fmt.Sprintf("unsupported command: %s", cmd.Name),
 			},
 		}
+	}
+}
+
+func parseVoices(name string, args []string) (Command, error) {
+	if hasHelpArg(args) {
+		return Command{Name: name, Help: true}, nil
+	}
+	fs := newFlagSet(name)
+	provider := fs.String("provider", "", "tts provider")
+	dryRun := fs.Bool("dry-run", false, "return local voice list without external calls")
+	if err := fs.Parse(args); err != nil {
+		return Command{}, err
+	}
+	if fs.NArg() != 0 {
+		return Command{}, errors.New("voices does not accept positional arguments")
+	}
+	return Command{
+		Name:   name,
+		DryRun: *dryRun,
+		Voices: VoicesRequest{
+			Provider: *provider,
+		},
+	}, nil
+}
+
+func executeVoices(req VoicesRequest) pipeline.Response {
+	provider := strings.TrimSpace(req.Provider)
+	if provider == "" {
+		provider = currentTTSProvider()
+	}
+	list, err := voices.List(provider)
+	if err != nil {
+		return pipeline.Response{
+			OK:    false,
+			Stage: pipeline.StageVoices,
+			Inputs: map[string]string{
+				"provider": provider,
+			},
+			Error: &pipeline.Error{
+				Kind:    pipeline.ErrorKindUsage,
+				Code:    "list_voices_failed",
+				Message: err.Error(),
+			},
+		}
+	}
+	return pipeline.Response{
+		OK:    true,
+		Stage: pipeline.StageVoices,
+		Inputs: map[string]string{
+			"provider": provider,
+		},
+		Voices: list,
+	}
+}
+
+func parseUpdate(name string, args []string) (Command, error) {
+	if hasHelpArg(args) {
+		return Command{Name: name, Help: true}, nil
+	}
+	fs := newFlagSet(name)
+	repo := fs.String("repo", updater.DefaultRepo, "GitHub repository")
+	version := fs.String("version", "", "release tag")
+	target := fs.String("target", "", "target executable")
+	force := fs.Bool("force", false, "force reinstall")
+	dryRun := fs.Bool("dry-run", false, "validate command without running update")
+	if err := fs.Parse(args); err != nil {
+		return Command{}, err
+	}
+	if fs.NArg() != 0 {
+		return Command{}, errors.New("update does not accept positional arguments")
+	}
+	return Command{
+		Name:   name,
+		DryRun: *dryRun,
+		Update: UpdateRequest{
+			Repo:    *repo,
+			Version: *version,
+			Target:  *target,
+			Force:   *force,
+		},
+	}, nil
+}
+
+func executeUpdate(ctx context.Context, req UpdateRequest) pipeline.Response {
+	result, err := updater.Run(ctx, updater.Request{
+		Repo:           req.Repo,
+		Version:        req.Version,
+		Target:         req.Target,
+		Force:          req.Force,
+		CurrentVersion: Version,
+	}, updater.HTTPRunner{})
+	if err != nil {
+		return pipeline.Response{
+			OK:    false,
+			Stage: pipeline.StageUpdate,
+			Error: &pipeline.Error{
+				Kind:      pipeline.ErrorKindRetryable,
+				Code:      "update_failed",
+				Message:   err.Error(),
+				Retryable: true,
+			},
+		}
+	}
+	inputs := map[string]string{
+		"repo": req.Repo,
+	}
+	if req.Version != "" {
+		inputs["version"] = req.Version
+	}
+	if req.Target != "" {
+		inputs["target"] = req.Target
+	}
+	if result.Asset != "" {
+		inputs["asset"] = result.Asset
+	}
+	return pipeline.Response{
+		OK:     true,
+		Stage:  pipeline.StageUpdate,
+		Inputs: inputs,
+		Warnings: []string{
+			result.Message,
+		},
 	}
 }
 
@@ -680,6 +849,24 @@ func dryRun(cmd Command) pipeline.Response {
 				TargetSRT:    filepath.Join(cmd.GeminiDub.Workdir, cmd.GeminiDub.OutputDir, "controlled_aligned.srt"),
 			},
 		}
+
+	case "voices":
+		return executeVoices(cmd.Voices)
+	case "update":
+		inputs := map[string]string{
+			"repo": cmd.Update.Repo,
+		}
+		if cmd.Update.Version != "" {
+			inputs["version"] = cmd.Update.Version
+		}
+		if cmd.Update.Target != "" {
+			inputs["target"] = cmd.Update.Target
+		}
+		return pipeline.Response{
+			OK:     true,
+			Stage:  pipeline.StageUpdate,
+			Inputs: inputs,
+		}
 	default:
 		return pipeline.Response{
 			OK: false,
@@ -690,6 +877,10 @@ func dryRun(cmd Command) pipeline.Response {
 			},
 		}
 	}
+}
+
+var currentTTSProvider = func() string {
+	return config.Conf.Tts.Provider
 }
 
 func dryRunResponse(stage pipeline.Stage, workdir, taskID string) pipeline.Response {

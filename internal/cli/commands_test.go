@@ -148,6 +148,78 @@ func TestParseRenderCommandAcceptsSubtitleStyleFile(t *testing.T) {
 	}
 }
 
+func TestParseUpdateCommand(t *testing.T) {
+	cmd, err := Parse([]string{
+		"update",
+		"--repo", "krillinai/KrillinAI",
+		"--target", "/usr/local/bin/krillinai-cli",
+		"--version", "v2.0.3",
+		"--force",
+	})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if cmd.Name != "update" {
+		t.Fatalf("Name = %q, want update", cmd.Name)
+	}
+	if cmd.Update.Repo != "krillinai/KrillinAI" {
+		t.Fatalf("Repo = %q", cmd.Update.Repo)
+	}
+	if cmd.Update.Target != "/usr/local/bin/krillinai-cli" {
+		t.Fatalf("Target = %q", cmd.Update.Target)
+	}
+	if cmd.Update.Version != "v2.0.3" {
+		t.Fatalf("Version = %q", cmd.Update.Version)
+	}
+	if !cmd.Update.Force {
+		t.Fatal("Force = false, want true")
+	}
+}
+
+func TestParseVoicesCommand(t *testing.T) {
+	cmd, err := Parse([]string{
+		"voices",
+		"--provider", "aliyun",
+	})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if cmd.Name != "voices" {
+		t.Fatalf("Name = %q, want voices", cmd.Name)
+	}
+	if cmd.Voices.Provider != "aliyun" {
+		t.Fatalf("Provider = %q, want aliyun", cmd.Voices.Provider)
+	}
+}
+
+func TestVoicesHelp(t *testing.T) {
+	cmd, err := Parse([]string{"voices", "--help"})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if !cmd.Help || cmd.Name != "voices" {
+		t.Fatalf("Command = %#v, want voices help", cmd)
+	}
+	help := Help(cmd)
+	if !strings.Contains(help, "krillinai-cli voices") || !strings.Contains(help, "--provider") {
+		t.Fatalf("Help() = %q, want voices usage", help)
+	}
+}
+
+func TestUpdateHelp(t *testing.T) {
+	cmd, err := Parse([]string{"update", "--help"})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if !cmd.Help || cmd.Name != "update" {
+		t.Fatalf("Command = %#v, want update help", cmd)
+	}
+	help := Help(cmd)
+	if !strings.Contains(help, "krillinai-cli update") || !strings.Contains(help, "--version") {
+		t.Fatalf("Help() = %q, want update usage", help)
+	}
+}
+
 func TestParseRootHelp(t *testing.T) {
 	cmd, err := Parse([]string{"--help"})
 	if err != nil {
@@ -159,6 +231,12 @@ func TestParseRootHelp(t *testing.T) {
 	help := Help(cmd)
 	if !strings.Contains(help, "Usage:") || !strings.Contains(help, "subtitle") {
 		t.Fatalf("Help() = %q, want root usage with commands", help)
+	}
+	if !strings.Contains(help, "update") {
+		t.Fatalf("Help() = %q, want update command", help)
+	}
+	if !strings.Contains(help, "voices") {
+		t.Fatalf("Help() = %q, want voices command", help)
 	}
 }
 
@@ -464,6 +542,80 @@ func TestExecuteDryRunSubtitleReturnsJSONReadyResponse(t *testing.T) {
 	if resp.Stage != pipeline.StageSubtitle {
 		t.Fatalf("Stage = %s", resp.Stage)
 	}
+}
+
+func TestExecuteDryRunUpdateReturnsJSONReadyResponse(t *testing.T) {
+	cmd, err := Parse([]string{"update", "--dry-run"})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	resp := Execute(context.Background(), nil, cmd)
+	if !resp.OK {
+		t.Fatalf("OK = false, error = %#v", resp.Error)
+	}
+	if resp.Stage != pipeline.StageUpdate {
+		t.Fatalf("Stage = %s, want update", resp.Stage)
+	}
+	if resp.Inputs["repo"] != "krillinai/KrillinAI" {
+		t.Fatalf("repo input = %q", resp.Inputs["repo"])
+	}
+}
+
+func TestExecuteDryRunVoicesReturnsAliyunVoiceList(t *testing.T) {
+	cmd, err := Parse([]string{"voices", "--provider", "aliyun", "--dry-run"})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	resp := Execute(context.Background(), nil, cmd)
+	if !resp.OK {
+		t.Fatalf("OK = false, error = %#v", resp.Error)
+	}
+	if resp.Stage != pipeline.StageVoices {
+		t.Fatalf("Stage = %s, want voices", resp.Stage)
+	}
+	if resp.Inputs["provider"] != "aliyun" {
+		t.Fatalf("provider input = %q", resp.Inputs["provider"])
+	}
+	if len(resp.Voices) == 0 {
+		t.Fatal("Voices is empty, want aliyun voice list")
+	}
+	if !containsVoiceCode(resp.Voices, "longxiaochun_v2") {
+		t.Fatalf("Voices = %#v, want aliyun voice code longxiaochun_v2", resp.Voices)
+	}
+}
+
+func TestExecuteVoicesUsesConfiguredProviderWhenProviderMissing(t *testing.T) {
+	original := currentTTSProvider
+	currentTTSProvider = func() string {
+		return "openai"
+	}
+	t.Cleanup(func() {
+		currentTTSProvider = original
+	})
+
+	cmd, err := Parse([]string{"voices"})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	resp := Execute(context.Background(), nil, cmd)
+	if !resp.OK {
+		t.Fatalf("OK = false, error = %#v", resp.Error)
+	}
+	if resp.Inputs["provider"] != "openai" {
+		t.Fatalf("provider input = %q, want openai", resp.Inputs["provider"])
+	}
+	if !containsVoiceCode(resp.Voices, "alloy") {
+		t.Fatalf("Voices = %#v, want openai voice code alloy", resp.Voices)
+	}
+}
+
+func containsVoiceCode(voices []pipeline.Voice, code string) bool {
+	for _, voice := range voices {
+		if voice.Code == code {
+			return true
+		}
+	}
+	return false
 }
 
 func TestExecuteDryRunRenderRejectsInvalidSubtitleStyleFile(t *testing.T) {

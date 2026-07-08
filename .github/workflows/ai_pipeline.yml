@@ -1,0 +1,231 @@
+﻿name: "Workflow #2: AI Pipeline + Render (Unified Go CLI)"
+
+on:
+  repository_dispatch:
+    types: [ai_pipeline_start]
+  workflow_dispatch:
+    inputs:
+      r2_prefix:
+        description: "Cloudflare R2 object prefix/job_id from Workflow #1"
+        required: true
+        type: string
+      chat_id:
+        description: "Telegram chat ID"
+        required: false
+        default: "0"
+        type: string
+      message_id:
+        description: "Telegram message ID"
+        required: false
+        default: "0"
+        type: string
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      KRILLINAI_DRY_RUN: ${{ vars.KRILLINAI_DRY_RUN || 'false' }}
+      CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
+      CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
+      CF_R2_ENDPOINT: ${{ vars.CF_R2_ENDPOINT }}
+      CF_R2_BUCKET: ${{ vars.CF_R2_BUCKET }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.1-flash-lite' }}
+      TTS_PROVIDER: ${{ vars.TTS_PROVIDER || 'gemini' }}
+      GEMINI_TTS_VOICE: ${{ vars.GEMINI_TTS_VOICE || 'Aoede' }}
+      TTS_SPEED: ${{ vars.TTS_SPEED || '2.1' }}
+      TTS_GAP: ${{ vars.TTS_GAP || '0.02' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3 python3-pip python3-venv curl
+
+      - name: Install yt-dlp
+        run: |
+          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
+          yt-dlp --version
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r scripts/requirements-pipeline.txt
+
+      - name: Set up WhisperX
+        run: |
+          mkdir -p bin/whisperx
+          python3 -m venv bin/whisperx/.venv
+          bin/whisperx/.venv/bin/python -m pip install --upgrade pip
+          bin/whisperx/.venv/bin/pip install -r scripts/requirements-whisperx.txt
+
+      - name: Parse trigger context
+        id: ctx
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "r2_prefix=${{ github.event.client_payload.r2_prefix }}" >> $GITHUB_OUTPUT
+            echo "chat_id=${{ github.event.client_payload.chat_id }}" >> $GITHUB_OUTPUT
+            echo "message_id=${{ github.event.client_payload.message_id }}" >> $GITHUB_OUTPUT
+          else
+            echo "r2_prefix=${{ inputs.r2_prefix }}" >> $GITHUB_OUTPUT
+            echo "chat_id=${{ inputs.chat_id }}" >> $GITHUB_OUTPUT
+            echo "message_id=${{ inputs.message_id }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create config.toml
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.1-flash-lite' }}
+          TTS_PROVIDER: ${{ env.TTS_PROVIDER }}
+        run: |
+          mkdir -p config
+          cat > config/config.toml << CONFIGEOF
+          [app]
+            segment_duration = 5
+            transcribe_parallel_num = 1
+            translate_parallel_num = 1
+            transcribe_max_attempts = 3
+            translate_max_attempts = 5
+            max_sentence_length = 70
+            enable_block_vtt_batch = false
+            vtt_batch_size = 10
+            target_language_first = true
+            short_subtitle_max_chars = 20
+            proxy = ""
+            enable_ocr = false
+
+          [server]
+            host = "127.0.0.1"
+            port = 8888
+
+          [llm]
+            base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+            api_key = "$GEMINI_API_KEY"
+            model = "$GEMINI_MODEL"
+
+          [transcribe]
+            provider = "whisperx"
+            enable_gpu_acceleration = false
+            [transcribe.openai]
+              base_url = ""
+              api_key = ""
+              model = "whisper-1"
+            [transcribe.fasterwhisper]
+              model = "medium"
+            [transcribe.whisperx]
+              model = "medium"
+            [transcribe.whisperkit]
+              model = "large-v2"
+            [transcribe.whispercpp]
+              model = "large-v2"
+
+          [tts]
+            provider = "$TTS_PROVIDER"
+            [tts.openai]
+              base_url = ""
+              api_key = ""
+              model = "tts-1"
+
+          [dubbing]
+            min_subtitle_duration = 2.5
+            max_chunk_size = 5
+            gap_tolerance = 1.5
+            speed_min = 0.95
+            speed_accept = 1.15
+            speed_max = 1.30
+            enable_text_rewrite = false
+            rewrite_max_attempts = 2
+            estimator = "statistical"
+            skip_failed_tts_chunks = true
+
+          [image]
+            provider = "openai-compatible"
+
+          [deepl]
+            api_key = ""
+          CONFIGEOF
+
+      - name: Set env variables
+        run: |
+          echo "GITHUB_OWNER=${{ github.repository_owner }}" >> $GITHUB_ENV
+          echo "GITHUB_REPO=$(echo "${{ github.repository }}" | cut -d"/" -f2)" >> $GITHUB_ENV
+
+      - name: Download video from R2
+        run: |
+          python scripts/v2/workflows/go_pipeline_io.py download \
+            --job-id "${{ steps.ctx.outputs.r2_prefix }}" \
+            --path "workdir/video_orig.mp4"
+
+      - name: Build CLI
+        run: go build -o krillinai-cli ./cmd/cli
+
+      - name: Run pipeline
+        run: |
+          mkdir -p workdir/task
+          cp workdir/video_orig.mp4 workdir/task/origin_video.mp4
+          ./krillinai-cli pipeline "local:workdir/task/origin_video.mp4" \
+            --workdir "workdir/task" \
+            --origin-lang "zh" \
+            --target-lang "vi" \
+            --provider "${{ env.TTS_PROVIDER }}" \
+            --voice "${{ env.GEMINI_TTS_VOICE }}" \
+            --speed "${{ env.TTS_SPEED }}" \
+            --gap "${{ env.TTS_GAP }}" \
+            --preserve-cues
+
+      - name: Check output exists
+        id: check_output
+        run: |
+          if [ -f workdir/task/controlled_gemini_live/final.mp4 ]; then
+            echo "output_exists=true" >> $GITHUB_OUTPUT
+            echo "output_file=workdir/task/controlled_gemini_live/final.mp4" >> $GITHUB_OUTPUT
+          elif [ -f workdir/task/controlled_gemini_live/controlled_tts_final.mp4 ]; then
+            echo "output_exists=true" >> $GITHUB_OUTPUT
+            echo "output_file=workdir/task/controlled_gemini_live/controlled_tts_final.mp4" >> $GITHUB_OUTPUT
+          else
+            echo "output_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload final video to R2 and notify Telegram
+        if: steps.check_output.outputs.output_exists == 'true'
+        run: |
+          python scripts/v2/workflows/go_pipeline_io.py upload-notify \
+            --job-id "${{ steps.ctx.outputs.r2_prefix }}" \
+            --chat-id "${{ steps.ctx.outputs.chat_id }}" \
+            --path "${{ steps.check_output.outputs.output_file }}"
+
+      - name: Handle failure
+        if: failure() || steps.check_output.outputs.output_exists == 'false'
+        run: |
+          python scripts/v2/workflows/go_pipeline_io.py error \
+            --job-id "${{ steps.ctx.outputs.r2_prefix }}" \
+            --chat-id "${{ steps.ctx.outputs.chat_id }}" \
+            --error-msg "Pipeline execution failed or output final.mp4 not found."
+
+      - name: Upload artifact on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-debug-${{ steps.ctx.outputs.r2_prefix }}
+          path: workdir/
+
+
+

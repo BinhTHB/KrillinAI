@@ -1,0 +1,2 @@
+﻿# WhisperX isolated venv dependency
+whisperx==3.8.6
