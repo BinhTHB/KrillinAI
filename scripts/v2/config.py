@@ -1,7 +1,7 @@
 ﻿# ==========================================================================
-# KrillinAI v2 â€“ Environment Configuration Loader
+# KrillinAI v2 - Environment Configuration Loader
 # ==========================================================================
-# Loads settings from environment variables with fallback values.
+# Loads settings from environment variables with safe defaults.
 # No real secrets are stored here.
 # ==========================================================================
 
@@ -86,5 +86,6 @@ def load_config() -> Config:
         bg_volume=float(os.getenv("BG_VOLUME", "0.10")),
         voice_volume=float(os.getenv("VOICE_VOLUME", "1.6")),
     )
+
 
 
