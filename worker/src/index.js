@@ -42,6 +42,29 @@ async function replyTelegram(chatId, text, replyToMessageId, env) {
  * Trigger a GitHub repository_dispatch event to start Workflow #1 (Ingest).
  */
 async function dispatchWorkflow(owner, repo, eventType, payload, env) {
+  if (env.GITHUB_DISPATCH_REF) {
+    const url = `${env.GITHUB_API_URL}/repos/${owner}/${repo}/actions/workflows/ingest.yml/dispatches`;
+    const body = JSON.stringify({
+      ref: env.GITHUB_DISPATCH_REF,
+      inputs: {
+        video_url: payload.videoUrl,
+        chat_id: String(payload.chatId),
+        message_id: String(payload.messageId)
+      }
+    });
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        'User-Agent': 'KrillinAI-Worker'
+      },
+      body
+    });
+    if (!resp.ok) throw new Error(`GitHub workflow_dispatch failed: ${env.GITHUB_DISPATCH_REF} ${resp.status} ${await resp.text()}`);
+    return;
+  }
+
   const url = `${env.GITHUB_API_URL}/repos/${owner}/${repo}/dispatches`;
   const body = JSON.stringify({ event_type: eventType, client_payload: payload });
   const resp = await fetch(url, {
@@ -49,11 +72,11 @@ async function dispatchWorkflow(owner, repo, eventType, payload, env) {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      'User-Agent': 'KrillinAI-Worker',
+      'User-Agent': 'KrillinAI-Worker'
     },
-    body,
+    body
   });
-  if (!resp.ok) throw new Error(`GitHub dispatch failed: ${resp.status} ${await resp.text()}`);
+  if (!resp.ok) throw new Error(`GitHub repository_dispatch failed: ${resp.status} ${await resp.text()}`);
 }
 
 // ── Request router ─────────────────────────────────────────────────────────
