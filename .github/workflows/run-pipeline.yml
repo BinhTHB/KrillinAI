@@ -75,7 +75,7 @@ jobs:
 
       - name: Install f2
         run: |
-          pip install f2 edge-tts google-genai --break-system-packages
+          pip install -r scripts/requirements-ci.txt
           python3 -c "import edge_tts; print(\"edge-tts ok\")"
 
       - name: Set up WhisperX
@@ -191,3 +191,4 @@ jobs:
         with:
           name: processed-video
           path: tasks/ci-task/
+

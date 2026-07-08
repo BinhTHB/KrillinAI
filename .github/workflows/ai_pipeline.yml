@@ -68,7 +68,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install boto3 requests google-genai edge-tts f2
+          pip install -r scripts/requirements-ci.txt
 
       - name: Set up WhisperX
         run: |
@@ -226,3 +226,4 @@ jobs:
         with:
           name: pipeline-debug-${{ steps.ctx.outputs.r2_prefix }}
           path: workdir/
+
