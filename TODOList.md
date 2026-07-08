@@ -28,7 +28,7 @@
 
 - **Last Updated**: 2026-07-08
 
-- **Next Recommended Task**: Monitor production runs, keep master updated with upstream, and enhance pipeline error recovery.
+- **Next Recommended Task**: Commit and push the YouTube ingest fix, then rerun Workflow #1 on `working-branch`.
 
 
 

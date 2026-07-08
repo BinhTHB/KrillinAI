@@ -8,7 +8,7 @@
 
 - **Overall Status**: Core pipeline code is fully implemented and operational. Ingest fallback and AI Pipeline translation timeouts have been validated successfully through end-to-end runs.
 
-- **Code Status**: Worker source implements `POST /health`, `POST /webhook/telegram`, Telegram replies, and GitHub `workflow_dispatch` with explicit branch refs. Ingest uses f2 fallback for Douyin/TikTok, and AI Pipeline includes backoff retry for Gemini API translation.
+- **Code Status**: Worker source implements `POST /health`, `POST /webhook/telegram`, Telegram replies, and GitHub `workflow_dispatch` with explicit branch refs. Ingest uses f2 fallback for Douyin/TikTok, enables Node.js for yt-dlp YouTube challenge solving, and AI Pipeline includes backoff retry for Gemini API translation.
 
 - **Deployment Status**: Verified. Development full pipeline runs completed successfully via GitHub Actions (runs 28851614314, 28852288882, and 28852435212). Production branch `working-branch` has been pushed and production Worker has been deployed.
 
@@ -18,7 +18,7 @@
 
 - **Overall Progress**: 99% (8 of 8 milestones complete; end-to-end integration fully validated)
 
-- **Current Task**: Fixed branch isolation across Workflow #1 → Workflow #2 by replacing downstream `repository_dispatch` with `workflow_dispatch` using the current `github.ref_name`.
+- **Current Task**: Updated production `YT_DLP_COOKIES` and fixed yt-dlp YouTube Shorts download by enabling Node.js challenge solving in Workflow #1 ingest.
 
 - **Current Branch**: `master` (development / sync upstream)
 

@@ -154,7 +154,9 @@ def run(job_id: str, video_url: str, chat_id: int, message_id: int) -> int:
         yt_dlp_cmd = [
             "yt-dlp",
             "-f",
-            "mp4/best",
+            "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+            "--js-runtimes",
+            "node",
             "-o",
             str(video_path),
         ]

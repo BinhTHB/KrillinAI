@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - R2 presigned download URL generation for large final video delivery.
 
 ### Changed
+- Ingest now enables Node.js as the yt-dlp JavaScript runtime and uses a more robust MP4 format selector for YouTube Shorts challenge solving.
 - Ingest now triggers Workflow #2 via `workflow_dispatch` with `ref=${{ github.ref_name }}` so production remains on `working-branch` and reads `krillin-ai-prod`.
 - GitHub Actions workflows now select the `development` or `production` environment by branch, prefer standardized `R2_*` variables, and expose legacy `CF_R2_*` fallback variables during migration.
 - Configured GitHub Actions development and production environments, set target environment secrets/variables, and updated remote secrets/variables using GitHub CLI.
