@@ -18,13 +18,13 @@
 
 - **Overall Progress**: 99% (8 of 8 milestones complete; end-to-end integration fully validated)
 
-- **Current Task**: Updated production release deployment plan to require pushing `working-branch` before production deployment and validation.
+- **Current Task**: Standardized GitHub Actions environment selection (`master` -> `development`, `working-branch` -> `production`) and R2 environment variable names to `R2_*`.
 
 - **Current Branch**: `master` (development / sync upstream)
 
 - **Production Branch**: `working-branch`
 
-- **Last Local Commit**: `8996690` — fix: increase Gemini translate timeout to 300s and add retry backoff
+- **Last Local Commit**: pending — docs/workflows: standardize GitHub Actions environments and R2 variables
 
 - **Last Reviewed Date**: 2026-07-08
 
@@ -52,7 +52,7 @@
 
 - **Target Hugging Face Space**: Legacy (not used in Go CLI pipeline).
 
-- **Target R2 Bucket**: dev bucket configured via variable `CF_R2_BUCKET`.
+- **Target R2 Bucket**: dev bucket configured via variable `R2_BUCKET`.
 
 ### Production Environment
 
@@ -64,7 +64,7 @@
 
 - **Target Hugging Face Space**: Legacy (not used in Go CLI pipeline).
 
-- **Target R2 Bucket**: prod bucket configured via variable `CF_R2_BUCKET`.
+- **Target R2 Bucket**: prod bucket configured via variable `R2_BUCKET`.
 
 ---
 
@@ -179,6 +179,8 @@
 ---
 
 _Last updated: 2026-07-07_
+
+
 
 
 

@@ -51,6 +51,7 @@ on:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'working-branch' && 'production' || 'development' }}
     timeout-minutes: 360
 
     steps:
@@ -194,6 +195,8 @@ jobs:
         with:
           name: processed-video
           path: tasks/ci-task/
+
+
 
 
 
