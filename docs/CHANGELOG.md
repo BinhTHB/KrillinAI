@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - R2 presigned download URL generation for large final video delivery.
 
 ### Changed
+- Dev Cloudflare Worker renamed from `krillin-ai-worker` to `krillin-ai-worker-dev`.
 - Production Cloudflare Worker `krillin-ai-worker-prod` deployed, production Worker secrets configured, and Telegram production webhook set to `/webhook/telegram`.
 - Deployment guide now requires pushing `working-branch` before production deployment and validation, and documents environment-driven Dev/Production separation.
 - Standardized ASR compute on GitHub Actions Go CLI (no HF Space) to run WhisperX locally on runner.
@@ -44,7 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Ingest workflow now passes optional `YT_DLP_COOKIES` from GitHub Secrets to `yt-dlp`, enabling authenticated Douyin/TikTok downloads when fresh cookies are required.
 - Deployment guide now documents how to export Douyin/TikTok cookies and store them as the `YT_DLP_COOKIES` GitHub Actions Secret.
 - `scripts/v2/workflows/ingest.py` now catches `yt-dlp` and FFmpeg failures, stores failed metadata, and sends a human-readable Telegram error message.
-- Cloudflare Worker entry point deployed and validated at `https://krillin-ai-worker.yhomha1111.workers.dev`; Telegram webhook configured to `/webhook/telegram`.
+- Cloudflare Worker entry point deployed and validated at `https://krillin-ai-worker-dev.yhomha1111.workers.dev`; Telegram webhook configured to `/webhook/telegram`.
 - `worker/wrangler.toml` now includes non-sensitive production defaults for GitHub dispatch and Telegram API URL while keeping secrets out of source control.
 - Project state now marks Telegram entry as operationally validated for development after Worker health, webhook setup, and repository_dispatch trigger checks passed.
 - Project state now separates Code Status, Deployment Status, and Operational Validation Status.
@@ -90,6 +91,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - Basic project structure and workflow configurations.
+
+
+
+
 
 
 

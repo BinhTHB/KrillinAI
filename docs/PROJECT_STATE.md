@@ -48,7 +48,7 @@
 
 - **Trigger**: `repository_dispatch` (development webhook) or manual `workflow_dispatch`.
 
-- **Target Cloudflare Worker**: `https://krillin-ai-worker.yhomha1111.workers.dev`
+- **Target Cloudflare Worker**: `https://krillin-ai-worker-dev.yhomha1111.workers.dev`
 
 - **Target Hugging Face Space**: Legacy (not used in Go CLI pipeline).
 
@@ -156,7 +156,7 @@
 
 1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `AGENT_ONBOARDING.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md` → `CHANGELOG.md`
 
-2. **Current focus**: Dev Telegram entry point is live at `https://krillin-ai-worker.yhomha1111.workers.dev`. Next: promote validated `master` to `working-branch`, push the production branch, then deploy and validate production from the remote branch.
+2. **Current focus**: Dev Telegram entry point is live at `https://krillin-ai-worker-dev.yhomha1111.workers.dev`. Next: promote validated `master` to `working-branch`, push the production branch, then deploy and validate production from the remote branch.
 
 3. **Do not** change architecture, workflow triggers, or branch strategy without a new entry in `DECISIONS.md`.
 
@@ -179,6 +179,7 @@
 ---
 
 _Last updated: 2026-07-07_
+
 
 
 

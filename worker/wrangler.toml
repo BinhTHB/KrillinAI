@@ -1,4 +1,4 @@
-﻿name = "krillin-ai-worker"
+﻿name = "krillin-ai-worker-dev"
 main = "src/index.js"
 compatibility_date = "2026-07-05"
 
@@ -22,3 +22,4 @@ GITHUB_REPO = "KrillinAI"
 GITHUB_DISPATCH_EVENT = "telegram_video_ingest"
 GITHUB_API_URL = "https://api.github.com"
 TELEGRAM_API_URL = "https://api.telegram.org/bot"
+

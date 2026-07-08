@@ -1,5 +1,5 @@
 ﻿{
-  "name": "krillin-ai-worker",
+  "name": "krillin-ai-worker-dev",
   "version": "1.0.0",
   "description": "API Gateway & Telegram Dispatcher for KrillinAI v2",
   "main": "src/index.js",
@@ -11,3 +11,4 @@
     "wrangler": "^3.0.0"
   }
 }
+
