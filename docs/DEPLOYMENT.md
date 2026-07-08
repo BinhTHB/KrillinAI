@@ -175,8 +175,8 @@ Set under Settings → Secrets and variables → Actions → Secrets.
 
 | Name | Description |
 |------|-------------|
-| `CF_R2_ACCESS_KEY_ID` | Cloudflare R2 access key ID. |
-| `CF_R2_SECRET_ACCESS_KEY` | Cloudflare R2 secret access key. |
+| `R2_ACCESS_KEY_ID` | Cloudflare R2 access key ID. |
+| `R2_SECRET_ACCESS_KEY` | Cloudflare R2 secret access key. |
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot API token. |
 | `GEMINI_API_KEY` | Google Gemini API key. |
 | `GOOGLE_DRIVE_CREDENTIALS` | Google Service Account JSON for Drive upload. |
@@ -188,8 +188,8 @@ Set under Settings → Secrets and variables → Actions → Variables.
 | Name | Description |
 |------|-------------|
 | `KRILLINAI_DRY_RUN` | Use "true" during development/testing to skip real API calls. Set to "false" or unset in production once integrations are ready. |
-| `CF_R2_ENDPOINT` | Cloudflare R2 S3-compatible endpoint URL (non‑sensitive). |
-| `CF_R2_BUCKET` | Name of the R2 bucket (non‑sensitive). |
+| `R2_ENDPOINT` | Cloudflare R2 S3-compatible endpoint URL (non‑sensitive). |
+| `R2_BUCKET` | Name of the R2 bucket (non‑sensitive). |
 | `HF_SPACE_URL` | Base URL of the Hugging Face Space, e.g. `https://your-krillin-asr-prod.hf.space`. |
 | `WHISPER_MODEL` | ASR model name, default `base` for CPU Free Tier. |
 | `GEMINI_MODEL` | Gemini model for translation/TTS, default `gemini-1.5-flash`. |
@@ -358,7 +358,7 @@ If the bot does not respond, check in order:
 
 ### R2 bucket
 
-Create a bucket in Cloudflare Dashboard, generate R2 API tokens, and set `CF_R2_ACCESS_KEY_ID`, `CF_R2_SECRET_ACCESS_KEY`, `CF_R2_ENDPOINT`, `CF_R2_BUCKET` in GitHub Secrets and Variables.
+Create a bucket in Cloudflare Dashboard, generate R2 API tokens, and set `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT`, `R2_BUCKET` in GitHub Secrets and Variables.
 
 ## Hugging Face Space
 
@@ -443,4 +443,5 @@ Set `KRILLINAI_DRY_RUN=true` in GitHub Variables (default) to skip real external
 ### Trigger via workflow_dispatch in GitHub UI
 
 Use the `workflow_dispatch` trigger on each workflow to run manually with test inputs.
+
 

@@ -50,7 +50,7 @@ This document records the architectural and technical decisions made during the 
 - **Context**: Over‑classifying configs as Secrets makes it harder to debug/adjust variables like model names, bucket names, and endpoints.
 - **Decision**:
   - **Secrets** (highly sensitive): tokens, API keys, Google Drive JSON, Cloudflare access keys.
-  - **Variables** (non‑sensitive configuration): `CF_R2_BUCKET`, `CF_R2_ENDPOINT`, `HF_SPACE_URL`, `WHISPER_MODEL`, `GEMINI_MODEL`, `GOOGLE_DRIVE_FOLDER_ID`, `KRILLINAI_DRY_RUN`.
+  - **Variables** (non‑sensitive configuration): `R2_BUCKET`, `R2_ENDPOINT`, `HF_SPACE_URL`, `WHISPER_MODEL`, `GEMINI_MODEL`, `GOOGLE_DRIVE_FOLDER_ID`, `KRILLINAI_DRY_RUN`.
 - **Reason**: Increases visibility of non-sensitive parameters in GitHub Actions UI.
 - **Impact**: Environment variables must be bound correctly to `secrets.*` or `vars.*` in workflow files.
 
@@ -167,3 +167,4 @@ This document records the architectural and technical decisions made during the 
 ---
 
 _Last updated: 2026-07-07_
+

@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - R2 presigned download URL generation for large final video delivery.
 
 ### Changed
+- GitHub Actions workflows now select the `development` or `production` environment by branch and use standardized `R2_*` variables.
 - Dev Cloudflare Worker renamed from `krillin-ai-worker` to `krillin-ai-worker-dev`.
 - Production Cloudflare Worker `krillin-ai-worker-prod` deployed, production Worker secrets configured, and Telegram production webhook set to `/webhook/telegram`.
 - Deployment guide now requires pushing `working-branch` before production deployment and validation, and documents environment-driven Dev/Production separation.
@@ -91,6 +92,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - Basic project structure and workflow configurations.
+
 
 
 

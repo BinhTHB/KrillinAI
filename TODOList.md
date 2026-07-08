@@ -404,7 +404,7 @@
 
 
 
-- [x] Add `_s3_client()` method that lazily creates a `boto3.client("s3", …)` using `CF_R2_*` env vars
+- [x] Add `_s3_client()` method that lazily creates a `boto3.client("s3", …)` using `R2_*` env vars
 
 
 
@@ -1828,6 +1828,7 @@
 
 
 _Last updated: 2026-07-06_
+
 
 
 
