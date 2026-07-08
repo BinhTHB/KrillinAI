@@ -85,18 +85,18 @@ jobs:
             --chat-id "${{ steps.ctx.outputs.chat_id }}" \
             --message-id "${{ steps.ctx.outputs.message_id }}"
 
-      - name: Trigger Workflow #2 via repository_dispatch
+      - name: Trigger Workflow #2 via workflow_dispatch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh api \
             -X POST \
             -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/dispatches \
-            -f event_type=ai_pipeline_start \
-            -f client_payload[r2_prefix]="${{ github.run_id }}" \
-            -f client_payload[chat_id]="${{ steps.ctx.outputs.chat_id }}" \
-            -f client_payload[message_id]="${{ steps.ctx.outputs.message_id }}"
+            /repos/${{ github.repository }}/actions/workflows/ai_pipeline.yml/dispatches \
+            -f ref="${{ github.ref_name }}" \
+            -f inputs[r2_prefix]="${{ github.run_id }}" \
+            -f inputs[chat_id]="${{ steps.ctx.outputs.chat_id }}" \
+            -f inputs[message_id]="${{ steps.ctx.outputs.message_id }}"
 
 
 

@@ -168,3 +168,16 @@ This document records the architectural and technical decisions made during the 
 
 _Last updated: 2026-07-07_
 
+---
+
+## DEC-016: Workflow_dispatch instead of repository_dispatch for pipeline chaining
+
+- **Status**: Accepted
+- **Context**: `repository_dispatch` always targets the default branch (`master`). Workflow #2 triggered via `repository_dispatch` from a production Workflow #1 (running on `working-branch`) jumps back to `master`, selects the `development` environment, and attempts to use the development R2 bucket, causing 404 errors.
+- **Decision**: Replace `repository_dispatch` with `workflow_dispatch` (with explicit `ref: ${{ github.ref_name }} `) for all workflow-to-workflow triggers. Both Workers also use `workflow_dispatch` (via `GITHUB_DISPATCH_REF`) instead of `repository_dispatch`.
+- **Reason**: `workflow_dispatch` supports specifying an exact branch ref, preserving environment isolation between dev and production across the entire pipeline chain.
+- **Impact**: Ingest's final step now calls `/actions/workflows/ai_pipeline.yml/dispatches` instead of `/dispatches`. Worker's `dispatchWorkflow` uses `workflow_dispatch` when `GITHUB_DISPATCH_REF` is set rather than `repository_dispatch`.
+
+_Last updated: 2026-07-08_
+
+
