@@ -47,7 +47,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Install dependencies
-        run: pip install yt-dlp -r scripts/requirements-ci.txt
+        run: pip install yt-dlp -r scripts/requirements-ingest.txt
 
       - name: Parse trigger context
         id: ctx
@@ -90,4 +90,5 @@ jobs:
             -f client_payload[r2_prefix]="${{ github.run_id }}" \
             -f client_payload[chat_id]="${{ steps.ctx.outputs.chat_id }}" \
             -f client_payload[message_id]="${{ steps.ctx.outputs.message_id }}"
+
 

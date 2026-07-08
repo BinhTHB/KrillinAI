@@ -68,14 +68,14 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install -r scripts/requirements-ci.txt
+          pip install -r scripts/requirements-pipeline.txt
 
       - name: Set up WhisperX
         run: |
           mkdir -p bin/whisperx
           python3 -m venv bin/whisperx/.venv
           bin/whisperx/.venv/bin/python -m pip install --upgrade pip
-          bin/whisperx/.venv/bin/pip install whisperx
+          bin/whisperx/.venv/bin/pip install -r scripts/requirements-whisperx.txt
 
       - name: Parse trigger context
         id: ctx
@@ -226,4 +226,6 @@ jobs:
         with:
           name: pipeline-debug-${{ steps.ctx.outputs.r2_prefix }}
           path: workdir/
+
+
 

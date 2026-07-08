@@ -73,9 +73,12 @@ jobs:
           sudo chmod a+rx /usr/local/bin/yt-dlp
           yt-dlp --version
 
-      - name: Install f2
+      - name: Install Python dependencies
         run: |
-          pip install -r scripts/requirements-ci.txt
+          python3 -m venv bin/f2/.venv
+          bin/f2/.venv/bin/pip install f2==0.0.1.7
+          echo "$PWD/bin/f2/.venv/bin" >> $GITHUB_PATH
+          pip install -r scripts/requirements-pipeline.txt
           python3 -c "import edge_tts; print(\"edge-tts ok\")"
 
       - name: Set up WhisperX
@@ -85,7 +88,7 @@ jobs:
           python3 -m venv bin/whisperx/.venv
           source bin/whisperx/.venv/bin/activate
           pip install --upgrade pip
-          pip install whisperx
+          bin/whisperx/.venv/bin/pip install -r scripts/requirements-whisperx.txt
           whisperx --help
 
       - name: Create Douyin cookie file
@@ -191,4 +194,6 @@ jobs:
         with:
           name: processed-video
           path: tasks/ci-task/
+
+
 
