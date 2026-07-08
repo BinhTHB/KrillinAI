@@ -1,4 +1,4 @@
-import os
+﻿import os
 import asyncio
 import requests
 import tempfile
@@ -86,9 +86,11 @@ class GeminiClient:
                     prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)
                 )
             ),
-            system_instruction=(
-                "You are a text-to-speech engine. Read the user's message aloud in Vietnamese. "
-                "Do not add any words, explanations, or meta statements. Only output audio."
+            system_instruction=types.Content(
+                parts=[types.Part(text=(
+                    "You are a text-to-speech engine. Read the user's message aloud in Vietnamese. "
+                    "Do not add any words, explanations, or meta statements. Only output audio."
+                ))]
             ),
         )
         received_audio = bytearray()
@@ -126,3 +128,4 @@ class GeminiClient:
                 temp_pcm.unlink()
             if out_wav.exists():
                 out_wav.unlink()
+

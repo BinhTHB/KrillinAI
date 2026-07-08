@@ -81,7 +81,7 @@ async def translate_audio_sdk(api_key, input_pcm, system_prompt):
             ),
 
         ),
-        system_instruction=system_prompt,
+        system_instruction=types.Content(parts=[types.Part(text=system_prompt)]),
         realtime_input_config=types.RealtimeInputConfig(
             automatic_activity_detection=types.AutomaticActivityDetection(
                 disabled=False,
@@ -264,4 +264,5 @@ async def main_async():
 
 if __name__ == "__main__":
     asyncio.run(main_async())
+
 

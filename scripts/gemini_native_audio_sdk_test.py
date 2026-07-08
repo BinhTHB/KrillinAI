@@ -52,7 +52,7 @@ async def main():
             ),
 
         ),
-        system_instruction="Dịch audio tiếng Trung ở đầu vào sang tiếng Việt. Chỉ nói phần dịch.",
+        system_instruction=types.Content(parts=[types.Part(text="Dịch audio tiếng Trung ở đầu vào sang tiếng Việt. Chỉ nói phần dịch.")]),
         realtime_input_config=types.RealtimeInputConfig(
             automatic_activity_detection=types.AutomaticActivityDetection(
                 disabled=False,
@@ -116,4 +116,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 

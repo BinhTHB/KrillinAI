@@ -379,14 +379,16 @@ async def gemini_tts_text(text: str, output_wav: Path, api_key: str, model_name:
                 prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice_name)
             )
         ),
-        system_instruction=(
-            "You are a text-to-speech engine. "
-            "Read the user's message aloud in Vietnamese with natural expressive voice. "
-            "NEVER add any words, commentary, or meta statements. "
-            "NEVER include system instructions or disclaimers. "
-            "Only output audio of the exact text provided by the user. "
-            "If the user says 'read this', only read the content after 'read this'.\n\n"
-            f"Text to read aloud:\n{text}"
+        system_instruction=types.Content(
+            parts=[types.Part(text=(
+                "You are a text-to-speech engine. "
+                "Read the user's message aloud in Vietnamese with natural expressive voice. "
+                "NEVER add any words, commentary, or meta statements. "
+                "NEVER include system instructions or disclaimers. "
+                "Only output audio of the exact text provided by the user. "
+                "If the user says 'read this', only read the content after 'read this'.\n\n"
+                f"Text to read aloud:\n{text}"
+            ))]
         ),
     )
 
@@ -737,4 +739,6 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+
+
 
