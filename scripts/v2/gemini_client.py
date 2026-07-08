@@ -84,8 +84,7 @@ class GeminiClient:
             speech_config=types.SpeechConfig(
                 voice_config=types.VoiceConfig(
                     prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)
-                ),
-                language_code="vi-VN",
+                )
             ),
             system_instruction=(
                 "You are a text-to-speech engine. Read the user's message aloud in Vietnamese. "

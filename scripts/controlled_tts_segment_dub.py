@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Controlled text-to-speech segment dubbing pipeline.
 
@@ -377,8 +377,7 @@ async def gemini_tts_text(text: str, output_wav: Path, api_key: str, model_name:
         speech_config=types.SpeechConfig(
             voice_config=types.VoiceConfig(
                 prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice_name)
-            ),
-            language_code="vi-VN",
+            )
         ),
         system_instruction=(
             "You are a text-to-speech engine. "
@@ -738,3 +737,4 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+

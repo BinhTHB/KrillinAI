@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Translate and dub video from Chinese to Vietnamese using Gemini 2.5 Flash Native Audio Live Translation.
 Uses google-genai SDK for robust connection.
@@ -79,7 +79,7 @@ async def translate_audio_sdk(api_key, input_pcm, system_prompt):
             voice_config=types.VoiceConfig(
                 prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name="Puck")
             ),
-            language_code="vi-VN",
+
         ),
         system_instruction=system_prompt,
         realtime_input_config=types.RealtimeInputConfig(
@@ -264,3 +264,4 @@ async def main_async():
 
 if __name__ == "__main__":
     asyncio.run(main_async())
+
