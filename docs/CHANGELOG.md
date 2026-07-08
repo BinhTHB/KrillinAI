@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - R2 presigned download URL generation for large final video delivery.
 
 ### Changed
+- Production Cloudflare Worker `krillin-ai-worker-prod` deployed, production Worker secrets configured, and Telegram production webhook set to `/webhook/telegram`.
 - Deployment guide now requires pushing `working-branch` before production deployment and validation, and documents environment-driven Dev/Production separation.
 - Standardized ASR compute on GitHub Actions Go CLI (no HF Space) to run WhisperX locally on runner.
 - Replaced Python-based AI Pipeline (`ai_pipeline.py`) and Render (`render.py`) with unified Go CLI execution for Telegram pipeline.

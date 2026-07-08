@@ -12,3 +12,13 @@ TELEGRAM_API_URL = "https://api.telegram.org/bot"
 # Secrets must be configured with `npx wrangler secret put ...` or in Cloudflare Dashboard:
 # GITHUB_TOKEN = ""
 # TELEGRAM_BOT_TOKEN = ""
+
+[env.production]
+name = "krillin-ai-worker-prod"
+
+[env.production.vars]
+GITHUB_OWNER = "BinhTHB"
+GITHUB_REPO = "KrillinAI"
+GITHUB_DISPATCH_EVENT = "telegram_video_ingest"
+GITHUB_API_URL = "https://api.github.com"
+TELEGRAM_API_URL = "https://api.telegram.org/bot"
