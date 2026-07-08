@@ -238,7 +238,7 @@ npx wrangler login
 
 ### Configure Worker variables
 
-Non-sensitive defaults are set in `worker/wrangler.toml`. Override them in Cloudflare Dashboard → Workers & Pages → `krillin-ai-worker` → Settings → Variables and Secrets → Variables when deploying a different repo or environment.
+Non-sensitive defaults are set in `worker/wrangler.toml`. Override them in Cloudflare Dashboard → Workers & Pages → `krillin-ai-worker-dev` → Settings → Variables and Secrets → Variables when deploying a different repo or environment.
 
 | Name | Required | Example | Description |
 |------|----------|---------|-------------|
@@ -275,7 +275,7 @@ npx wrangler deploy
 Expected Worker URL:
 
 ```text
-https://krillin-ai-worker.<cloudflare-subdomain>.workers.dev
+https://krillin-ai-worker-dev.<cloudflare-subdomain>.workers.dev
 ```
 
 If a custom domain or route is configured in Cloudflare, use that URL instead.
@@ -291,7 +291,7 @@ https://api.telegram.org/bot<TOKEN>/setWebhook?url=<WORKER_URL>/webhook/telegram
 Example:
 
 ```bash
-curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://krillin-ai-worker.<cloudflare-subdomain>.workers.dev/webhook/telegram"
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://krillin-ai-worker-dev.<cloudflare-subdomain>.workers.dev/webhook/telegram"
 ```
 
 ### Verify Telegram webhook
@@ -443,3 +443,4 @@ Set `KRILLINAI_DRY_RUN=true` in GitHub Variables (default) to skip real external
 ### Trigger via workflow_dispatch in GitHub UI
 
 Use the `workflow_dispatch` trigger on each workflow to run manually with test inputs.
+
