@@ -54,7 +54,7 @@ Mục tiêu của kiến trúc:
         (Video gốc + Audio FLAC + Metadata)
                 |
                 ▼
-        Trigger Workflow #2 (repository_dispatch)
+        Trigger Workflow #2 (workflow_dispatch)
 
         =====================================================
                 GITHUB ACTIONS WORKFLOW #2 (GO CLI PIPELINE)
@@ -127,7 +127,7 @@ Chỉ chịu trách nhiệm chuẩn bị dữ liệu.
 1. Download video gốc từ Telegram URL (yt-dlp + f2 fallback cho Douyin)
 2. Trích xuất audio (FFmpeg: FLAC 16kHz mono)
 3. Upload `video_orig.mp4` + `audio_orig.flac` + metadata lên Cloudflare R2
-4. Gửi `repository_dispatch` để kích Workflow #2
+4. Gửi `workflow_dispatch` để kích Workflow #2
 
 Không chạy AI.
 
@@ -229,7 +229,7 @@ Workflow được tách biệt hoàn toàn.
 ```text
 Workflow 1 (Ingest)
 
-    ↓ (repository_dispatch)
+    ↓ (workflow_dispatch)
 
 Workflow 2 (Go CLI Pipeline)
 ```
@@ -295,3 +295,4 @@ Không cần chạy lại Ingest.
 KrillinAI v2 áp dụng mô hình **Serverless Event-Driven Pipeline** với **Go CLI làm single source of truth** cho toàn bộ logic xử lý.
 
 Toàn bộ ASR, dịch, TTS, đồng bộ và render đều đi qua một pipeline Go duy nhất, chạy giống hệt trên local và GitHub Actions. Điều này giúp tránh việc nhân bản logic và đảm bảo mọi cải tiến ở local tự động áp dụng cho Telegram pipeline.
+
