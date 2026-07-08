@@ -26,9 +26,9 @@
 
 
 
-- **Last Updated**: 2026-07-07
+- **Last Updated**: 2026-07-08
 
-- **Next Recommended Task**: Deploy production `working-branch` when requested, or enhance Worker to support Telegram chat state recovery.
+- **Next Recommended Task**: Promote validated `master` to `working-branch`, push the production branch, then deploy and validate production when requested.
 
 
 

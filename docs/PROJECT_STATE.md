@@ -18,7 +18,7 @@
 
 - **Overall Progress**: 99% (8 of 8 milestones complete; end-to-end integration fully validated)
 
-- **Current Task**: Completed Gemini translation timeout fix and retry logic. Validated full E2E pipeline successfully.
+- **Current Task**: Updated production release deployment plan to require pushing `working-branch` before production deployment and validation.
 
 - **Current Branch**: `master` (development / sync upstream)
 
@@ -26,7 +26,7 @@
 
 - **Last Local Commit**: `8996690` — fix: increase Gemini translate timeout to 300s and add retry backoff
 
-- **Last Reviewed Date**: 2026-07-07
+- **Last Reviewed Date**: 2026-07-08
 
 - **Last Updated By**: AI Agent (factory-droid)
 
@@ -156,7 +156,7 @@
 
 1. **Read order**: `PROJECT_STATE.md` → `DECISIONS.md` → `AGENT_ONBOARDING.md` → `TODOList.md` → `ENVIRONMENT.md` → `DEPLOYMENT.md` → `VERSIONS.md` → `CHANGELOG.md`
 
-2. **Current focus**: Dev Telegram entry point is live at `https://krillin-ai-worker.yhomha1111.workers.dev`. Next: send a real Telegram message to validate real chat acknowledgement and production deploy on `working-branch` if requested.
+2. **Current focus**: Dev Telegram entry point is live at `https://krillin-ai-worker.yhomha1111.workers.dev`. Next: promote validated `master` to `working-branch`, push the production branch, then deploy and validate production from the remote branch.
 
 3. **Do not** change architecture, workflow triggers, or branch strategy without a new entry in `DECISIONS.md`.
 

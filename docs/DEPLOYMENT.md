@@ -8,6 +8,147 @@
 - Google Cloud project with Drive API enabled (optional, for >50 MB videos).
 - Telegram Bot token from @BotFather.
 
+## Production Release Process
+
+Use this process when `master` has been validated and is ready to be promoted to `working-branch`.
+
+### Branch strategy
+
+`working-branch` is the production snapshot of `master`.
+
+After each release:
+
+- Merge `master` into `working-branch`.
+- Keep both branches aligned in logic, source code, workflow files, and project structure.
+- Allow differences only in commit history and release state.
+- Do not maintain two branches with different application logic.
+
+`master` remains the development and upstream synchronization branch. `working-branch` remains the production branch. Production is only updated after `working-branch` is pushed to GitHub.
+
+### Configuration strategy
+
+Do not separate Development and Production by source code or branch-specific code edits.
+
+Development and Production differences must be managed only through environment configuration:
+
+- GitHub Secrets
+- GitHub Variables
+- Cloudflare Worker Secrets
+- Cloudflare Worker Variables
+- Telegram Bot Token
+- Cloudflare R2 Bucket
+- Cloudflare R2 Endpoint
+- Gemini API Key
+- Worker URL
+- Telegram Webhook URL
+- Other environment-specific values
+
+Do not hardcode production values or maintain production-only source changes.
+
+### Release flow
+
+```powershell
+git checkout master
+git status
+git pull origin master
+
+git checkout working-branch
+git status
+git pull origin working-branch
+
+git merge master --no-ff -m "release: promote validated master to production"
+```
+
+After the merge, complete review before pushing:
+
+```powershell
+git diff origin/working-branch..working-branch
+git status
+```
+
+Review checklist before push:
+
+- Review diff and branch status.
+- Run secret scan or manually verify no secrets, cookies, tokens, credentials, `.env`, or generated sensitive files are included.
+- Review workflow and config changes.
+- Confirm production configuration remains environment-driven.
+
+Then push the production branch before any deploy or production validation:
+
+```powershell
+git push origin working-branch
+```
+
+This order is required because `working-branch` is the production branch. Production validation must run only against a version that already exists on the remote production branch.
+
+After push:
+
+1. Configure production GitHub Variables and Secrets if needed.
+2. Deploy Cloudflare Worker production.
+3. Configure Telegram production webhook.
+4. Run production E2E validation.
+5. Verify GitHub Actions, Worker logs, R2 output, and Telegram delivery.
+6. Update `PROJECT_STATE.md`, `CHANGELOG.md`, and `TODOList.md`.
+
+### Short deployment flow
+
+```text
+master stable
+    ↓
+merge master -> working-branch
+    ↓
+review diff + secret scan
+    ↓
+push working-branch
+    ↓
+configure production vars/secrets (nếu cần)
+    ↓
+deploy Cloudflare Worker production
+    ↓
+set Telegram production webhook
+    ↓
+run production E2E test
+    ↓
+verify GitHub Actions, Worker logs, R2, Telegram
+    ↓
+update PROJECT_STATE.md
+update CHANGELOG.md
+update TODOList.md
+```
+
+### Release notes
+
+- Review diff and secret scan must complete before push.
+- Production validation must happen only after the production branch on GitHub contains the release version.
+- If production validation succeeds, creating a Git tag is recommended for traceability and rollback, but it is not required.
+
+### Cloudflare Worker source policy
+
+Do not create separate Dev and Production Worker source implementations.
+
+Prefer:
+
+- The same Worker source code.
+- Multiple environments (`dev`, `production`) or deployment configuration.
+- Environment-specific Worker Secrets and Variables.
+
+Do not maintain two configuration files with different logic unless there is a real operational need.
+
+### GitHub Actions policy
+
+Workflows on `master` and `working-branch` should stay the same.
+
+Do not create a production-only workflow just because tokens, buckets, or endpoints differ. Workflows must use the same logic and read values from GitHub Secrets/Variables for the relevant branch or environment.
+
+### Telegram policy
+
+Telegram Dev and Production differ only by:
+
+- Bot Token
+- Webhook URL
+
+Webhook processing logic must stay shared.
+
 ## Version Pinning
 
 | Component | Version / Tag | Notes |
@@ -254,11 +395,11 @@ WHISPER_COMPUTE_TYPE=float16
 |-------|-------------|------------|
 | GitHub branch | `master` | `working-branch` |
 | GitHub Variables | `KRILLINAI_DRY_RUN=true`, dev HF/Drive URLs | `KRILLINAI_DRY_RUN=false` (or unset), prod URLs |
-| Cloudflare Worker | Separate Worker deployment for dev | Separate Worker deployment for prod |
+| Cloudflare Worker | Same source, dev deployment/config | Same source, production deployment/config |
 | Hugging Face Space | Docker CPU Basic (Free), `krillin-asr-dev` | Docker CPU Basic by default; optional paid GPU override, `krillin-asr-prod` |
 | R2 bucket | Separate bucket for dev | Separate bucket for prod |
 
-The code does **not** hardcode any of these names. All are read from environment variables at runtime.
+The code does **not** hardcode any of these names. All differences are read from environment variables, GitHub Secrets/Variables, Cloudflare Worker Secrets/Variables, and service configuration at runtime.
 
 ## Douyin/TikTok cookies for yt-dlp
 
